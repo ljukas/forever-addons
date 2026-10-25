@@ -1,0 +1,15 @@
+{
+  "[lua]": {
+    "editor.defaultFormatter": "JohnnyMorganz.stylua",
+    "editor.formatOnSave": true
+  },
+  "files.associations": {
+    "*.pkgmeta": "yaml"
+  },
+  "files.exclude": {
+    ".release": true
+  },
+  "search.exclude": {
+    ".cache": true
+  }
+}

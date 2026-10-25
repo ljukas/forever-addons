@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: __ADDON__
+## Notes: TODO: one-line description shown in the addon list.
+## Author: ljukas
+## Version: @project-version@
+## SavedVariables: __ADDON__DB
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua

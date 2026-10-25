@@ -1,0 +1,5 @@
+<Bindings>
+	<Binding name="FOREVERDEV_RELOADUI" header="FOREVERDEV" category="ADDONS">
+		ReloadUI()
+	</Binding>
+</Bindings>

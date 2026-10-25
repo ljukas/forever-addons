@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  STYLUA_VERSION: v2.6.0
+  LUALS_VERSION: 3.19.2
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install StyLua and LuaLS
+        run: |
+          mkdir -p "$HOME/bin" "$HOME/luals"
+          curl -fsSL "https://github.com/JohnnyMorganz/StyLua/releases/download/$STYLUA_VERSION/stylua-linux-x86_64.zip" -o /tmp/stylua.zip
+          unzip -q /tmp/stylua.zip -d "$HOME/bin"
+          curl -fsSL "https://github.com/LuaLS/lua-language-server/releases/download/$LUALS_VERSION/lua-language-server-$LUALS_VERSION-linux-x64.tar.gz" | tar -xz -C "$HOME/luals"
+          ln -s "$HOME/luals/bin/lua-language-server" "$HOME/bin/lua-language-server"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - run: scripts/lint.sh

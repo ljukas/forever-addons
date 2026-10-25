@@ -1,0 +1,4 @@
+---@meta
+-- LuaLS annotations for Forever-only APIs that Ketho's Mainline-based annotations
+-- (.cache/wow-api) don't cover. Confirm each signature against the generated docs in
+-- .cache/wow-ui-source/Interface/AddOns/Blizzard_APIDocumentationGenerated first.

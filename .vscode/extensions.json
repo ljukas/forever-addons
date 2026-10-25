@@ -1,0 +1,6 @@
+{
+  "recommendations": ["sumneko.lua", "johnnymorganz.stylua", "editorconfig.editorconfig"],
+  // .luarc.json already loads the WoW API annotations from .cache/wow-api (scripts/setup.sh),
+  // so Ketho's extension would only add a second, duplicate copy.
+  "unwantedRecommendations": ["ketho.wow-api"]
+}

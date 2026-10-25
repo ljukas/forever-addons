@@ -1,0 +1,9 @@
+# Packager output and tool caches
+.release/
+.cache/
+
+# Local machine config (see scripts/lib.sh)
+.env.local
+
+.DS_Store
+*.zip

@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: ForeverDev
+## Notes: Dev helpers: /rl, reload keybind, Lua error + log capture to SavedVariables (read by scripts/devlog.sh).
+## Author: ljukas
+## Version: dev
+## IconTexture: Interface\Icons\INV_Misc_Gear_01
+## Category: Development Tools
+## SavedVariables: ForeverDevDB
+## AddonCompartmentFunc: ForeverDev_OnAddonCompartmentClick
+
+ForeverDev.lua

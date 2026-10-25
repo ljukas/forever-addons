@@ -32,6 +32,34 @@ the AddOns list.
 VS Code: install the recommended extensions (LuaLS, StyLua). `.luarc.json` already points LuaLS
 at the WoW API annotations in `.cache/`.
 
+## Launch-day checklist (WoW Forever launches 4 November 2026)
+
+This repo was set up while the Forever beta was closed. Nothing in it has run in the game
+yet. Until launch, the only checks are `scripts/lint.sh` and Blizzard's Forever UI source
+in `.cache/`. Runtime behaviour (event timing, return values, layout, taint) is unverified.
+
+On launch day, before testing any real addon:
+
+1. **Refresh the API reference:** run `scripts/setup.sh`. It updates the Blizzard source to
+   the release build and prints the client's interface number.
+2. **Check the interface number:** run `scripts/lint.sh`. If launch changed the interface
+   (for example `16001` → `16002`), lint fails on every TOC. Update `## Interface:` in every
+   `addons/*/*.toc` and in `template/Addon/__ADDON__.toc`.
+3. **Re-link the addons:** run `scripts/link.sh`. Then start the game and confirm
+   **ForeverDev** shows up in the AddOns list. If it doesn't appear even after a full client
+   restart, the client may not follow symlinked folders. Ask Claude to switch `link.sh` to
+   copying files instead.
+4. **Try ForeverDev in game:**
+   - `/rl` reloads the UI.
+   - `/fdev` prints the session number and the list of commands.
+   - Bind *Key Bindings → AddOns → Reload UI* to a key and check it works.
+   - Click ForeverDev in the minimap addon compartment. It should reload the UI.
+5. **Check error capture:** run `/run error("devlog test")`, close the error popup, then
+   `/rl`. Ask Claude to run `scripts/devlog.sh`. It should show the session with the
+   `devlog test` error and a stack trace.
+6. **Report problems:** tell Claude about anything that failed, so the tooling gets fixed
+   before you rely on it for real addons. Then delete this section.
+
 ## Releasing
 
 Tag `<Addon>-vX.Y.Z` and push it. GitHub Actions packages the addon with the BigWigs

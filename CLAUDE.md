@@ -17,6 +17,11 @@ modern client). Claude writes most of the code; the user tests in game.
 - Do not assume a Retail or Classic API exists or behaves the same way. Verify it in
   `.cache/wow-ui-source` (below).
 
+**Not yet verified in game.** Forever launches 4 November 2026, and until then nothing here
+(ForeverDev, the devlog loop or any addon) has run in the client. Treat lint and
+`.cache/wow-ui-source` as the only checks, and say plainly what is untested. If the user
+reports launch-day results, work through the checklist in README.md.
+
 ## Looking up the API (do this before using any API you haven't verified)
 
 `scripts/setup.sh` fetches reference material into `.cache/` (gitignored; lint runs it if missing):

@@ -41,7 +41,7 @@ Companions: **[feature-workflow.md](./feature-workflow.md)** for adding capabili
 ### 3. Decide what to refactor *toward*
 **What:** A refactor needs a destination. We use the vocabulary of **John Ousterhout's *A Philosophy of Software Design***:
 - **Deepen modules**: powerful functionality behind a *simple* interface; push complexity *down*, not sideways into more small files.
-- **Hide information**: each module hides a decision (a format, an algorithm, a Blizzard quirk). ForeverMap's `Database.lua` is the model: it is the only file that knows the flat node layout. Target *information leakage*, where one decision is smeared across modules.
+- **Hide information**: each module hides a decision (a format, an algorithm, a Blizzard quirk). ForeverProfessions' `Database.lua` is the model: it is the only file that knows the flat node layout. Target *information leakage*, where one decision is smeared across modules.
 - **Reduce complexity** = reduce **dependencies** and **obscurity**, the two things that make change hard. "Does this lower net complexity?" is the acceptance test.
 - **Define errors out of existence**: redesign an API so an edge case *can't arise* instead of making every caller handle it, e.g. one module that resolves a possibly-secret value once instead of `issecretvalue` checks at every call site.
 - **The deletion test**: if you deleted this module, would complexity reconcentrate elsewhere? If not, it's *shallow* and shouldn't exist.
@@ -60,7 +60,7 @@ Companions: **[feature-workflow.md](./feature-workflow.md)** for adding capabili
 | **Branch by Abstraction** | Introduce an abstraction in front of the thing, migrate all callers to it, build the new impl behind it, flip the default, delete the old. | Replacing something **many call sites depend on** inside an addon: a shared helper, the `ns.DB` interface. |
 | **Parallel Change** (expand → migrate → contract) | Add the new form alongside the old, move all callers/data over, then remove the old. | Changing a widely-used interface, or the **SavedVariables layout**: the migration on load is the "migrate" step, and the reader of the old shape goes only once the migration has shipped. |
 
-**Code shared between addons.** Each addon ships as its own zip, so there is no shared runtime module. Code two addons need is either copied or packaged as a library through `.pkgmeta` externals. Decide that explicitly; don't let an addon reach into another's globals.
+**Code shared between addons.** Each addon ships as its own zip, so there is no shared runtime module. Code two addons need is either copied, packaged as a library through `.pkgmeta` externals, or kept in one addon that the other lists under `## Dependencies:` and calls through its public API global (ForeverMap uses `ForeverProfessions` that way; see CLAUDE.md). Decide that explicitly; don't let an addon reach into another's internals.
 
 #### Replacing hand-rolled code with a Blizzard facility or a library
 A swap is a refactor *only if behavior stays the same*, and Blizzard's facilities rarely match hand-rolled code exactly. Treat it as Branch by Abstraction around the old helper:

@@ -64,7 +64,7 @@ scripts/lint.sh                     # StyLua check + LuaLS diagnostics + TOC che
 stylua addons template types        # auto-format
 scripts/link.sh                     # (re)symlink every addon into _forever_/Interface/AddOns
 scripts/devlog.sh [--errors] [--all] [--addon NAME] [--tag TAG]  # print what ForeverDev captured in game (errors, taint, logs)
-scripts/observed.sh [Addon] [filter] # print the evidence addons keep through ForeverDev (e.g. ForeverMap's gathers)
+scripts/observed.sh [Addon] [filter] # print the evidence addons keep through ForeverDev (e.g. ForeverProfessions' gathers)
 scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about DoTs/HoTs (IDs, ticks, intervals, misses)
 scripts/package.sh MyAddon [v1.0.0] # build the release zip locally into .release/MyAddon/
 scripts/check-pr-title.sh "<title>" # check a PR title is a Conventional Commit (CI runs it on every PR)
@@ -135,6 +135,10 @@ default. `scripts/worktree.sh game` points them at the current worktree for in-g
   which exposes its API as the `ForeverDev` global instead, takes only `ADDON_NAME`). Create no
   globals except SavedVariables and names the client requires (`SLASH_*`, `BINDING_*`,
   TOC-referenced functions). Prefix all of those with the addon name.
+- An addon other addons build on exposes its API as one global named after it, defined last
+  in its `API.lua`: `ForeverProfessions` records gathers and skills, and ForeverMap draws them
+  through it. The dependent lists it under `## Dependencies:` and calls the API from its own
+  `ADDON_LOADED` on, never the provider's `ns`.
 - Prefer modern client facilities over libraries: `EventUtil.ContinueOnAddOnLoaded`,
   `EventRegistry`, `CreateFrame` with mixins, `C_Timer`, `Settings` (options panels),
   `MenuUtil` (context menus). The repo uses no Ace3 or libs by default. If one is needed, add
@@ -154,7 +158,8 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 - **Types:** `feat` (new behaviour players notice), `fix`, `perf`, `refactor`, `docs`, `style`,
   `test`, `build`, `ci`, `chore`, `revert`.
-- **Scopes:** the addon folder name in lowercase (`forevermap`, `forevercombat`, `foreverdev`),
+- **Scopes:** the addon folder name in lowercase (`forevermap`, `foreverprofessions`,
+  `forevercombat`, `foreverdev`),
   or `ci`, `scripts`, `template`, `types`, `deps`. Separate several with commas. Leave the
   scope out for repo-wide changes.
 - **Description:** imperative, lowercase start, no trailing period. Keep the whole title within

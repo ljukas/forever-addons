@@ -17,7 +17,7 @@ local function ResetPin(pool, pin)
 	pin:HideOwnedTooltip()
 	Pool_HideAndClearAnchors(pool, pin)
 end
-local pool = CreateUnsecuredFramePool("Frame", container, "ForeverMapMinimapPinTemplate", ResetPin)
+local pool = CreateUnsecuredFramePool("Frame", container, "ForeverProfessionsMinimapPinTemplate", ResetPin)
 
 -- Active pins by node key, so a pin under the cursor survives updates while moving.
 local pinsByKey = {}
@@ -50,7 +50,7 @@ local function Draw(mapID, px, py, facing, radius)
 	local sin, cos = math.sin(facing), math.cos(facing)
 
 	generation = generation + 1
-	ns.DB.ForEachShownNode(mapID, function(layer, name, index, x, y, count)
+	ns.Layers.ForEachShownNode(mapID, function(layer, name, index, x, y, count)
 		-- Yards east and north of the player. Map y grows southwards.
 		local dx = (x - px) * width
 		local dy = (py - y) * height
@@ -61,7 +61,7 @@ local function Draw(mapID, px, py, facing, radius)
 		local key = name .. index
 		local pin = pinsByKey[key]
 		if not pin then
-			pin = pool:Acquire() --[[@as ForeverMapPinMixin]]
+			pin = pool:Acquire() --[[@as ForeverProfessionsPinMixin]]
 			pin:SetScale(PIN_SCALE)
 			pin:Show()
 			pinsByKey[key] = pin

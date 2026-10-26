@@ -1,4 +1,4 @@
-# ForeverMap
+# ForeverProfessions
 
 ## Unreleased
 
@@ -10,4 +10,4 @@
 - Hovering a tracked herb or mineral on the minimap also shows the required skill.
 - A button on the world map shows or hides known nodes there.
 - Toggles for herbs and minerals in the minimap tracking menu, the world map filter menu
-  and Options → AddOns → ForeverMap.
+  and Options → AddOns → ForeverProfessions.

@@ -45,7 +45,7 @@ ns.L = {
 
 -- Internal events between the modules. Callbacks are called as func(owner, ...).
 --   NodesChanged(mapID) a node was recorded or gathered again on that map
---   OptionChanged()     a ForeverMapDB.settings value changed
+--   OptionChanged()     a ForeverProfessionsDB.settings value changed
 --   SkillsChanged()     the player's profession ranks may have changed
 ns.callbacks = CreateFromMixins(CallbackRegistryMixin)
 ns.callbacks:OnLoad()
@@ -70,7 +70,7 @@ function ns.GetMapSize(mapID)
 	end
 end
 
--- Modules register setup that needs ForeverMapDB. It runs in TOC order once the
+-- Modules register setup that needs ForeverProfessionsDB. It runs in TOC order once the
 -- SavedVariables have loaded.
 local initializers = {}
 
@@ -79,8 +79,8 @@ function ns.OnInitialize(func)
 end
 
 EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
-	ForeverMapDB = ForeverMapDB or {}
-	ns.db = ForeverMapDB
+	ForeverProfessionsDB = ForeverProfessionsDB or {}
+	ns.db = ForeverProfessionsDB
 	ns.DB.Migrate(ns.db)
 
 	for _, func in ipairs(initializers) do

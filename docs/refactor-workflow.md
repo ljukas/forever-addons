@@ -41,7 +41,7 @@ Companions: **[feature-workflow.md](./feature-workflow.md)** for adding capabili
 ### 3. Decide what to refactor *toward*
 **What:** A refactor needs a destination. We use the vocabulary of **John Ousterhout's *A Philosophy of Software Design***:
 - **Deepen modules**: powerful functionality behind a *simple* interface; push complexity *down*, not sideways into more small files.
-- **Hide information**: each module hides a decision (a format, an algorithm, a Blizzard quirk). ForeverMap's `Database.lua` is the model: it is the only file that knows the flat node layout. Target *information leakage*, where one decision is smeared across modules.
+- **Hide information**: each module hides a decision (a format, an algorithm, a Blizzard quirk). ForeverProfessions' `Database.lua` is the model: it is the only file that knows the flat node layout. Target *information leakage*, where one decision is smeared across modules.
 - **Reduce complexity** = reduce **dependencies** and **obscurity**, the two things that make change hard. "Does this lower net complexity?" is the acceptance test.
 - **Define errors out of existence**: redesign an API so an edge case *can't arise* instead of making every caller handle it, e.g. one module that resolves a possibly-secret value once instead of `issecretvalue` checks at every call site.
 - **The deletion test**: if you deleted this module, would complexity reconcentrate elsewhere? If not, it's *shallow* and shouldn't exist.

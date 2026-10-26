@@ -2,13 +2,13 @@ local ADDON_NAME, ns = ...
 
 local L = ns.L
 
--- Options > AddOns > ForeverMap. The registered settings write straight into
--- ForeverMapDB.settings, and every change (from the panel, the map menus or the world
+-- Options > AddOns > ForeverProfessions. The registered settings write straight into
+-- ForeverProfessionsDB.settings, and every change (from the panel, the map menus or the world
 -- map toggle) goes through Settings.SetValue so they all stay in sync.
 ns.Options = {}
 
 local function GetVariable(key)
-	return "FOREVERMAP_" .. key:upper()
+	return "FOREVERPROFESSIONS_" .. key:upper()
 end
 
 function ns.Options.Get(key)

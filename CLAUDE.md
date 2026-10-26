@@ -64,7 +64,7 @@ scripts/lint.sh                     # StyLua check + LuaLS diagnostics + TOC che
 stylua addons template types        # auto-format
 scripts/link.sh                     # (re)symlink every addon into _forever_/Interface/AddOns
 scripts/devlog.sh [--errors] [--all] [--addon NAME] [--tag TAG]  # print what ForeverDev captured in game (errors, taint, logs)
-scripts/observed.sh [Addon] [filter] # print the evidence addons keep through ForeverDev (e.g. ForeverMap's gathers)
+scripts/observed.sh [Addon] [filter] # print the evidence addons keep through ForeverDev (e.g. ForeverProfessions' gathers)
 scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about DoTs/HoTs (IDs, ticks, intervals, misses)
 scripts/package.sh MyAddon [v1.0.0] # build the release zip locally into .release/MyAddon/
 scripts/check-pr-title.sh "<title>" # check a PR title is a Conventional Commit (CI runs it on every PR)
@@ -154,7 +154,7 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 - **Types:** `feat` (new behaviour players notice), `fix`, `perf`, `refactor`, `docs`, `style`,
   `test`, `build`, `ci`, `chore`, `revert`.
-- **Scopes:** the addon folder name in lowercase (`forevermap`, `forevercombat`, `foreverdev`),
+- **Scopes:** the addon folder name in lowercase (`foreverprofessions`, `forevercombat`, `foreverdev`),
   or `ci`, `scripts`, `template`, `types`, `deps`. Separate several with commas. Leave the
   scope out for repo-wide changes.
 - **Description:** imperative, lowercase start, no trailing period. Keep the whole title within

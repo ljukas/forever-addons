@@ -5,7 +5,7 @@
 	<!-- Node pin, laid out like Blizzard's round tracking button (WorldMapTrackingPinButtonTemplate):
 	     dark minimap background, the profession tracking atlas and the gold tracking ring.
 	     Mouse motion only, so clicks still reach the map and the minimap. -->
-	<Frame name="ForeverMapPinTemplate" mixin="ForeverMapPinMixin" enableMouseMotion="true" virtual="true">
+	<Frame name="ForeverProfessionsPinTemplate" mixin="ForeverProfessionsPinMixin" enableMouseMotion="true" virtual="true">
 		<Size x="32" y="32"/>
 		<Layers>
 			<Layer level="BACKGROUND">
@@ -39,9 +39,9 @@
 	</Frame>
 
 	<!-- World map pins get their mouse scripts from the map canvas (AcquirePin). -->
-	<Frame name="ForeverMapWorldPinTemplate" inherits="ForeverMapPinTemplate" mixin="ForeverMapWorldPinMixin" hidden="true" virtual="true"/>
+	<Frame name="ForeverProfessionsWorldPinTemplate" inherits="ForeverProfessionsPinTemplate" mixin="ForeverProfessionsWorldPinMixin" hidden="true" virtual="true"/>
 
-	<Frame name="ForeverMapMinimapPinTemplate" inherits="ForeverMapPinTemplate" virtual="true">
+	<Frame name="ForeverProfessionsMinimapPinTemplate" inherits="ForeverProfessionsPinTemplate" virtual="true">
 		<Scripts>
 			<OnEnter method="OnMouseEnter"/>
 			<OnLeave method="OnMouseLeave"/>

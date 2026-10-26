@@ -1,4 +1,4 @@
-package-as: ForeverMap
+package-as: ForeverProfessions
 
 # Dev/ holds probes that only log; releases leave it out (see CLAUDE.md).
 ignore:

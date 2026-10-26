@@ -6,7 +6,7 @@
 # The game only writes SavedVariables on /reload, logout or exit, so /rl first.
 #
 # Usage: scripts/observed.sh [addon] [filter]
-#   addon   e.g. ForeverMap; without it, lists the addons that observed something
+#   addon   e.g. ForeverProfessions; without it, lists the addons that observed something
 #   filter  only entries whose name contains it (e.g. a node or spell name)
 # Both ignore case.
 set -euo pipefail

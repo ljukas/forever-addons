@@ -17,7 +17,7 @@ In game, enable **ForeverDev**. It gives you:
 - `/rl` to reload the UI. There's also a "Reload UI" keybind (Key Bindings → AddOns) and a
   click target in the minimap addon compartment.
 - Lua errors and blocked actions captured to disk, with the addons' log lines. Read them with
-  `scripts/devlog.sh` (`--addon ForeverMap`, `--tag GATHER` to narrow it down).
+  `scripts/devlog.sh` (`--addon ForeverProfessions`, `--tag GATHER` to narrow it down).
 - Evidence the addons keep across sessions, such as gathering spell IDs or DoT tick intervals.
   Read it with `scripts/observed.sh [Addon]` or `scripts/combat-knowledge.sh`.
 - Probes of what the client restricts where (restriction states, secret unit values), logged
@@ -75,7 +75,7 @@ On launch day, before testing any real addon:
 
 Every change goes through a pull request whose title is a
 [Conventional Commit](https://www.conventionalcommits.org/), e.g.
-`feat(forevermap): show node counts on the world map`. PRs are squash-merged, so each one
+`feat(foreverprofessions): show node counts on the world map`. PRs are squash-merged, so each one
 becomes a single commit on `main`. CI checks the title. See
 [CLAUDE.md](CLAUDE.md#commits-and-pull-requests) for the types and scopes.
 

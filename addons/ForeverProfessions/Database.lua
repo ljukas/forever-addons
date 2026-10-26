@@ -1,11 +1,12 @@
 local ADDON_NAME, ns = ...
 
--- ForeverMapDB layout (account-wide):
+-- ForeverProfessionsDB layout (account-wide):
 --   version  = schema version, see migrations below
 --   settings = { [key] = boolean }, owned by Options.lua
---   nodes    = { [uiMapID] = { [layerKey] = { [nodeName] = { x1, y1, count1, x2, y2, count2, ... } } } }
--- x, y are normalized positions on that zone map, rounded to 4 decimals. count is how
--- many times the node has been gathered. Only this file knows the flat layout.
+--   nodes    = { [uiMapID] = { [profession] = { [nodeName] = { x1, y1, count1, x2, y2, count2, ... } } } }
+-- profession is the node's key in Professions.lua. x, y are normalized positions on that zone
+-- map, rounded to 4 decimals. count is how many times the node has been gathered. Only this
+-- file knows the flat layout.
 
 ns.DB = {}
 
@@ -32,21 +33,17 @@ function ns.DB.Migrate(db)
 	end
 end
 
--- Calls func(layer, name, index, x, y, count) for every node on the map whose layer the
--- player has turned on. index is unique per name.
-function ns.DB.ForEachShownNode(mapID, func)
+-- Calls func(name, index, x, y, count) for every node of the profession recorded on the
+-- map. index is unique per name.
+function ns.DB.ForEachNode(mapID, profession, func)
 	local map = ns.db.nodes[mapID]
-	if not map then
+	local nodes = map and map[profession]
+	if not nodes then
 		return
 	end
-	for _, layer in ns.Layers.Enumerate() do
-		local nodes = ns.Options.Get(layer.setting) and map[layer.key]
-		if nodes then
-			for name, nodeData in pairs(nodes) do
-				for i = 1, #nodeData, STRIDE do
-					func(layer, name, i, nodeData[i], nodeData[i + 1], nodeData[i + 2])
-				end
-			end
+	for name, nodeData in pairs(nodes) do
+		for i = 1, #nodeData, STRIDE do
+			func(name, i, nodeData[i], nodeData[i + 1], nodeData[i + 2])
 		end
 	end
 end
@@ -58,7 +55,7 @@ end
 -- Records a gather of a known node. Returns true if the node was new, false if it was
 -- an existing node gathered again.
 function ns.DB.Add(mapID, name, x, y)
-	local _, layer = ns.Layers.GetNode(name)
+	local node = ns.Professions.GetNode(name)
 	x, y = Round(x), Round(y)
 
 	local width, height = ns.GetMapSize(mapID)
@@ -67,8 +64,8 @@ function ns.DB.Add(mapID, name, x, y)
 
 	local map = ns.db.nodes[mapID] or {}
 	ns.db.nodes[mapID] = map
-	local nodes = map[layer.key] or {}
-	map[layer.key] = nodes
+	local nodes = map[node.profession] or {}
+	map[node.profession] = nodes
 	local nodeData = nodes[name] or {}
 	nodes[name] = nodeData
 

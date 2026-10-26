@@ -5,33 +5,33 @@ local L = ns.L
 -- World map button that shows or hides known nodes on the map, the same option as
 -- "Show on World Map" in the options panel. It behaves like Blizzard's map pin button
 -- (WorldMapTrackingPinButtonMixin).
----@class ForeverMapWorldMapToggleMixin : Button
+---@class ForeverProfessionsWorldMapToggleMixin : Button
 ---@field Icon Texture
 ---@field IconOverlay Texture
 ---@field ActiveTexture Texture
-ForeverMapWorldMapToggleMixin = {}
+ForeverProfessionsWorldMapToggleMixin = {}
 
-function ForeverMapWorldMapToggleMixin:OnLoad()
+function ForeverProfessionsWorldMapToggleMixin:OnLoad()
 	ns.callbacks:RegisterCallback("OptionChanged", self.Refresh, self)
 	self:Refresh()
 end
 
 -- Also called by the world map for every overlay frame when the map changes.
-function ForeverMapWorldMapToggleMixin:Refresh()
+function ForeverProfessionsWorldMapToggleMixin:Refresh()
 	self.ActiveTexture:SetShown(ns.Options.Get("showWorldMap"))
 end
 
-function ForeverMapWorldMapToggleMixin:OnMouseDown()
+function ForeverProfessionsWorldMapToggleMixin:OnMouseDown()
 	self.Icon:SetPoint("TOPLEFT", 8, -8)
 	self.IconOverlay:Show()
 end
 
-function ForeverMapWorldMapToggleMixin:OnMouseUp()
+function ForeverProfessionsWorldMapToggleMixin:OnMouseUp()
 	self.Icon:SetPoint("TOPLEFT", 7, -6)
 	self.IconOverlay:Hide()
 end
 
-function ForeverMapWorldMapToggleMixin:OnClick()
+function ForeverProfessionsWorldMapToggleMixin:OnClick()
 	ns.Options.Toggle("showWorldMap")
 	if ns.Options.Get("showWorldMap") then
 		PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
@@ -41,7 +41,7 @@ function ForeverMapWorldMapToggleMixin:OnClick()
 	self:OnEnter()
 end
 
-function ForeverMapWorldMapToggleMixin:OnEnter()
+function ForeverProfessionsWorldMapToggleMixin:OnEnter()
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 	GameTooltip_SetTitle(GameTooltip, L.KNOWN_NODES)
 	GameTooltip_AddNormalLine(GameTooltip, L.SHOW_ON_WORLD_MAP_TOOLTIP)
@@ -52,7 +52,7 @@ end
 
 ns.OnInitialize(function()
 	EventUtil.ContinueOnAddOnLoaded("Blizzard_WorldMap", function()
-		local button = WorldMapFrame:AddOverlayFrame("ForeverMapWorldMapToggleTemplate", "BUTTON")
+		local button = WorldMapFrame:AddOverlayFrame("ForeverProfessionsWorldMapToggleTemplate", "BUTTON")
 		-- Forever puts the map pin button in the canvas's top-left corner
 		-- (Blizzard_WorldMap/Camelot/Blizzard_WorldMap.lua, AdjustOverlayFrames).
 		local pinButton = WorldMapFrame.WorldMapTrackingPinButton

@@ -3,6 +3,10 @@
 Monorepo of self-made addons for **World of Warcraft: Forever** (Vanilla-era content on the
 modern client). Claude writes most of the code; the user tests in game.
 
+**Process lives in `docs/{feature,refactor,bugfix}-workflow.md`**, runnable as `/feature-workflow <idea>`,
+`/refactor-workflow <target>` and `/bugfix-workflow <symptom>` (thin skills in `.claude/skills/` that
+load the doc). Every one starts in a fresh worktree from `origin/main` (see "Worktrees" below).
+
 ## The Forever client
 
 - Interface **16001** (client 1.60.x). TOCs use `## Interface: 16001`; `scripts/lint.sh` fails if
@@ -64,6 +68,7 @@ scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about Do
 scripts/package.sh MyAddon [v1.0.0] # build the release zip locally into .release/MyAddon/
 scripts/check-pr-title.sh "<title>" # check a PR title is a Conventional Commit (CI runs it on every PR)
 scripts/setup.sh                    # refresh .cache/ (run after a game patch)
+scripts/worktree.sh setup|game|restore|status  # share .cache/ with a worktree; move the game's addon links to it and back
 ```
 
 `WOW_DIR` defaults to `/Applications/World of Warcraft/_forever_`. Override it in `.env.local`.
@@ -83,6 +88,15 @@ SavedVariables (and so the devlog) are only written on `/reload`, logout or exit
 the result of a test, ask the user to `/rl` *after* doing it. Instrument code with
 `ns.log(...)` (from the template) rather than `print` when Claude needs to see the output.
 It is a no-op when ForeverDev isn't loaded.
+
+### Worktrees
+
+Several Claude sessions work in this repo at once, so all work happens in a worktree, never in
+the main checkout: `EnterWorktree` (creates `.claude/worktrees/<name>` from `origin/main`), rename
+the branch to `<type>/<slug>`, then `scripts/worktree.sh setup` to link `.cache/` and `.env.local`
+from the main checkout. The game's AddOns links point at one checkout at a time, the main one by
+default. `scripts/worktree.sh game` points them at the current worktree for in-game testing, and
+`scripts/worktree.sh restore` hands them back. Run `restore` before removing the worktree.
 
 ## Code conventions
 

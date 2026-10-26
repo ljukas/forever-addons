@@ -23,7 +23,12 @@ function ns.log(tag, ...)
 end
 
 -- enUS only for now. Blizzard's own global strings are used where one exists.
-ns.L = {}
+ns.L = {
+	SHOW_NODE_ICONS = "Show icons on tracked nodes",
+	SHOW_NODE_ICONS_TOOLTIP = "Show the herbs and ore your tracking finds as icons on the minimap.",
+	NODE_ICON_SIZE = "Icon size",
+	NODE_ICON_SIZE_TOOLTIP = "Size of the node icons on the minimap. Larger icons can cover the arrows that show a node above or below you.",
+}
 
 -- Internal events between the modules. Callbacks are called as func(owner, ...).
 --   OptionChanged()    a ForeverMapDB.settings value changed

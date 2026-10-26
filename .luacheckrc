@@ -43,6 +43,7 @@ files["addons/ForeverDev/**"].globals = {
 
 files["addons/ForeverMap/**"].globals = {
 	"ForeverMapDB",
+	"ForeverMapNodeIconMixin",
 }
 
 files["addons/ForeverProfessions/**"].globals = {

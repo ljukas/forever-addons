@@ -121,6 +121,14 @@ groups again on a finer grid). How to find centers and split groups is left to t
 these requirements: the math lives in pure functions apart from frame code, so a reviewer can
 check it by reading; it logs what it measured (below) so the result can be checked in game.
 
+As built (amended after the step review): a sweep spans many frames, so every probe hit is turned
+into a world position in the frame it is read, and each group's fine probes are laid out in the
+world and projected with the current view, so moving or turning during a sweep doesn't move a dot.
+A group's fine probes only cover points nearer its own coarse hits than another same-name group's.
+One dot's area is measured in every sweep from the median area of its round groups; a stretched
+group, or a round one well over a dot's area (a ring of nodes), is split with k-means. A dot cut
+off at the minimap's rim is placed slightly inward, but its icon is culled there anyway.
+
 ### Sticking to the dot
 
 When a dot is found, its minimap offset is converted to a position on the zone map: minimap
@@ -180,14 +188,15 @@ sizes can cover the arrows.
 ### Dev logging (launch checks)
 
 Through the ForeverDev shim (`ns.log`, `ns.dev:LogOnce`), dev-only work inside
-`if ns.dev.enabled`:
-- the raw text of tooltip lines once per distinct line (do node lines carry a texture escape that
-  marks them as tracking nodes? If so, the name list could go later);
-- per scan: points probed, hits, dots found, time spent;
-- per new dot: fitted center and size in minimap pixels (to set the default icon size and check
-  placement);
-- names seen under the cursor that aren't in the list while a finder is on (nodes the list
-  misses).
+`if ns.dev.enabled`. ForeverDev keeps one 500-line buffer for every addon and its errors, so
+these log once or in summary rather than every sweep:
+- `LINE`: each distinct tooltip line and color once (do node lines carry a texture escape that
+  marks them as tracking nodes? Is a cave node's name gray?);
+- `MISS`: each name under a probe that isn't in the list, once;
+- `DOT`: each kind of dot once (name, measured radius in minimap pixels, round, how many dots);
+- `SCAN`: a summary every 20 sweeps (probes and dots per sweep, time spent inside the sweep and
+  the worst single frame, the measured dot radius);
+- `LOOT`: what gathering removed (and how far the nearest icon was).
 
 ## Left to the builder
 

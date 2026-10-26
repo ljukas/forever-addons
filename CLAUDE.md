@@ -69,7 +69,7 @@ scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about Do
 scripts/package.sh MyAddon [v1.0.0] # build the release zip locally into .release/MyAddon/
 scripts/check-pr-title.sh "<title>" # check a PR title is a Conventional Commit (CI runs it on every PR)
 scripts/setup.sh                    # refresh .cache/ (run after a game patch)
-scripts/worktree.sh setup|game|restore|status  # share .cache/ with a worktree; move the game's addon links to it and back
+scripts/worktree.sh <command>       # setup, game, restore or status: share .cache/ with a worktree, move the game's addon links to it and back
 ```
 
 `WOW_DIR` defaults to `/Applications/World of Warcraft/_forever_`. Override it in `.env.local`.

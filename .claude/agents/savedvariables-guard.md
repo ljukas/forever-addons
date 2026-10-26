@@ -15,7 +15,7 @@ Read `addons/ForeverMap/Database.lua` first; it is the reference. Each addon's D
 
 1. **Survey changes** to stored data and player-facing names:
    - `git fetch origin`, then `git diff $(git merge-base origin/main HEAD) -- addons/` (committed, staged and unstaged work), plus `git ls-files --others --exclude-standard -- addons/` for new files git doesn't track yet;
-   - in that diff, look for `SavedVariables`, `ns.db`, `DB_VERSION`, `migrations`, `defaults`, `SLASH_`, `BINDING_` and `Settings.Register` in any file, subfolders such as `Engine/` included. Diff line numbers aren't file line numbers: re-grep the files (`grep -rn 'ns\.db' addons/<Name>`) for the lines you cite.
+   - in that diff **and in every untracked file** (read them whole; a new addon's TOC or `Database.lua` may exist only there), look for `SavedVariables`, `ns.db`, `DB_VERSION`, `migrations`, `defaults`, `SLASH_`, `BINDING_` and `Settings.Register` in any file, subfolders such as `Engine/` included. Diff line numbers aren't file line numbers: re-grep the files (`grep -rn 'ns\.db' addons/<Name>`) for the lines you cite.
    If nothing stored or player-facing changed, say so and stop.
 
    **Released yet?** For each affected addon, run `git tag -l '<Name>-v*'`. An addon with no release tag has no players and no saved data in the wild: report the migration, edited-migration and rename blockers below as suggestions marked "unreleased". Everything else still applies.

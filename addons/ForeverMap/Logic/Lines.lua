@@ -14,8 +14,10 @@ function ns.Lines.IsGray(r, g, b)
 	return high - low < 0.06 and high < 0.9
 end
 
-local function Trim(text)
-	return text:match("^%s*(.-)%s*$")
+-- One name from a tooltip line, without its color and texture escapes and padding.
+function ns.Lines.Clean(part)
+	local name = part:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|T.-|t", "")
+	return name:match("^%s*(.-)%s*$")
 end
 
 -- Returns the known nodes named in one tooltip line, as a list of { name, gray }. A line can
@@ -30,7 +32,7 @@ function ns.Lines.Parse(text, r, g, b)
 		if hexR then
 			gray = ns.Lines.IsGray(tonumber(hexR, 16) / 255, tonumber(hexG, 16) / 255, tonumber(hexB, 16) / 255)
 		end
-		local name = Trim(part:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|T.-|t", ""))
+		local name = ns.Lines.Clean(part)
 		if ns.Nodes[name] and not seen[name] then
 			seen[name] = true
 			table.insert(found, { name = name, gray = gray })

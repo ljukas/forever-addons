@@ -50,7 +50,7 @@ local function Draw(mapID, px, py, facing, radius)
 	local sin, cos = math.sin(facing), math.cos(facing)
 
 	generation = generation + 1
-	ns.DB.ForEachShownNode(mapID, function(layer, name, index, x, y, count)
+	ns.Layers.ForEachShownNode(mapID, function(layer, name, index, x, y, count)
 		-- Yards east and north of the player. Map y grows southwards.
 		local dx = (x - px) * width
 		local dy = (py - y) * height
@@ -116,9 +116,9 @@ local function MarkDirty()
 end
 
 ns.OnInitialize(function()
-	ns.callbacks:RegisterCallback("NodesChanged", MarkDirty)
+	ForeverProfessions.RegisterCallback("NodesChanged", MarkDirty)
 	ns.callbacks:RegisterCallback("OptionChanged", MarkDirty)
-	ns.callbacks:RegisterCallback("SkillsChanged", MarkDirty)
+	ForeverProfessions.RegisterCallback("SkillsChanged", MarkDirty)
 
 	-- Only runs while the minimap is shown, since the container is its child.
 	container:SetScript("OnUpdate", function(_, elapsed)

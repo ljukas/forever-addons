@@ -6,21 +6,18 @@
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\INV_Misc_Map_01
 ## Category: Map & Minimap
+## Dependencies: ForeverProfessions
 ## SavedVariables: ForeverMapDB
 #@do-not-package@
 ## OptionalDeps: ForeverDev
 #@end-do-not-package@
 
 Core.lua
-Data/GatherNodes.lua
 Database.lua
 Layers.lua
-Professions.lua
-Knowledge.lua
 Tooltip.lua
 Options.lua
 Menus.lua
-Sources/GatherRecorder.lua
 UI/Pin.xml
 UI/WorldMapProvider.lua
 UI/WorldMapToggle.xml

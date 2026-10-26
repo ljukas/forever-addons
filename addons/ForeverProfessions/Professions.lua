@@ -4,7 +4,7 @@ local L = ns.L
 
 ns.Professions = {}
 
--- The gathering professions, by the key ns.GatherNodes and ForeverMapDB.nodes use.
+-- The gathering professions, by the key ns.GatherNodes and ForeverProfessionsDB.nodes use.
 --   name        localized profession name, used when the skill line ID doesn't match
 --   skillLineID profession skill line, compared against the node's required skill
 -- Skill line IDs are the Classic ones and still need checking in Forever.

@@ -7,7 +7,7 @@ ns.Tooltip = {}
 -- Adds "Requires <Profession> (<skill>)", red when the player is too low, followed by
 -- the player's current skill.
 function ns.Tooltip.AddRequirement(tooltip, nodeName, withName)
-	local required, rank, profession, tooLow = ns.Professions.GetRequirement(nodeName)
+	local required, rank, profession, tooLow = ForeverProfessions.GetRequirement(nodeName)
 	if not required then
 		return
 	end
@@ -59,7 +59,7 @@ local function OnMinimapMouseover(tooltip, data)
 		if text and not issecretvalue(text) then
 			for part in text:gmatch("[^\n]+") do
 				local name = StripEscapes(part)
-				if ns.Professions.GetNode(name) and not tContains(matchedNames, name) then
+				if ForeverProfessions.IsNode(name) and not tContains(matchedNames, name) then
 					table.insert(matchedNames, name)
 				end
 			end

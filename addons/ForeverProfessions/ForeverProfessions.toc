@@ -12,3 +12,9 @@
 #@end-do-not-package@
 
 Core.lua
+Data/GatherNodes.lua
+Database.lua
+Professions.lua
+Knowledge.lua
+Sources/GatherRecorder.lua
+API.lua

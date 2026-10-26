@@ -3,9 +3,8 @@ local ADDON_NAME, ns = ...
 -- Dev-only logging, probing and evidence through ForeverDev (addons/ForeverDev/ForeverDev.lua,
 -- scripts/devlog.sh). Without ForeverDev, ns.dev is inert: ns.dev.enabled is false and every
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
---   LOADED            Core.lua
---   GATHER NEW AGAIN  Sources/GatherRecorder.lua
---   SKILL UNLISTED    Knowledge.lua, which keeps the evidence
+--   LOADED  Core.lua
+-- Gathering is logged by ForeverProfessions.
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.
@@ -27,8 +26,6 @@ end
 ns.L = {
 	HERBS = "Herbs",
 	MINERALS = "Minerals",
-	HERBALISM = "Herbalism",
-	MINING = "Mining",
 	KNOWN_NODES = "Known Gathering Nodes",
 	SHOW_ON_WORLD_MAP = "Show on World Map",
 	SHOW_ON_WORLD_MAP_TOOLTIP = "Show the gathering nodes you have found on the world map.",
@@ -44,12 +41,11 @@ ns.L = {
 }
 
 -- Internal events between the modules. Callbacks are called as func(owner, ...).
---   NodesChanged(mapID) a node was recorded or gathered again on that map
---   OptionChanged()     a ForeverMapDB.settings value changed
---   SkillsChanged()     the player's profession ranks may have changed
+--   OptionChanged()  a ForeverMapDB.settings value changed
+-- Node and skill changes come from ForeverProfessions.RegisterCallback.
 ns.callbacks = CreateFromMixins(CallbackRegistryMixin)
 ns.callbacks:OnLoad()
-ns.callbacks:GenerateCallbackEvents({ "NodesChanged", "OptionChanged", "SkillsChanged" })
+ns.callbacks:GenerateCallbackEvents({ "OptionChanged" })
 
 -- Returns the player's map ID and normalized x, y on it, or nil where the client has
 -- no map position (instances, for example).

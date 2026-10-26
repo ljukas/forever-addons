@@ -5,7 +5,7 @@ local L = ns.L
 -- A layer is one profession's nodes drawn on the maps. The renderers, menus and options
 -- iterate the registered layers, so showing a profession's nodes takes a Register call.
 --   key         unique layer key
---   profession  the profession whose nodes it shows, a key in Professions.lua
+--   profession  the ForeverProfessions profession whose nodes it shows
 --   label       shown in the menus and the options panel
 --   atlas       pin icon; the same atlases Blizzard's tracking menu uses
 --   setting     ForeverMapDB.settings key that toggles the layer
@@ -24,6 +24,18 @@ end
 
 function ns.Layers.Enumerate()
 	return ipairs(layers)
+end
+
+-- Calls func(layer, name, index, x, y, count) for every node on the map whose layer the
+-- player has turned on. index is unique per name.
+function ns.Layers.ForEachShownNode(mapID, func)
+	for _, layer in ipairs(layers) do
+		if ns.Options.Get(layer.setting) then
+			ForeverProfessions.ForEachNode(mapID, layer.profession, function(name, index, x, y, count)
+				func(layer, name, index, x, y, count)
+			end)
+		end
+	end
 end
 
 ns.Layers.Register({

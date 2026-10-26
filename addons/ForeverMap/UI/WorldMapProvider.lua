@@ -11,9 +11,9 @@ local DataProviderMixin = CreateFromMixins(MapCanvasDataProviderMixin)
 
 function DataProviderMixin:OnAdded(owningMap)
 	MapCanvasDataProviderMixin.OnAdded(self, owningMap)
-	ns.callbacks:RegisterCallback("NodesChanged", self.OnNodesChanged, self)
+	ForeverProfessions.RegisterCallback("NodesChanged", self.OnNodesChanged, self)
 	ns.callbacks:RegisterCallback("OptionChanged", self.RefreshIfShown, self)
-	ns.callbacks:RegisterCallback("SkillsChanged", self.OnSkillsChanged, self)
+	ForeverProfessions.RegisterCallback("SkillsChanged", self.OnSkillsChanged, self)
 end
 
 function DataProviderMixin:RemoveAllData()
@@ -27,7 +27,7 @@ function DataProviderMixin:RefreshAllData()
 	end
 
 	local map = self:GetMap()
-	ns.DB.ForEachShownNode(map:GetMapID(), function(layer, name, _, x, y, count)
+	ns.Layers.ForEachShownNode(map:GetMapID(), function(layer, name, _, x, y, count)
 		map:AcquirePin(PIN_TEMPLATE, layer, name, count):SetPosition(x, y)
 	end)
 end

@@ -24,7 +24,7 @@ done
 file="$(ls -t "$WOW_DIR"/WTF/Account/*/SavedVariables/ForeverDev.lua 2>/dev/null | head -n1 || true)"
 [[ -n "$file" ]] || die "no ForeverDev SavedVariables under $WOW_DIR/WTF yet (enable ForeverDev, then /rl in game)"
 
-lua="$(command -v luajit || command -v lua5.1 || command -v lua || true)"
+lua="$(command -v luajit || command -v lua5.1 || true)"
 [[ -n "$lua" ]] || die "needs luajit or lua 5.1 (brew install luajit)"
 
 modified="$(date -r "$file" '+%Y-%m-%d %H:%M:%S')"

@@ -60,6 +60,7 @@ scripts/lint.sh                     # StyLua check + LuaLS diagnostics + TOC che
 stylua addons template types        # auto-format
 scripts/link.sh                     # (re)symlink every addon into _forever_/Interface/AddOns
 scripts/devlog.sh [--errors] [--all]  # print what ForeverDev captured in game (errors, taint, logs)
+scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about DoTs/HoTs (IDs, ticks, intervals, misses)
 scripts/package.sh MyAddon [v1.0.0] # build the release zip locally into .release/MyAddon/
 scripts/setup.sh                    # refresh .cache/ (run after a game patch)
 ```

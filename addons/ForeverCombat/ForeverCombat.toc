@@ -1,0 +1,30 @@
+## Interface: 16001
+## Title: ForeverCombat
+## Notes: Shows how much your damage and healing over time spells still have to do, right on the target and focus health bars.
+## Author: ljukas
+## Version: @project-version@
+## IconTexture: Interface\Icons\Spell_Shadow_AbominationExplosion
+## Category: Combat
+## SavedVariables: ForeverCombatDB
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua
+Database.lua
+Data/Spells.lua
+Modules.lua
+Engine/Parser.lua
+Engine/Combo.lua
+Engine/TickMatcher.lua
+Engine/Units.lua
+Engine/Knowledge.lua
+Engine/Tracker.lua
+UI/SegmentBar.xml
+UI/Cue.lua
+UI/Hosts.lua
+Modules/DoTMeter.lua
+Modules/HoTMeter.lua
+Tooltip.lua
+Options.lua
+Probes.lua

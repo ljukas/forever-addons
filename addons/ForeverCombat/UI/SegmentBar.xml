@@ -1,0 +1,18 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\..\..\..\WoW\Data\Interface\AddOns\Blizzard_SharedXML\UI.xsd">
+	<Script file="SegmentBar.lua"/>
+
+	<!-- One tracked effect's segment on a unit frame's health bar. Looks like Blizzard's heal
+	     prediction and heal absorb segments (StatusBarOverlaySegmentTemplate, with the target
+	     frame's segment atlas from TargetFrameBarSegmentTemplate and the heal absorb bar's edge
+	     shadow), but is a StatusBar: addon code can't size a texture from the unit's secret
+	     max health, while a StatusBar takes it as its max value. Sized and anchored by UI/Hosts.lua. -->
+	<StatusBar name="ForeverCombatSegmentTemplate" mixin="ForeverCombatSegmentMixin" useParentLevel="true" hidden="true" virtual="true">
+		<BarTexture parentKey="Fill" atlas="UI-HUD-UnitFrame-Target-PortraitOn-Bar-Health-Status"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="EdgeShadow" file="Interface\RaidFrame\Absorb-Edge"/>
+			</Layer>
+		</Layers>
+	</StatusBar>
+</Ui>

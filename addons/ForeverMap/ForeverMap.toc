@@ -1,0 +1,15 @@
+## Interface: 16001
+## Title: ForeverMap
+## Notes: Shows the herbs and ore your minimap tracking finds as icons in the minimap's gold tracking ring.
+## Author: ljukas
+## X-License: MIT
+## Version: @project-version@
+## IconTexture: Interface\Icons\INV_Misc_Map_01
+## Category: Map & Minimap
+## SavedVariables: ForeverMapDB
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua
+Database.lua

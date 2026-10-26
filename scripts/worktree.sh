@@ -55,6 +55,10 @@ game)
 	;;
 restore)
 	require_game
+	# The main checkout's link.sh reads its own .env.local, so both must name the same game.
+	main_wow_dir="$(source "$MAIN_ROOT/scripts/lib.sh" && echo "$WOW_DIR")"
+	[[ "$main_wow_dir" == "$WOW_DIR" ]] ||
+		die "WOW_DIR here ($WOW_DIR) differs from the main checkout's ($main_wow_dir); make .env.local match first"
 	unlink_all_but "$MAIN_ROOT"
 	"$MAIN_ROOT/scripts/link.sh"
 	;;

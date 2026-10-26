@@ -142,6 +142,10 @@ default. `scripts/worktree.sh game` points them at the current worktree for in-g
 - Guard protected actions with `InCombatLockdown()`, and never touch secure frames in combat.
 - Every new Lua/XML file must be listed in the TOC (or included from XML). Lint checks this.
 - StyLua formats with tabs and a 120-column limit. `.editorconfig` covers the rest.
+- CodeRabbit runs luacheck on every PR (`.luacheckrc`): unused variables and arguments,
+  shadowing, and globals assigned by accident. A new intentional global (SavedVariables, a mixin
+  named in XML, `SLASH_*`, `BINDING_*`) goes in that addon's `globals` list there. Check locally
+  with `luacheck addons template` (`brew install luacheck`).
 
 ## Commits and pull requests
 

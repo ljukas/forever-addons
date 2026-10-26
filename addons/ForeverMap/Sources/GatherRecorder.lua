@@ -19,7 +19,7 @@ function handlers.UNIT_SPELLCAST_SENT(_, target, castGUID, spellID)
 	if issecretvalue(target) or issecretvalue(castGUID) then
 		return
 	end
-	if not ns.Layers.GetNode(target) then
+	if not ns.Professions.GetNode(target) then
 		ns.Knowledge.OtherCast(target, spellID)
 		return
 	end

@@ -18,7 +18,7 @@ end
 -- Too low to gather: the gold ring turns red and the icon greys out. Pins are pooled,
 -- so the normal state is always reapplied too.
 function ForeverMapPinMixin:RefreshSkillState()
-	local tooLow = ns.Skills.IsTooLow(self.nodeName)
+	local tooLow = ns.Professions.IsTooLow(self.nodeName)
 	self.Icon:SetDesaturated(tooLow)
 	self.Border:SetDesaturated(tooLow)
 	self.Border:SetVertexColor((tooLow and RED_FONT_COLOR or WHITE_FONT_COLOR):GetRGB())

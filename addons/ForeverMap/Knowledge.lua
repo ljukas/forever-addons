@@ -1,7 +1,7 @@
 local ADDON_NAME, ns = ...
 
 -- What ForeverMap sees in game, kept so Data/GatherNodes.lua and the skill line IDs in
--- Layers.lua can be checked against evidence. Trace lines go through ns.log (scripts/devlog.sh
+-- Professions.lua can be checked against evidence. Trace lines go through ns.log (scripts/devlog.sh
 -- --addon ForeverMap): GATHER, NEW, AGAIN from Sources/GatherRecorder.lua, SKILL and UNLISTED
 -- from here.
 -- Aggregates are kept across sessions in ForeverDevDB.observed.ForeverMap (scripts/observed.sh

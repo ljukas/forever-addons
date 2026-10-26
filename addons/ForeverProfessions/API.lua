@@ -11,9 +11,10 @@ function ForeverProfessions.RegisterCallback(event, func, owner)
 	return ns.callbacks:RegisterCallback(event, func, owner)
 end
 
--- Calls func(name, index, x, y, count) for every gathered node of the profession
--- ("herbalism", "mining") on the zone map: x, y normalized on that map, count the times it
--- has been gathered. index is unique per name.
+-- ForEachNode(mapID, profession, func) calls func(name, index, x, y, count) for every
+-- gathered node of the profession on the zone map. profession is "herbalism" or "mining".
+-- x, y are normalized on that map and count is the times it has been gathered. index is an
+-- opaque id, unique per name, that stays the same while the node exists.
 ForeverProfessions.ForEachNode = ns.DB.ForEachNode
 
 -- Returns true if name ("Copper Vein") is a known gathering node.

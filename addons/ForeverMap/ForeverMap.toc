@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: ForeverMap
-## Notes: Remembers where you gather herbs and minerals and shows them on the world map and minimap, with the skill each node requires.
+## Notes: Shows the herb and mineral nodes ForeverProfessions records on the world map and minimap, with the skill each node requires.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@

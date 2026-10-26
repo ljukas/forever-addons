@@ -42,6 +42,10 @@ function C_SkillInfo.GetSkillLineInfoByID(ID) end
 ---@type string
 TRAINER_REQ_SKILL_RANK = ""
 
+-- "%d sec"; Blizzard_AuctionHouseUI formats it with whole seconds.
+---@type string
+INT_SPELL_DURATION_SEC = ""
+
 -- Frames created by Blizzard XML.
 
 -- Blizzard_WorldMap/Blizzard_WorldMap.xml, a MapCanvasFrameTemplate.
@@ -68,3 +72,31 @@ WorldMapFrame = {}
 ---@field SetPosition fun(self: MapCanvasPinMixin, normalizedX: number, normalizedY: number, insetIndex: number?)
 ---@field SetScalingLimits fun(self: MapCanvasPinMixin, scaleFactor: number, startScale: number?, endScale: number?)
 ---@field UseFrameLevelType fun(self: MapCanvasPinMixin, pinFrameLevelType: string, index: number?)
+
+-- Blizzard_UnitFrame/Mainline/TargetFrame.xml: TargetFrame and FocusFrame (TargetFrameTemplate).
+-- Only the members our addons use.
+
+---@class StatusBarOverlaySegment : Frame
+---@field FillMask MaskTexture
+
+---@class TargetFrameHealthBar : StatusBar
+---@field MyHealPredictionBar StatusBarOverlaySegment
+---@field OtherHealPredictionBar StatusBarOverlaySegment
+
+---@class TargetFrameHealthBarsContainer : Frame
+---@field HealthBar TargetFrameHealthBar
+---@field HealthBarMask MaskTexture
+
+---@class TargetFrameContentMain : Frame
+---@field HealthBarsContainer TargetFrameHealthBarsContainer
+
+---@class TargetFrameContent : Frame
+---@field TargetFrameContentMain TargetFrameContentMain
+
+---@class TargetFrame : Button
+---@field TargetFrameContent TargetFrameContent
+---@field UpdateHealthBarVisuals fun(self: TargetFrame)
+TargetFrame = {}
+
+---@class FocusFrame : TargetFrame
+FocusFrame = {}

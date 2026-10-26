@@ -112,12 +112,29 @@ local function Farthest(points, centers)
 	return best
 end
 
+-- Whether a group of points is stretched out: its spread along its long axis is more than
+-- twice its spread across it. A dot is round; dots of the same name that touch make a stretched
+-- group. A dot cut off at the minimap's edge is stretched too, but covers less than a dot's
+-- area, so the area check in Dots keeps it whole.
+local function Stretched(points, center)
+	local xx, yy, xy = 0, 0, 0
+	for _, p in ipairs(points) do
+		local dx, dy = p.x - center.x, p.y - center.y
+		xx, yy, xy = xx + dx * dx, yy + dy * dy, xy + dx * dy
+	end
+	-- The spreads along the long and short axes: the eigenvalues of the covariance matrix.
+	local mean = (xx + yy) / 2
+	local offset = math.sqrt(((xx - yy) / 2) ^ 2 + xy * xy)
+	return mean + offset > 2 * (mean - offset)
+end
+
 -- Dots in a group's fine hits, as a list of { x, y } centers in pixels from the minimap's
--- bottom left. dotArea is the area one dot's hits cover: a group covering about k times that
--- is k dots of the same name close together, split with k-means.
+-- bottom left, and whether the group was one round dot. A round group is one dot. A stretched
+-- group covering about k times dotArea (the area one dot's hits cover, learned by the caller
+-- from round groups) is k dots of the same name close together, split with k-means.
 function ns.Grid.Dots(fineKeys, fineStep, dotArea)
 	if #fineKeys == 0 then
-		return {}
+		return {}, false
 	end
 	local points = {}
 	for _, key in ipairs(fineKeys) do
@@ -125,9 +142,13 @@ function ns.Grid.Dots(fineKeys, fineStep, dotArea)
 		table.insert(points, { x = gx * fineStep, y = gy * fineStep })
 	end
 	local center = Mean(points)
-	local k = math.max(1, math.floor(ns.Grid.DotArea(fineKeys, fineStep) / dotArea + 0.5))
+	local round = not Stretched(points, center)
+	local k = 1
+	if not round then
+		k = math.max(1, math.floor(ns.Grid.DotArea(fineKeys, fineStep) / dotArea + 0.5))
+	end
 	if k == 1 then
-		return { center }
+		return { center }, round
 	end
 
 	-- Seeds spread out: the point farthest from the middle, then each next one farthest
@@ -157,5 +178,5 @@ function ns.Grid.Dots(fineKeys, fineStep, dotArea)
 			end
 		end
 	end
-	return centers
+	return centers, false
 end

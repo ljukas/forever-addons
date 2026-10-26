@@ -46,14 +46,18 @@ ns.OnInitialize(function()
 	end
 
 	local show = Register("showNodeIcons", Settings.VarType.Boolean, L.SHOW_NODE_ICONS)
-	Settings.CreateCheckbox(category, show, L.SHOW_NODE_ICONS_TOOLTIP)
+	local showInitializer = Settings.CreateCheckbox(category, show, L.SHOW_NODE_ICONS_TOOLTIP)
 
 	local size = Register("nodeIconSize", Settings.VarType.Number, L.NODE_ICON_SIZE)
 	local options = Settings.CreateSliderOptions(6, 16, 1)
 	options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
 		return tostring(value)
 	end)
-	Settings.CreateSlider(category, size, options, L.NODE_ICON_SIZE_TOOLTIP)
+	local sizeInitializer = Settings.CreateSlider(category, size, options, L.NODE_ICON_SIZE_TOOLTIP)
+	-- The size only matters while the icons are shown (Blizzard's pattern, Graphics settings).
+	sizeInitializer:SetParentInitializer(showInitializer, function()
+		return show:GetValue()
+	end)
 
 	Settings.RegisterAddOnCategory(category)
 end)

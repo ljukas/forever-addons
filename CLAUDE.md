@@ -62,6 +62,7 @@ scripts/link.sh                     # (re)symlink every addon into _forever_/Int
 scripts/devlog.sh [--errors] [--all]  # print what ForeverDev captured in game (errors, taint, logs)
 scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about DoTs/HoTs (IDs, ticks, intervals, misses)
 scripts/package.sh MyAddon [v1.0.0] # build the release zip locally into .release/MyAddon/
+scripts/check-pr-title.sh "<title>" # check a PR title is a Conventional Commit (CI runs it on every PR)
 scripts/setup.sh                    # refresh .cache/ (run after a game patch)
 ```
 
@@ -98,11 +99,40 @@ It is a no-op when ForeverDev isn't loaded.
 - Every new Lua/XML file must be listed in the TOC (or included from XML). Lint checks this.
 - StyLua formats with tabs and a 120-column limit. `.editorconfig` covers the rest.
 
+## Commits and pull requests
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
+`type(scope)!: description`.
+
+- **Types:** `feat` (new behaviour players notice), `fix`, `perf`, `refactor`, `docs`, `style`,
+  `test`, `build`, `ci`, `chore`, `revert`.
+- **Scopes:** the addon folder name in lowercase (`forevermap`, `forevercombat`, `foreverdev`),
+  or `ci`, `scripts`, `template`, `types`, `deps`. Separate several with commas. Leave the
+  scope out for repo-wide changes.
+- **Description:** imperative, lowercase start, no trailing period. Keep the whole title within
+  72 characters.
+- **Breaking changes:** add `!` after the scope, or a `BREAKING CHANGE:` footer, when a change
+  breaks players' SavedVariables, settings or slash commands.
+
+Every change goes through a pull request. Work on a branch, never on `main`; the branch's
+commits are conventional too.
+
+- PRs are **squash-merged**, so `main` gets one commit per PR. Its title is the PR title plus
+  ` (#N)`, and its body lists the branch's commit messages. Merge commits and rebase merges
+  are disabled, and merged branches are deleted.
+- So the **PR title must be a Conventional Commit**. `.github/workflows/pr-title.yml` checks
+  it with `scripts/check-pr-title.sh`. The PR description follows
+  `.github/pull_request_template.md` (Summary, Testing).
+- A `feat` or `fix` to an addon also adds a line under `## Unreleased` in that addon's
+  `CHANGELOG.md`. The changelog is written for players, not copied from commits.
+
 ## Releasing an addon
 
-1. In `addons/<Name>/CHANGELOG.md`, rename `## Unreleased` to `## vX.Y.Z` (the release notes
-   are taken from that section).
-2. Commit, then tag and push: `git tag <Name>-vX.Y.Z && git push origin <Name>-vX.Y.Z`.
+1. On a branch, rename `## Unreleased` to `## vX.Y.Z` in `addons/<Name>/CHANGELOG.md` (the
+   release notes are taken from that section). Open a PR titled
+   `chore(<name>): release vX.Y.Z` and squash-merge it.
+2. Tag the merged commit and push the tag:
+   `git switch main && git pull && git tag <Name>-vX.Y.Z && git push origin <Name>-vX.Y.Z`.
    A `-betaN` / `-alphaN` suffix makes a pre-release.
 3. `.github/workflows/release.yml` builds the zip with the BigWigs packager (`scripts/package.sh`)
    and attaches it to a GitHub release. CurseForge and Wago uploads also run once the TOC has

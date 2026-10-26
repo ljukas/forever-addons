@@ -23,19 +23,33 @@ function ns.log(tag, ...)
 	ns.dev:Log(tag, ...)
 end
 
--- enUS only for now.
+-- enUS only for now. Blizzard's own global strings are used where one exists.
 ns.L = {
+	HERBS = "Herbs",
+	MINERALS = "Minerals",
 	HERBALISM = "Herbalism",
 	MINING = "Mining",
+	KNOWN_NODES = "Known Gathering Nodes",
+	SHOW_ON_WORLD_MAP = "Show on World Map",
+	SHOW_ON_WORLD_MAP_TOOLTIP = "Show the gathering nodes you have found on the world map.",
+	SHOW_ON_MINIMAP = "Show on Minimap",
+	SHOW_ON_MINIMAP_TOOLTIP = "Show the gathering nodes you have found on the minimap.",
+	SHOW_LAYER_TOOLTIP = "Show the %s you have gathered before.",
+	CLICK_TO_SHOW = "Click to show them on the map.",
+	CLICK_TO_HIDE = "Click to hide them from the map.",
+	REQUIRES_SKILL = TRAINER_REQ_SKILL_RANK or "Requires %s (%d)",
+	CURRENT_SKILL = "Your skill: %d",
+	NOT_LEARNED = "You have not learned %s.",
+	TIMES_GATHERED = "Times gathered: %d",
 }
 
--- Events for the modules and, through API.lua, for other addons. Callbacks are called as
--- func(owner, ...).
+-- Internal events between the modules. Callbacks are called as func(owner, ...).
 --   NodesChanged(mapID) a node was recorded or gathered again on that map
+--   OptionChanged()     a ForeverProfessionsDB.settings value changed
 --   SkillsChanged()     the player's profession ranks may have changed
 ns.callbacks = CreateFromMixins(CallbackRegistryMixin)
 ns.callbacks:OnLoad()
-ns.callbacks:GenerateCallbackEvents({ "NodesChanged", "SkillsChanged" })
+ns.callbacks:GenerateCallbackEvents({ "NodesChanged", "OptionChanged", "SkillsChanged" })
 
 -- Returns the player's map ID and normalized x, y on it, or nil where the client has
 -- no map position (instances, for example).

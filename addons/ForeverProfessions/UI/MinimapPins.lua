@@ -17,7 +17,7 @@ local function ResetPin(pool, pin)
 	pin:HideOwnedTooltip()
 	Pool_HideAndClearAnchors(pool, pin)
 end
-local pool = CreateUnsecuredFramePool("Frame", container, "ForeverMapMinimapPinTemplate", ResetPin)
+local pool = CreateUnsecuredFramePool("Frame", container, "ForeverProfessionsMinimapPinTemplate", ResetPin)
 
 -- Active pins by node key, so a pin under the cursor survives updates while moving.
 local pinsByKey = {}
@@ -61,7 +61,7 @@ local function Draw(mapID, px, py, facing, radius)
 		local key = name .. index
 		local pin = pinsByKey[key]
 		if not pin then
-			pin = pool:Acquire() --[[@as ForeverMapPinMixin]]
+			pin = pool:Acquire() --[[@as ForeverProfessionsPinMixin]]
 			pin:SetScale(PIN_SCALE)
 			pin:Show()
 			pinsByKey[key] = pin
@@ -116,9 +116,9 @@ local function MarkDirty()
 end
 
 ns.OnInitialize(function()
-	ForeverProfessions.RegisterCallback("NodesChanged", MarkDirty)
+	ns.callbacks:RegisterCallback("NodesChanged", MarkDirty)
 	ns.callbacks:RegisterCallback("OptionChanged", MarkDirty)
-	ForeverProfessions.RegisterCallback("SkillsChanged", MarkDirty)
+	ns.callbacks:RegisterCallback("SkillsChanged", MarkDirty)
 
 	-- Only runs while the minimap is shown, since the container is its child.
 	container:SetScript("OnUpdate", function(_, elapsed)

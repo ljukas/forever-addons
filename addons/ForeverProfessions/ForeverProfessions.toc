@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: ForeverProfessions
-## Notes: Records where you gather herbs and minerals and the skill each node requires. ForeverMap shows them on your maps.
+## Notes: Remembers where you gather herbs and minerals and shows them on the world map and minimap, with the skill each node requires.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
@@ -14,7 +14,14 @@
 Core.lua
 Data/GatherNodes.lua
 Database.lua
+Layers.lua
 Professions.lua
 Knowledge.lua
+Tooltip.lua
+Options.lua
+Menus.lua
 Sources/GatherRecorder.lua
-API.lua
+UI/Pin.xml
+UI/WorldMapProvider.lua
+UI/WorldMapToggle.xml
+UI/MinimapPins.lua

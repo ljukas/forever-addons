@@ -4,16 +4,16 @@ local ADDON_NAME, ns = ...
 -- same way DeathMapDataProvider draws the corpse pin. Nodes are stored per zone map, so
 -- they show when that zone is open.
 
-local PIN_TEMPLATE = "ForeverMapWorldPinTemplate"
+local PIN_TEMPLATE = "ForeverProfessionsWorldPinTemplate"
 
----@class ForeverMapDataProviderMixin : MapCanvasDataProviderMixin
+---@class ForeverProfessionsDataProviderMixin : MapCanvasDataProviderMixin
 local DataProviderMixin = CreateFromMixins(MapCanvasDataProviderMixin)
 
 function DataProviderMixin:OnAdded(owningMap)
 	MapCanvasDataProviderMixin.OnAdded(self, owningMap)
-	ForeverProfessions.RegisterCallback("NodesChanged", self.OnNodesChanged, self)
+	ns.callbacks:RegisterCallback("NodesChanged", self.OnNodesChanged, self)
 	ns.callbacks:RegisterCallback("OptionChanged", self.RefreshIfShown, self)
-	ForeverProfessions.RegisterCallback("SkillsChanged", self.OnSkillsChanged, self)
+	ns.callbacks:RegisterCallback("SkillsChanged", self.OnSkillsChanged, self)
 end
 
 function DataProviderMixin:RemoveAllData()
@@ -47,7 +47,7 @@ end
 
 function DataProviderMixin:OnSkillsChanged()
 	for pin in self:GetMap():EnumeratePinsByTemplate(PIN_TEMPLATE) do
-		---@cast pin ForeverMapWorldPinMixin
+		---@cast pin ForeverProfessionsWorldPinMixin
 		pin:RefreshSkillState()
 	end
 end

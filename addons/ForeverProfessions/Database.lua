@@ -1,8 +1,9 @@
 local ADDON_NAME, ns = ...
 
 -- ForeverProfessionsDB layout (account-wide):
---   version = schema version, see migrations below
---   nodes   = { [uiMapID] = { [profession] = { [nodeName] = { x1, y1, count1, x2, y2, count2, ... } } } }
+--   version  = schema version, see migrations below
+--   settings = { [key] = boolean }, owned by Options.lua
+--   nodes    = { [uiMapID] = { [profession] = { [nodeName] = { x1, y1, count1, x2, y2, count2, ... } } } }
 -- profession is the node's key in Professions.lua. x, y are normalized positions on that zone
 -- map, rounded to 4 decimals. count is how many times the node has been gathered. Only this
 -- file knows the flat layout.
@@ -19,6 +20,7 @@ local FALLBACK_MAP_YARDS = 1000
 
 local migrations = {
 	[1] = function(db)
+		db.settings = db.settings or {}
 		db.nodes = db.nodes or {}
 	end,
 }

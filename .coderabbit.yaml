@@ -1,0 +1,125 @@
+# CodeRabbit review config: https://docs.coderabbit.ai/reference/configuration
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit is a second reviewer next to our own (docs/feature-workflow.md, "Step reviewers").
+# It reads CLAUDE.md as code guidelines automatically. It never judges whether a WoW API exists
+# or how it behaves: it can't see the Forever client's source, and the web describes Retail.
+# That is api-verifier's job, and LuaLS's in scripts/lint.sh.
+
+language: en-US
+tone_instructions: >-
+  Be terse and concrete: what breaks, where, and the fix. No praise or summaries of what the code
+  does. Say how sure you are when you can't verify something.
+
+reviews:
+  profile: assertive
+  auto_review:
+    enabled: true # PRs to the default branch (main) only; drafts are skipped
+    drafts: false
+
+  # Noise that doesn't fit an addon repo with no docstrings, tests or request/response flows.
+  poem: false
+  in_progress_fortune: false
+  sequence_diagrams: false
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+
+  path_instructions:
+    - path: "addons/**"
+      instructions: |
+        WoW: Forever addon code: Lua 5.1 on the modern (Midnight 12.x) addon API. CLAUDE.md has the conventions.
+        - Never claim that a WoW API function, event, widget method, template, mixin, atlas or constant does or
+          doesn't exist, or what it returns. You can't see the Forever client's source, and web results describe
+          Retail. Our api-verifier agent and LuaLS check that against the client's own docs. Comment on API use only
+          when the problem is visible in this diff.
+        - Secret values: values from unit, aura and combat APIs may be secret. Flag comparing them, arithmetic,
+          concatenation, using them as table keys, or branching on them without an issecretvalue() check.
+        - Taint: flag overwriting a Blizzard global, an existing field or method of a Blizzard frame, or a Blizzard
+          mixin method. Hooks go through hooksecurefunc, EventRegistry, Menu.ModifyMenu or TooltipDataProcessor.
+        - Combat lockdown: flag protected actions (Show/Hide/SetPoint/SetAttribute on secure frames, secure templates)
+          reachable in combat without an InCombatLockdown() guard.
+        - Players' saved data: flag SavedVariables renames, layout changes without a DB_VERSION bump and migration,
+          and edits to an existing migration step.
+        - Dev-only code (ns.dev, Dev/ probes, Knowledge.lua) must not change behavior for players: always-running code
+          never uses ns.log or ns.dev results.
+        - New global assignments must be intentional (SavedVariables, mixins named in XML, SLASH_*, BINDING_*) and
+          declared for that addon in .luacheckrc.
+        - Skip style and formatting: StyLua and LuaLS run in CI.
+    - path: "addons/*/*.toc"
+      instructions: |
+        Every Lua/XML file must load after anything it uses at load time. ## OptionalDeps: ForeverDev only inside a
+        #@do-not-package@ block. Released addons use ## Version: @project-version@ and ## X-License: MIT.
+    - path: "addons/*/CHANGELOG.md"
+      instructions: |
+        Written for players, not developers: what changed in game, in plain words. Flag lines copied from commit
+        messages or that mention code.
+    - path: "scripts/**"
+      instructions: |
+        Bash run on macOS (BSD tools, possibly bash 3.2) and in Ubuntu CI. Check quoting (WOW_DIR contains spaces),
+        behavior under set -euo pipefail including empty globs, and portability between BSD and GNU tools.
+    - path: ".github/**"
+      instructions: |
+        CI must keep mirroring scripts/lint.sh and scripts/check-pr-title.sh; flag drift between them.
+    - path: "{docs,.claude}/**"
+      instructions: |
+        Process docs and Claude Code agent and skill instructions. Check that every script, flag, path, section name
+        and tool they cite exists in the repo, and that the docs agree with each other and with CLAUDE.md. Skip prose
+        style.
+
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+    title:
+      mode: "off" # .github/workflows/pr-title.yml checks the Conventional Commit title
+    issue_assessment:
+      mode: "off"
+    custom_checks:
+      - name: "Player changelog"
+        mode: "error"
+        instructions: |
+          Look at the PR title. If its type is feat or fix and its scope names one or more addon folders (the folder
+          name in lowercase, e.g. forevermap for addons/ForeverMap), then for each such addon except ForeverDev the
+          PR must add at least one line under the "## Unreleased" heading of addons/<Addon>/CHANGELOG.md. Pass if it
+          does, or if the title's type isn't feat or fix, or if the scope names no addon. Fail otherwise and name
+          the addon missing its line.
+      - name: "Testing evidence"
+        mode: "error"
+        instructions: |
+          The PR description must have a "## Testing" section. Fail if it is missing, empty, or only the template's
+          placeholder bullets ("- `scripts/lint.sh` passes." and "- In game:" with nothing after it). If the PR
+          changes any .lua, .xml or .toc file under addons/, the section must also say what was done in game and
+          what the devlog showed, or state plainly that the change is untested in game. Fail if it does neither.
+          Pass otherwise.
+      - name: "Breaking change marker"
+        mode: "error"
+        instructions: |
+          Fail if the PR renames or removes, compared with the base branch: a name on a "## SavedVariables:" or
+          "## SavedVariablesPerCharacter:" line of a TOC file, a SLASH_* global or SlashCmdList key, or a key that
+          players' settings are stored under, unless the PR title has "!" right before the colon or the description
+          contains "BREAKING CHANGE:". Pass if none of those were renamed or removed.
+
+  tools:
+    luacheck: # configured by .luacheckrc; reports warnings in the assertive profile
+      enabled: true
+    shellcheck:
+      enabled: true
+    actionlint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    gitleaks:
+      enabled: true
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    # CLAUDE.md is a default pattern. Our own review checklists apply to addon code too (not
+    # api-verifier's: API checks are out of scope here).
+    filePatterns:
+      - files: ".claude/agents/addon-reviewer.md,.claude/agents/savedvariables-guard.md"
+        applyTo: "addons/**"

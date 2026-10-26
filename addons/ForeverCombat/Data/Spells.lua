@@ -12,8 +12,8 @@ local ADDON_NAME, ns = ...
 --   kind      "dot" (damage, UNIT_COMBAT WOUND) or "hot" (healing, UNIT_COMBAT HEAL)
 --   school    school mask as UNIT_COMBAT reports it: 1 Physical (bleeds), 2 Holy, 4 Fire,
 --             8 Nature, 16 Frost, 32 Shadow, 64 Arcane
---   interval  seconds between ticks. From Classic and unchecked in Forever: the observed
---             intervals in ForeverCombatDB.observed confirm or correct them.
+--   interval  seconds between ticks. From Classic and unchecked in Forever: the intervals
+--             Engine/Knowledge.lua observes (scripts/combat-knowledge.sh) confirm or correct them.
 --   shape     uneven ticks, see SHAPES (default even)
 --   finisher  amount and duration depend on combo points (per-point table in the description)
 --   stacks    the most applications that add up (each recast adds one)

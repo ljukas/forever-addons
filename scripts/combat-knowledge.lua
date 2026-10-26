@@ -1,33 +1,20 @@
--- Pretty-prints ForeverCombatDB.observed and the learned tick sizes. Run via
--- scripts/combat-knowledge.sh. Layout: addons/ForeverCombat/Engine/Knowledge.lua.
--- Usage: combat-knowledge.lua <ForeverCombat.lua path> [spell name filter]
-local path, filter = ...
+-- Pretty-prints what ForeverCombat observed (ForeverDevDB.observed.ForeverCombat.spells) and
+-- its learned tick sizes (ForeverCombatDB.ticks). Run via scripts/combat-knowledge.sh.
+-- Layout: addons/ForeverCombat/Engine/Knowledge.lua.
+-- Usage: combat-knowledge.lua <ForeverDev.lua path> <ForeverCombat.lua path> [spell name filter]
+local devPath, combatPath, filter = ...
+local lib = dofile((arg[0]:match("^(.*)/") or ".") .. "/lib.lua")
+local SortedKeys = lib.SortedKeys
 
-local chunk = assert(loadfile(path))
-local env = {}
-setfenv(chunk, env)
-chunk()
-
-local db = env.ForeverCombatDB
-if not db or not db.observed then
-	print("No ForeverCombat data in " .. path)
+local devDB = lib.Load(devPath).ForeverDevDB
+local observed = devDB and devDB.observed and devDB.observed.ForeverCombat
+local spells = observed and observed.spells
+if not spells then
+	print("Nothing observed by ForeverCombat in " .. devPath)
 	return
 end
+local ticks = (lib.Load(combatPath).ForeverCombatDB or {}).ticks
 filter = filter and filter ~= "" and filter:lower() or nil
-
-local function SortedKeys(t, byValue)
-	local keys = {}
-	for key in pairs(t or {}) do
-		table.insert(keys, key)
-	end
-	table.sort(keys, function(a, b)
-		if byValue then
-			return t[a] > t[b]
-		end
-		return tostring(a) < tostring(b)
-	end)
-	return keys
-end
 
 -- "3.0s x35, 3.1s x2", most frequent first.
 local function Histogram(t, suffix)
@@ -40,7 +27,7 @@ end
 
 -- Learned ticks per spell ID, including finishers' "spellID:points" keys.
 local learnedBySpell = {}
-for tickKey, learned in pairs(db.ticks or {}) do
+for tickKey, learned in pairs(ticks or {}) do
 	local spellID, points = tostring(tickKey):match("^(%d+):?(%d*)$")
 	if spellID then
 		local list = learnedBySpell[spellID] or {}
@@ -51,10 +38,10 @@ end
 
 local unlisted = {}
 local shown = 0
-for _, name in ipairs(SortedKeys(db.observed)) do
+for _, name in ipairs(SortedKeys(spells)) do
 	if not filter or name:lower():find(filter, 1, true) then
-		for _, spellID in ipairs(SortedKeys(db.observed[name])) do
-			local stats = db.observed[name][spellID]
+		for _, spellID in ipairs(SortedKeys(spells[name])) do
+			local stats = spells[name][spellID]
 			if stats.unlisted then
 				table.insert(unlisted, { name = name, spellID = spellID, stats = stats })
 			else
@@ -67,7 +54,7 @@ for _, name in ipairs(SortedKeys(db.observed)) do
 					stats.rank or "",
 					stats.kind or "?",
 					stats.casts or 0,
-					stats.lastSeen and os.date("%Y-%m-%d %H:%M", stats.lastSeen) or "?"
+					lib.Date(stats.lastSeen)
 				))
 				print("  parsed:      " .. (stats.parsed or "-"))
 				local learned = learnedBySpell[tostring(spellID)]

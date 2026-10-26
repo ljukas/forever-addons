@@ -16,13 +16,16 @@ local handlers = {}
 
 function handlers.UNIT_SPELLCAST_SENT(_, target, castGUID, spellID)
 	pending = nil
-	if issecretvalue(target) or issecretvalue(castGUID) or not ns.Layers.GetNode(target) then
+	if issecretvalue(target) or issecretvalue(castGUID) then
+		return
+	end
+	if not ns.Layers.GetNode(target) then
+		ns.Knowledge.OtherCast(target, spellID)
 		return
 	end
 
 	local mapID, x, y = ns.GetPlayerMapPosition()
-	-- Logged so the gathering spell IDs can be checked at launch.
-	ns.log("gather started", target, "spellID", spellID, "map", mapID)
+	ns.log("GATHER", target, "spellID", spellID, "map", mapID)
 	if mapID then
 		pending = { castGUID = castGUID, name = target, mapID = mapID, x = x, y = y }
 	end
@@ -36,7 +39,8 @@ function handlers.UNIT_SPELLCAST_SUCCEEDED(_, castGUID, spellID)
 	pending = nil
 
 	local isNew = ns.DB.Add(gather.mapID, gather.name, gather.x, gather.y)
-	ns.log(isNew and "recorded" or "gathered again", gather.name, gather.mapID, gather.x, gather.y, "spellID", spellID)
+	ns.log(isNew and "NEW" or "AGAIN", gather.name, gather.mapID, gather.x, gather.y, "spellID", spellID)
+	ns.Knowledge.Gathered(gather.name, gather.mapID, spellID, isNew)
 end
 
 function handlers.UNIT_SPELLCAST_FAILED(_, castGUID)

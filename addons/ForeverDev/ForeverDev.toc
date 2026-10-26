@@ -1,8 +1,7 @@
 ## Interface: 16001
 ## Title: ForeverDev
-## Notes: Dev helpers: /rl, reload keybind, Lua error + log capture to SavedVariables (read by scripts/devlog.sh).
+## Notes: Dev helpers: /rl, reload keybind, Lua error capture, and the logging, probing and evidence API the other addons use (read by scripts/devlog.sh and scripts/observed.sh).
 ## Author: ljukas
-## X-License: MIT
 ## Version: dev
 ## IconTexture: Interface\Icons\INV_Misc_Gear_01
 ## Category: Development Tools
@@ -10,3 +9,4 @@
 ## AddonCompartmentFunc: ForeverDev_OnAddonCompartmentClick
 
 ForeverDev.lua
+Probes.lua

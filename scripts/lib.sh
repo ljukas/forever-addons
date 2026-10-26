@@ -33,3 +33,22 @@ installed_client_version() {
 		$col["Product"] == "wowf" { print $col["Version"]; exit }
 	' "$info"
 }
+
+# Path of an addon's most recently written SavedVariables file across all accounts. Dies when
+# there is none yet. The game only writes SavedVariables on /reload, logout or exit.
+latest_saved_variables() {
+	local file
+	file="$(ls -t "$WOW_DIR"/WTF/Account/*/SavedVariables/"$1".lua 2>/dev/null | head -n1 || true)"
+	[[ -n "$file" ]] || die "no $1 SavedVariables under $WOW_DIR/WTF yet (enable $1, then /rl in game)"
+	echo "$file"
+}
+
+# A Lua 5.1 interpreter for the scripts/*.lua SavedVariables readers.
+lua51() {
+	command -v luajit || command -v lua5.1 || die "needs luajit or lua 5.1 (brew install luajit)"
+}
+
+# Prints which file is being read and when the game wrote it.
+print_file_header() {
+	echo "File: $1 (written $(date -r "$1" '+%Y-%m-%d %H:%M:%S'))"
+}

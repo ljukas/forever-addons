@@ -1,12 +1,28 @@
 local ADDON_NAME, ns = ...
 
--- Dev-only logging: lands in ForeverDev's on-disk log (scripts/devlog.sh) when
--- ForeverDev is loaded, and is a no-op for players. Lines start with a tag (TRACK, TICK,
--- AVOID, ...) so a session can be grepped; Engine/Knowledge.lua keeps the aggregates.
-function ns.log(...)
-	if ForeverDev_Log then
-		ForeverDev_Log(ADDON_NAME, ...)
-	end
+-- Dev-only logging, probing and evidence through ForeverDev (addons/ForeverDev/ForeverDev.lua,
+-- scripts/devlog.sh). Without ForeverDev, ns.dev is inert: ns.dev.enabled is false and every
+-- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
+--   LOADED                                           Core.lua
+--   SENT COMBO SCHOOL0 SECRET                        Engine/Tracker.lua
+--   SEEN TRACK TICK MISS AVOID END UNLISTED NOTREAD  Engine/Knowledge.lua, which keeps the aggregates
+--   HOST DISPLAY                                     UI/Hosts.lua
+--   AURA                                             Dev/Probes.lua
+local function Nop() end
+
+-- Returns t (or a new table) with every missing field a function that does nothing.
+function ns.Inert(t)
+	return setmetatable(t or {}, {
+		__index = function()
+			return Nop
+		end,
+	})
+end
+
+ns.dev = ForeverDev and ForeverDev.For(ADDON_NAME) or ns.Inert({ enabled = false })
+
+function ns.log(tag, ...)
+	ns.dev:Log(tag, ...)
 end
 
 -- enUS only for now. Blizzard's own global strings are used where one exists.
@@ -42,5 +58,5 @@ EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
 	for _, func in ipairs(initializers) do
 		func()
 	end
-	ns.log("loaded, db version", ns.db.version)
+	ns.log("LOADED", "db version", ns.db.version)
 end)

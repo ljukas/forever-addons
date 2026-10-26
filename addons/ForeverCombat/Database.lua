@@ -4,13 +4,12 @@ local ADDON_NAME, ns = ...
 --   version  = schema version, see migrations below
 --   settings = { [key] = boolean }, owned by Options.lua
 --   ticks    = { [tickKey] = { amount = number, count = number } }, learned tick sizes, owned by this file
---   observed = { [spellName] = { [spellID] = stats } }, what was seen in game, owned by Engine/Knowledge.lua
 -- tickKey is the spell ID, or "spellID:points" for a finisher cast with that many combo points.
 -- Ranks have their own spell IDs and tick sizes, so ticks are never shared between ranks.
 
 ns.DB = {}
 
-local DB_VERSION = 1
+local DB_VERSION = 2
 
 -- Learned tick sizes follow the player's spell and attack power as gear and buffs change:
 -- each new tick moves the average by 1/LEARN_WINDOW of the difference once it's warmed up.
@@ -20,7 +19,10 @@ local migrations = {
 	[1] = function(db)
 		db.settings = db.settings or {}
 		db.ticks = db.ticks or {}
-		db.observed = db.observed or {}
+	end,
+	-- What was seen in game moved to ForeverDevDB.observed (Engine/Knowledge.lua).
+	[2] = function(db)
+		db.observed = nil
 	end,
 }
 

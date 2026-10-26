@@ -1,5 +1,9 @@
 package-as: __ADDON__
 
+# Dev/ holds probes that only log; releases leave it out (see CLAUDE.md).
+ignore:
+  - Dev
+
 manual-changelog:
   filename: CHANGELOG.md
   markup-type: markdown

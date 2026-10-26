@@ -51,9 +51,11 @@ function HostMixin:Init(frame, unit)
 		self:UpdateWidth()
 	end)
 
-	local width = self.healthBar:GetWidth()
-	local layer, subLevel = self.healthBar:GetStatusBarTexture():GetDrawLayer()
-	ns.log("HOST", unit, "bar width", width, "secret", issecretvalue(width), "layer", layer, subLevel)
+	if ns.dev.enabled then
+		local width = self.healthBar:GetWidth()
+		local layer, subLevel = self.healthBar:GetStatusBarTexture():GetDrawLayer()
+		ns.log("HOST", unit, "bar width", width, "secret", issecretvalue(width), "layer", layer, subLevel)
+	end
 end
 
 function HostMixin:UpdateWidth()
@@ -123,26 +125,33 @@ end
 function HostMixin:Refresh(now)
 	local unit = self.unit
 	local key = self.frame:IsVisible() and not UnitIsDeadOrGhost(unit) and ns.Units.Key(unit)
-	local shown, signature = {}, key or "none"
+	local anyShown = false
+	-- For the DISPLAY log only: what's shown, with the signature leaving out the totals so it's
+	-- logged when what's shown changes, not on every refresh.
+	local signature, shown
+	if ns.dev.enabled then
+		signature, shown = key or "none", {}
+	end
 	for _, module in ns.Modules.Enumerate() do
 		local meter = self.meters[module]
 		local effects = ns.Modules.GetEffects(module, unit, key)
 		if effects then
 			local total, anchorName = self:Render(module, meter, effects, now)
-			local counts = string.format("%s=%d from %s", module.key, #effects, anchorName)
-			signature = signature .. " " .. counts
-			table.insert(shown, string.format("%s (%d)", counts, total))
+			anyShown = true
+			if shown then
+				local counts = string.format("%s=%d from %s", module.key, #effects, anchorName)
+				signature = signature .. " " .. counts
+				table.insert(shown, string.format("%s (%d)", counts, total))
+			end
 		else
 			HideMeter(meter)
 		end
 	end
 
-	-- Logged when what's shown changes, not on every refresh.
-	if signature ~= self.lastLogged then
-		self.lastLogged = signature
-		ns.log("DISPLAY", unit, key or "none", table.concat(shown, " "))
+	if shown then
+		ns.dev:LogChanged("display " .. unit, signature, "DISPLAY", unit, key or "none", table.concat(shown, " "))
 	end
-	return #shown > 0
+	return anyShown
 end
 
 local dirty = true

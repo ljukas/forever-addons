@@ -28,4 +28,6 @@ Modules/DoTMeter.lua
 Modules/HoTMeter.lua
 Tooltip.lua
 Options.lua
-Probes.lua
+#@do-not-package@
+Dev/Probes.lua
+#@end-do-not-package@

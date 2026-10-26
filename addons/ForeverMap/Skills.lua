@@ -50,27 +50,10 @@ function ns.Skills.IsTooLow(nodeName)
 	return tooLow == true
 end
 
--- Logs every skill line once per session, so the real skill line IDs can be checked at
--- launch.
-local loggedSkillLines = false
-
-local function LogSkillLines()
-	loggedSkillLines = true
-	for index = 1, C_SkillInfo.GetNumSkillLines() do
-		local info = C_SkillInfo.GetSkillLineInfo(index)
-		if info and not info.isHeader then
-			ns.log("skill line", info.skillID, info.name, info.rank, info.modifier, info.maxRank)
-		end
-	end
-end
-
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("SKILL_LINES_CHANGED")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-frame:SetScript("OnEvent", function(_, event)
-	if event == "PLAYER_ENTERING_WORLD" and not loggedSkillLines then
-		LogSkillLines()
-	end
+frame:SetScript("OnEvent", function()
 	stale = true
 	ns.callbacks:TriggerEvent("SkillsChanged")
 end)

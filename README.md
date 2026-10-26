@@ -16,8 +16,14 @@ In game, enable **ForeverDev**. It gives you:
 
 - `/rl` to reload the UI. There's also a "Reload UI" keybind (Key Bindings → AddOns) and a
   click target in the minimap addon compartment.
-- Lua errors and blocked actions captured to disk. Read them with `scripts/devlog.sh`.
+- Lua errors and blocked actions captured to disk, with the addons' log lines. Read them with
+  `scripts/devlog.sh` (`--addon ForeverMap`, `--tag GATHER` to narrow it down).
+- Evidence the addons keep across sessions, such as gathering spell IDs or DoT tick intervals.
+  Read it with `scripts/observed.sh [Addon]` or `scripts/combat-knowledge.sh`.
+- Probes of what the client restricts where (restriction states, secret unit values), logged
+  on login, zone changes and target changes.
 - `/fdev errors` lists this session's errors in chat. `/fdev clear` empties the log.
+  `/fdev forget <Addon>` drops that addon's evidence.
 
 ## Day to day
 

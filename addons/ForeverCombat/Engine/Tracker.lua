@@ -320,8 +320,6 @@ local function TryAvoid(key, event, flags, amount, school, now)
 	return true
 end
 
-local loggedSchoolZero = {}
-
 -- Matches a hit to one of the player's effects on the mob and moves that effect onto it,
 -- learning the tick size.
 local function TryTick(key, mob, event, flags, amount, school, now)
@@ -330,9 +328,8 @@ local function TryTick(key, mob, event, flags, amount, school, now)
 	if not kind or (amount == 0 and flags ~= "ABSORB") then
 		return
 	end
-	if school == 0 and not loggedSchoolZero[event] then
-		loggedSchoolZero[event] = true
-		ns.log("SCHOOL0", event, "reports school 0; ticks match on timing and size only")
+	if school == 0 then
+		ns.dev:LogOnce("school0 " .. event, "SCHOOL0", event, "reports school 0; ticks match on timing and size only")
 	end
 
 	local match, miss = ns.TickMatcher.Match(mob, kind, amount, school, now)
@@ -382,8 +379,6 @@ local function IsDuplicate(key, unit, event, amount, school, now)
 	end
 	return false
 end
-
-local loggedSecretCombat
 
 local handlers = {}
 
@@ -456,10 +451,7 @@ function handlers.UNIT_COMBAT(unit, event, flags, amount, school)
 		or issecretvalue(amount)
 		or issecretvalue(school)
 	then
-		if not loggedSecretCombat then
-			loggedSecretCombat = true
-			ns.log("SECRET", "UNIT_COMBAT payload is secret; ticks can't be read")
-		end
+		ns.dev:LogOnce("secret combat", "SECRET", "UNIT_COMBAT payload is secret; ticks can't be read")
 		return
 	end
 	if not next(effects) and not next(lastCasts) then

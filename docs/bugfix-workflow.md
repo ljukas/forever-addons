@@ -28,7 +28,7 @@ Companions — one hat per commit:
 ### 1. Confirm it's a bug, and gather evidence
 **What:** A bug is behavior that contradicts something already decided: a spec, an ADR, a CLAUDE.md convention, or plain correctness. If nobody decided what *should* happen, it's a product decision, so switch to the feature workflow.
 **Evidence first, theories second.** Collect what actually happened before guessing why:
-- **In game:** `scripts/devlog.sh` (Lua errors with stack traces, `ADDON_ACTION_BLOCKED`/`ADDON_ACTION_FORBIDDEN` taint events, `ns.log` lines; `--all` for earlier sessions, `--errors` for errors only). `/fdev errors` lists the session's errors in chat. Ask for `/rl` after the bug shows: nothing reaches disk before it.
+- **In game:** `scripts/devlog.sh` (Lua errors with stack traces, `ADDON_ACTION_BLOCKED`/`ADDON_ACTION_FORBIDDEN` taint events, `ns.log` lines; `--all` for earlier sessions, `--errors` for errors only, `--addon NAME` and `--tag TAG` to narrow it down) and `scripts/observed.sh` for the evidence addons keep across sessions. `/fdev errors` lists the session's errors in chat. Ask for `/rl` after the bug shows: nothing reaches disk before it.
 - **The circumstances:** the user's exact steps, class and spec, zone and whether it was an instance, in combat or not, and which other addons were loaded. Taint is often another addon's fault, and secret values depend on all of these.
 - **Review findings:** each finding is a bug report. Confirm it's real against the code and the Forever source before fixing it.
 
@@ -86,7 +86,7 @@ The fix still honors the CLAUDE.md conventions. A change to what an addon stores
 | Phase | Primary | Also useful |
 |---|---|---|
 | 0. Isolate | `EnterWorktree` *(tool)*, then `scripts/worktree.sh setup` | `scripts/worktree.sh game` *(to reproduce in game)* |
-| 1. Evidence | `scripts/devlog.sh` | `/fdev errors` *(in game)*; `scripts/combat-knowledge.sh` *(ForeverCombat)* |
+| 1. Evidence | `scripts/devlog.sh` | `scripts/observed.sh`; `/fdev errors` *(in game)*; `scripts/combat-knowledge.sh` *(ForeverCombat)* |
 | 2. Reproduce | `superpowers:systematic-debugging` | `ns.log` probes + `scripts/devlog.sh` |
 | 3. Root cause | `superpowers:systematic-debugging` | `feature-dev:code-explorer` *(agent)*; `Explore` *(agent)*; the `.cache/wow-ui-source` searches in CLAUDE.md |
 | 4. Pin it | — | `types/forever.lua` *(annotations that make a wrong call a lint error)* |

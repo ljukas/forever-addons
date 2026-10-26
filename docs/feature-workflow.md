@@ -44,7 +44,7 @@ Parallel work gets parallel worktrees. Never run two implementers in one worktre
 
 **Probe the client before designing on it.** Designs built on assumed API behavior get rebuilt.
 - Look every API up in `.cache/wow-ui-source` first: the generated docs for signatures, event payloads and the `Secret*` flags (`SecretArguments`, `SecretReturns`, the `SecretWhen…Restricted` family), and Blizzard's own code for how it uses them. Ketho's annotations in `.cache/wow-api` are Retail-based: they're no proof that something exists in Forever.
-- Once the game is live, when the design hinges on runtime behavior the source can't show (is this payload secret in combat? does this event fire on login?), ship a logged probe first, as `ForeverCombat/Probes.lua` does: `ns.log` the facts, `/rl`, read them with `scripts/devlog.sh`.
+- Once the game is live, when the design hinges on runtime behavior the source can't show (is this payload secret in combat? does this event fire on login?), ship a logged probe first (in `addons/<Name>/Dev/`, or `addons/ForeverDev/Probes.lua` when it holds for every addon; CLAUDE.md → "Logging, probing and evidence"): `ns.log` the facts, `/rl`, read them with `scripts/devlog.sh --tag <TAG>`.
 - Decide what the feature does when a value it needs is secret. That is part of the design, not an edge case.
 
 **Native, not standalone.** Our addons extend Blizzard's UI: they hook existing frames, menus, tooltips, map canvases and the Settings panel, using Blizzard's own atlases, color constants and GlobalStrings, rather than adding windows or custom art. Shape the feature around where it lives in the base UI.
@@ -54,7 +54,7 @@ Parallel work gets parallel worktrees. Never run two implementers in one worktre
 ### 2. Understand the seams
 **What:** Map what already exists that the feature will *consume or reuse*, at the line level, before replicating anything. There are two kinds of seam:
 - **Blizzard's:** mixins and templates, map canvas data providers, `TooltipDataProcessor`, `Menu.ModifyMenu`, `Settings`, `EventUtil` and `EventRegistry`, color constants, atlases. Find how Blizzard's own code uses each one in `.cache/wow-ui-source`; that is the usage to copy.
-- **Ours:** the addon's `ns` modules, its `Database.lua` layout and migrations, ForeverDev's `ns.log` and devlog, `template/Addon`, and the annotations in `types/forever.lua`.
+- **Ours:** the addon's `ns` modules, its `Database.lua` layout and migrations, ForeverDev's API (`ns.log`, `ns.dev`, `Knowledge.lua` evidence, `Dev/` probes), `template/Addon`, and the annotations in `types/forever.lua`.
 
 Dispatch several explorers in parallel when the feature touches independent seams.
 
@@ -74,12 +74,12 @@ Dispatch several explorers in parallel when the feature touches independent seam
 
 **Name the step's reviewers.** The plan lists the specialists Phase 5 will add to the core reviewers (see [step reviewers](#step-reviewers)), and a **Review Focus** section: the few places most likely to be wrong, which every reviewer gets. Tasks don't name reviewers.
 
-**List the launch checks.** Every assumption only the running client can confirm (a payload isn't secret, an event fires in that order, the art lines up) goes in the plan with the `ns.log` tag that will show it. They become instrumentation in the tasks and the checklist in Phase 6.
+**List the launch checks.** Every assumption only the running client can confirm (a payload isn't secret, an event fires in that order, the art lines up) goes in the plan with the `ns.log` tag, `Dev/` probe or `Knowledge.lua` evidence that will show it. They become instrumentation in the tasks and the checklist in Phase 6.
 **Output:** A plan in `docs/superpowers/plans/`.
 
 ### 4. Build, task by task
 **What:** Execute the plan **one task at a time**, each through the same loop:
-1. **Implement** the task. Verify each API in the Forever source before its first use, and add Forever-only APIs to `types/forever.lua` once verified. Add the `ns.log` lines the launch checks need. There's no automated test suite for addon code, so keep pure logic (parsers, matchers, math, layouts) in functions apart from event and frame code, where a reviewer can check it by reading. Run `scripts/lint.sh` until it's clean.
+1. **Implement** the task. Verify each API in the Forever source before its first use, and add Forever-only APIs to `types/forever.lua` once verified. Add the `ns.log` tags, probes and evidence the launch checks need, the way CLAUDE.md → "Logging, probing and evidence" says (dev-only code stays out of releases). There's no automated test suite for addon code, so keep pure logic (parsers, matchers, math, layouts) in functions apart from event and frame code, where a reviewer can check it by reading. Run `scripts/lint.sh` until it's clean.
 2. **Commit** it: one hat, a conventional message, `git add <paths>` (never `-A`), with `git branch --show-current` in the same command.
 3. **Check the evidence:** a subagent implementer pastes `git log --oneline -N` and `git show --stat HEAD` into its report, and you check `HEAD` yourself before the next task. Reports of commits that don't exist happen.
 
@@ -112,11 +112,11 @@ There's no reviewer between tasks: review is per step (Phase 5). The loop still 
 | SavedVariables, TOC `## SavedVariables*`, slash commands, bindings or settings keys | `savedvariables-guard` *(agent)*. Mandatory, on top of the [Phase 4 gate](#4-build-task-by-task) |
 | UI: frames, XML, hooks into Blizzard UI, textures and atlases | **UI reviewer** (`general-purpose`): native look (Blizzard atlases, colors and GlobalStrings from `.cache/wow-ui-source`, no custom art), hooks into existing UI rather than new windows, anchoring and layering, secure frames left alone in combat |
 | `scripts/` or `.github/` | **Shell reviewer** (`general-purpose`): correctness under `set -euo pipefail`, portability between macOS (BSD tools) and the Ubuntu CI runner, quoting of paths with spaces (`WOW_DIR` has them) |
-| Packaging: `.pkgmeta`, TOC metadata, `scripts/package.sh`, `release.yml` | **Release reviewer** (`general-purpose`): packager directives (`@project-version@`, `#@do-not-package@` blocks), `LICENSE` in the zip, nothing dev-only (ForeverDev) shipped |
+| Packaging: `.pkgmeta`, TOC metadata, `scripts/package.sh`, `release.yml` | **Release reviewer** (`general-purpose`): packager directives (`@project-version@`, `#@do-not-package@` blocks), `LICENSE` in the zip, nothing dev-only shipped (ForeverDev, `Dev/` probes: do-not-package in the TOC and ignored in `.pkgmeta`) |
 
 ### 6. Verify end-to-end
 **What:** Evidence before any "done" claim. Run the [pre-PR gate](#pre-pr-gate), then the in-game check that fits the date:
-- **After launch:** `scripts/worktree.sh game`, then ask the user to `/rl` (a brand-new addon folder may need a client restart), to exercise the feature with the exact steps you give them, and to `/rl` again, because SavedVariables (and so the devlog) are only written on reload, logout or exit. Then `scripts/devlog.sh --errors` must show no Lua errors or blocked actions, and `scripts/devlog.sh` must show the launch-check tags with the values the plan expects. Anything else is a bug: [bugfix-workflow.md](./bugfix-workflow.md).
+- **After launch:** `scripts/worktree.sh game`, then ask the user to `/rl` (a brand-new addon folder may need a client restart), to exercise the feature with the exact steps you give them, and to `/rl` again, because SavedVariables (and so the devlog) are only written on reload, logout or exit. Then `scripts/devlog.sh --errors` must show no Lua errors or blocked actions, and `scripts/devlog.sh --addon <Name>` (plus `scripts/observed.sh <Name>` for evidence) must show the launch-check tags with the values the plan expects. Anything else is a bug: [bugfix-workflow.md](./bugfix-workflow.md).
 - **Before launch:** the game can't run it. Record the plan's launch checks as a project memory (`<addon>-launch-checks`, like the existing ForeverMap and ForeverCombat ones): what to do in game, which devlog tag and value confirms each assumption, and which file to change if it's wrong. The PR's *Testing* section says "untested in game".
 
 ### 7. Ship
@@ -183,5 +183,5 @@ Paste the output (or say what you checked) in the PR's *Testing* section. Unchec
 | 3. Plan | `superpowers:writing-plans` | `Plan` *(agent; smaller features)* |
 | 4. Build | `superpowers:subagent-driven-development` (this session) / `superpowers:executing-plans` (inline, no subagents) | `superpowers:systematic-debugging`; `superpowers:dispatching-parallel-agents` *(leaves)*; the SavedVariables gate (`savedvariables-guard`, layout tasks only); `scripts/lint.sh` after every task |
 | 5. Review step | Core: `addon-reviewer`, `api-verifier` *(agents)*, correctness + spec reviewers *(`general-purpose` agents)*; specialists per [step reviewers](#step-reviewers): `savedvariables-guard` *(agent)*, UI / shell / release reviewers *(`general-purpose` agents)* | `/code-review` (`high`+ for large diffs; `--fix` to apply); `/simplify`; `superpowers:requesting-code-review` / `superpowers:receiving-code-review`; the `Workflow` tool for a multi-agent review *(only when the user opts in)* |
-| 6. Verify | `superpowers:verification-before-completion` | `scripts/worktree.sh game`; `scripts/devlog.sh`; `scripts/combat-knowledge.sh` *(ForeverCombat)* |
+| 6. Verify | `superpowers:verification-before-completion` | `scripts/worktree.sh game`; `scripts/devlog.sh` (`--addon`, `--tag`); `scripts/observed.sh`; `scripts/combat-knowledge.sh` *(ForeverCombat)* |
 | 7. Ship | `superpowers:finishing-a-development-branch` | `claude-md-management:revise-claude-md` *(capture session learnings)* |

@@ -60,8 +60,21 @@ On launch day, before testing any real addon:
 6. **Report problems:** tell Claude about anything that failed, so the tooling gets fixed
    before you rely on it for real addons. Then delete this section.
 
+## Commits and pull requests
+
+Every change goes through a pull request whose title is a
+[Conventional Commit](https://www.conventionalcommits.org/), e.g.
+`feat(forevermap): show node counts on the world map`. PRs are squash-merged, so each one
+becomes a single commit on `main`. CI checks the title. See
+[CLAUDE.md](CLAUDE.md#commits-and-pull-requests) for the types and scopes.
+
 ## Releasing
 
-Tag `<Addon>-vX.Y.Z` and push it. GitHub Actions packages the addon with the BigWigs
+Merge a PR that renames `## Unreleased` to `## vX.Y.Z` in the addon's `CHANGELOG.md`, then tag
+`<Addon>-vX.Y.Z` on `main` and push the tag. GitHub Actions packages the addon with the BigWigs
 packager and creates a GitHub release. See [CLAUDE.md](CLAUDE.md#releasing-an-addon) for
 CurseForge/Wago.
+
+## License
+
+[MIT](LICENSE).

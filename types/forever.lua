@@ -100,3 +100,14 @@ TargetFrame = {}
 
 ---@class FocusFrame : TargetFrame
 FocusFrame = {}
+
+-- Minimap: Blizzard_APIDocumentationGenerated/MinimapFrameAPIDocumentation.lua. Ketho's
+-- Retail-based annotations lack these two (and list SetBlipTexture, which Forever doesn't have).
+
+---Moves the minimap's mouseover to a point in screen coordinates (needs the soft cursor on).
+---@param pointX number
+---@param pointY number
+function Minimap:UpdateMouseoverAtPoint(pointX, pointY) end
+
+---@param usingSoftCursor boolean
+function Minimap:SetUsingSoftCursor(usingSoftCursor) end

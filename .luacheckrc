@@ -41,6 +41,11 @@ files["addons/ForeverDev/**"].globals = {
 	"SLASH_FOREVERDEV_RELOAD1",
 }
 
+files["addons/ForeverMap/**"].globals = {
+	"ForeverMapDB",
+	"ForeverMapNodeIconMixin",
+}
+
 files["addons/ForeverProfessions/**"].globals = {
 	"ForeverProfessionsDB",
 	"ForeverProfessionsPinMixin",

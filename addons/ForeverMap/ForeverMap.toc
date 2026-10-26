@@ -19,4 +19,5 @@ Logic/Grid.lua
 Logic/Anchor.lua
 Options.lua
 Tracking.lua
+Markers.lua
 Scanner.lua

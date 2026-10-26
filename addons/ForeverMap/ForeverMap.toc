@@ -2,6 +2,7 @@
 ## Title: ForeverMap
 ## Notes: Remembers where you gather herbs and minerals and shows them on the world map and minimap, with the skill each node requires.
 ## Author: ljukas
+## X-License: MIT
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\INV_Misc_Map_01
 ## Category: Map & Minimap

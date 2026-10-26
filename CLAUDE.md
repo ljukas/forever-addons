@@ -139,6 +139,10 @@ commits are conventional too.
    `## X-Curse-Project-ID:` / `## X-Wago-ID:` and the repo has the `CF_API_KEY` /
    `WAGO_API_TOKEN` secrets.
 
+Everything is MIT-licensed (`LICENSE`, and `## X-License: MIT` in each TOC). `package.sh` copies
+`LICENSE` into every zip. Blizzard's add-on policy requires addons to be free and their code
+readable: never obfuscate or minify.
+
 The packager replaces `@project-version@` and strips `#@do-not-package@ … #@end-do-not-package@`
 blocks. The template uses such a block to keep the dev-only `OptionalDeps: ForeverDev` out of
 releases.

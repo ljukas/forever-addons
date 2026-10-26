@@ -74,3 +74,7 @@ Merge a PR that renames `## Unreleased` to `## vX.Y.Z` in the addon's `CHANGELOG
 `<Addon>-vX.Y.Z` on `main` and push the tag. GitHub Actions packages the addon with the BigWigs
 packager and creates a GitHub release. See [CLAUDE.md](CLAUDE.md#releasing-an-addon) for
 CurseForge/Wago.
+
+## License
+
+[MIT](LICENSE).

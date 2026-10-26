@@ -33,6 +33,8 @@ rm -rf "$stage"
 mkdir -p "$stage"
 (cd "$ROOT" && git ls-files -z --cached --others --exclude-standard -- "addons/$name") |
 	(cd "$ROOT" && xargs -0 tar -cf -) | tar -xf - -C "$stage" --strip-components=2
+# The MIT license must ship with every copy.
+cp "$ROOT/LICENSE" "$stage/LICENSE"
 
 git -C "$stage" init --quiet
 git -C "$stage" add --all

@@ -2,6 +2,7 @@
 ## Title: ForeverDev
 ## Notes: Dev helpers: /rl, reload keybind, Lua error + log capture to SavedVariables (read by scripts/devlog.sh).
 ## Author: ljukas
+## X-License: MIT
 ## Version: dev
 ## IconTexture: Interface\Icons\INV_Misc_Gear_01
 ## Category: Development Tools

@@ -2,6 +2,7 @@
 ## Title: ForeverCombat
 ## Notes: Shows how much your damage and healing over time spells still have to do, right on the target and focus health bars.
 ## Author: ljukas
+## X-License: MIT
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\Spell_Shadow_AbominationExplosion
 ## Category: Combat

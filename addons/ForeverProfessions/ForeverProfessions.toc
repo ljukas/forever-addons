@@ -1,0 +1,14 @@
+## Interface: 16001
+## Title: ForeverProfessions
+## Notes: Records where you gather herbs and minerals and the skill each node requires. ForeverMap shows them on your maps.
+## Author: ljukas
+## X-License: MIT
+## Version: @project-version@
+## IconTexture: Interface\Icons\Trade_Herbalism
+## Category: Professions
+## SavedVariables: ForeverProfessionsDB
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua

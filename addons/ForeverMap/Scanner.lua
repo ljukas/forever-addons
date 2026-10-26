@@ -14,7 +14,7 @@ local ADDON_NAME, ns = ...
 -- Positions in a sweep are "places": yards east and south on the zone map, or, where the client
 -- has no map position, minimap pixels from the center that don't follow the player.
 --
--- Dev log tags: SCAN (a summary every few sweeps), DOT (once per kind of dot seen), LINE (once
+-- Dev log tags: SCAN (a summary every few sweeps, and each time the minimap hides), DOT (once per kind of dot seen), LINE (once
 -- per distinct tooltip line and color), MISS (once per name that isn't a known node), LOOT
 -- (what gathering removed).
 ns.Scanner = {}
@@ -486,6 +486,13 @@ ns.OnInitialize(function()
 		events[event]()
 	end)
 	frame:SetScript("OnUpdate", OnUpdate)
+	-- Hidden (Alt+Z, or the minimap toggled off), sweeps stop, and the player may be somewhere
+	-- else by the time it shows: drop the half-done sweep so the first one after is whole. The
+	-- markers stay, since they are drawn from where the player is then.
+	frame:SetScript("OnHide", function()
+		ns.log("SCAN", "minimap hidden, sweep dropped:", sweep ~= nil)
+		ns.Scanner.ScanSoon()
+	end)
 	ns.callbacks:RegisterCallback("TrackingChanged", ns.Scanner.ScanSoon)
 	ns.callbacks:RegisterCallback("OptionChanged", ns.Scanner.ScanSoon)
 end)

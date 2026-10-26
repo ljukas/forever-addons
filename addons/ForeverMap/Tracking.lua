@@ -14,7 +14,10 @@ local FINDERS = {
 
 local finding = false
 
+-- Only a change is announced: MINIMAP_UPDATE_TRACKING can fire repeatedly, and every
+-- announcement restarts the scanner's sweep.
 local function Refresh()
+	local was = finding
 	finding = false
 	for index = 1, C_Minimap.GetNumTrackingTypes() do
 		local info = C_Minimap.GetTrackingInfo(index)
@@ -25,7 +28,9 @@ local function Refresh()
 			end
 		end
 	end
-	ns.callbacks:TriggerEvent("TrackingChanged")
+	if finding ~= was then
+		ns.callbacks:TriggerEvent("TrackingChanged")
+	end
 end
 
 function ns.Tracking.IsFinding()

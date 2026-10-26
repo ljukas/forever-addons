@@ -135,10 +135,6 @@ default. `scripts/worktree.sh game` points them at the current worktree for in-g
   which exposes its API as the `ForeverDev` global instead, takes only `ADDON_NAME`). Create no
   globals except SavedVariables and names the client requires (`SLASH_*`, `BINDING_*`,
   TOC-referenced functions). Prefix all of those with the addon name.
-- An addon other addons build on exposes its API as one global named after it, defined last
-  in its `API.lua`: `ForeverProfessions` records gathers and skills, and ForeverMap draws them
-  through it. The dependent lists it under `## Dependencies:` and calls the API from its own
-  `ADDON_LOADED` on, never the provider's `ns`.
 - Prefer modern client facilities over libraries: `EventUtil.ContinueOnAddOnLoaded`,
   `EventRegistry`, `CreateFrame` with mixins, `C_Timer`, `Settings` (options panels),
   `MenuUtil` (context menus). The repo uses no Ace3 or libs by default. If one is needed, add
@@ -158,8 +154,7 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 - **Types:** `feat` (new behaviour players notice), `fix`, `perf`, `refactor`, `docs`, `style`,
   `test`, `build`, `ci`, `chore`, `revert`.
-- **Scopes:** the addon folder name in lowercase (`forevermap`, `foreverprofessions`,
-  `forevercombat`, `foreverdev`),
+- **Scopes:** the addon folder name in lowercase (`foreverprofessions`, `forevercombat`, `foreverdev`),
   or `ci`, `scripts`, `template`, `types`, `deps`. Separate several with commas. Leave the
   scope out for repo-wide changes.
 - **Description:** imperative, lowercase start, no trailing period. Keep the whole title within

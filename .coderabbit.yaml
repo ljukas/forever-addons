@@ -81,7 +81,7 @@ reviews:
         mode: "error"
         instructions: |
           Look at the PR title. If its type is feat or fix and its scope names one or more addon folders (the folder
-          name in lowercase, e.g. forevermap for addons/ForeverMap), then for each such addon except ForeverDev the
+          name in lowercase, e.g. foreverprofessions for addons/ForeverProfessions), then for each such addon except ForeverDev the
           PR must add at least one line under the "## Unreleased" heading of addons/<Addon>/CHANGELOG.md. Pass if it
           does, or if the title's type isn't feat or fix, or if the scope names no addon. Fail otherwise and name
           the addon missing its line.

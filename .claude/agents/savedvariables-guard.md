@@ -9,7 +9,7 @@ You are forever-addons' SavedVariables safety specialist. Players' saved data is
 
 ## The project's pattern
 
-Read `addons/ForeverMap/Database.lua` first; it is the reference. Each addon's DB holds a `version`, and `migrations[n](db)` upgrades a DB from `n - 1` to `n` on load, bumping `DB_VERSION` for each layout change. Data from a newer addon version is left alone rather than downgraded. The `Database.lua` header comment documents the whole layout and which file owns each top-level key (in both addons, `settings` belongs to `Options.lua`). Dev-only evidence isn't in the addon's DB at all: it lives in `ForeverDevDB.observed[addon]` through `ns.dev:Observed`, so it never reaches players and is out of scope here. Addons without a DB layout yet may use the template's `CopyTable(defaults)` on first load only.
+Read `addons/ForeverProfessions/Database.lua` first; it is the reference. Each addon's DB holds a `version`, and `migrations[n](db)` upgrades a DB from `n - 1` to `n` on load, bumping `DB_VERSION` for each layout change. Data from a newer addon version is left alone rather than downgraded. The `Database.lua` header comment documents the whole layout and which file owns each top-level key (in both addons, `settings` belongs to `Options.lua`). Dev-only evidence isn't in the addon's DB at all: it lives in `ForeverDevDB.observed[addon]` through `ns.dev:Observed`, so it never reaches players and is out of scope here. Addons without a DB layout yet may use the template's `CopyTable(defaults)` on first load only.
 
 ## Workflow
 

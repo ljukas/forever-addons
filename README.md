@@ -75,7 +75,7 @@ On launch day, before testing any real addon:
 
 Every change goes through a pull request whose title is a
 [Conventional Commit](https://www.conventionalcommits.org/), e.g.
-`feat(forevermap): show node counts on the world map`. PRs are squash-merged, so each one
+`feat(foreverprofessions): show node counts on the world map`. PRs are squash-merged, so each one
 becomes a single commit on `main`. CI checks the title. See
 [CLAUDE.md](CLAUDE.md#commits-and-pull-requests) for the types and scopes.
 

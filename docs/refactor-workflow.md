@@ -60,7 +60,7 @@ Companions: **[feature-workflow.md](./feature-workflow.md)** for adding capabili
 | **Branch by Abstraction** | Introduce an abstraction in front of the thing, migrate all callers to it, build the new impl behind it, flip the default, delete the old. | Replacing something **many call sites depend on** inside an addon: a shared helper, the `ns.DB` interface. |
 | **Parallel Change** (expand → migrate → contract) | Add the new form alongside the old, move all callers/data over, then remove the old. | Changing a widely-used interface, or the **SavedVariables layout**: the migration on load is the "migrate" step, and the reader of the old shape goes only once the migration has shipped. |
 
-**Code shared between addons.** Each addon ships as its own zip, so there is no shared runtime module. Code two addons need is either copied, packaged as a library through `.pkgmeta` externals, or kept in one addon that the other lists under `## Dependencies:` and calls through its public API global (ForeverMap uses `ForeverProfessions` that way; see CLAUDE.md). Decide that explicitly; don't let an addon reach into another's internals.
+**Code shared between addons.** Each addon ships as its own zip, so there is no shared runtime module. Code two addons need is either copied or packaged as a library through `.pkgmeta` externals. Decide that explicitly; don't let an addon reach into another's globals.
 
 #### Replacing hand-rolled code with a Blizzard facility or a library
 A swap is a refactor *only if behavior stays the same*, and Blizzard's facilities rarely match hand-rolled code exactly. Treat it as Branch by Abstraction around the old helper:

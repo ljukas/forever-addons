@@ -3,7 +3,7 @@
 # PRs are squash-merged, so the title becomes the commit message on main.
 # CI runs this on every PR (.github/workflows/pr-title.yml).
 #
-# Usage: scripts/check-pr-title.sh "feat(forevermap): show node counts on the world map"
+# Usage: scripts/check-pr-title.sh "feat(foreverprofessions): show node counts on the world map"
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
@@ -50,7 +50,7 @@ if ((failed)); then
 	echo "PR title '$title' is not a Conventional Commit:" >&2
 	echo "  types:  ${TYPES[*]}" >&2
 	echo "  scopes: ${scopes[*]} (comma-separated, optional)" >&2
-	echo "  e.g.    feat(forevermap): show node counts on the world map" >&2
+	echo "  e.g.    feat(foreverprofessions): show node counts on the world map" >&2
 	exit 1
 fi
 echo "PR title OK: $title"

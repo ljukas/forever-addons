@@ -1,0 +1,60 @@
+local ADDON_NAME, ns = ...
+
+-- The herb and ore nodes Find Herbs and Find Minerals show, by enUS name: which tracking icon
+-- each gets. Only names in this list get an icon, so party members, NPCs and quest objects under
+-- a minimap probe are left alone. A deliberate copy of the names in ForeverProfessions'
+-- Data/GatherNodes.lua: the addons don't depend on each other (ADR 0001).
+ns.Nodes = {
+	-- Mining
+	["Copper Vein"] = "ore",
+	["Tin Vein"] = "ore",
+	["Incendicite Mineral Vein"] = "ore",
+	["Silver Vein"] = "ore",
+	["Ooze Covered Silver Vein"] = "ore",
+	["Lesser Bloodstone Deposit"] = "ore",
+	["Iron Deposit"] = "ore",
+	["Indurium Mineral Vein"] = "ore",
+	["Gold Vein"] = "ore",
+	["Ooze Covered Gold Vein"] = "ore",
+	["Mithril Deposit"] = "ore",
+	["Ooze Covered Mithril Deposit"] = "ore",
+	["Truesilver Deposit"] = "ore",
+	["Ooze Covered Truesilver Deposit"] = "ore",
+	["Dark Iron Deposit"] = "ore",
+	["Small Thorium Vein"] = "ore",
+	["Ooze Covered Thorium Vein"] = "ore",
+	["Rich Thorium Vein"] = "ore",
+	["Ooze Covered Rich Thorium Vein"] = "ore",
+	["Small Obsidian Chunk"] = "ore",
+	["Large Obsidian Chunk"] = "ore",
+
+	-- Herbalism
+	["Peacebloom"] = "herb",
+	["Silverleaf"] = "herb",
+	["Earthroot"] = "herb",
+	["Mageroyal"] = "herb",
+	["Briarthorn"] = "herb",
+	["Stranglekelp"] = "herb",
+	["Bruiseweed"] = "herb",
+	["Wild Steelbloom"] = "herb",
+	["Grave Moss"] = "herb",
+	["Kingsblood"] = "herb",
+	["Liferoot"] = "herb",
+	["Fadeleaf"] = "herb",
+	["Goldthorn"] = "herb",
+	["Khadgar's Whisker"] = "herb",
+	["Wintersbite"] = "herb",
+	["Firebloom"] = "herb",
+	["Purple Lotus"] = "herb",
+	["Arthas' Tears"] = "herb",
+	["Sungrass"] = "herb",
+	["Blindweed"] = "herb",
+	["Ghost Mushroom"] = "herb",
+	["Gromsblood"] = "herb",
+	["Golden Sansam"] = "herb",
+	["Dreamfoil"] = "herb",
+	["Mountain Silversage"] = "herb",
+	["Plaguebloom"] = "herb",
+	["Icecap"] = "herb",
+	["Black Lotus"] = "herb",
+}

@@ -13,3 +13,5 @@
 
 Core.lua
 Database.lua
+Data/Nodes.lua
+Logic/Lines.lua

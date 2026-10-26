@@ -14,29 +14,46 @@ function ns.Lines.IsGray(r, g, b)
 	return high - low < 0.06 and high < 0.9
 end
 
--- One name from a tooltip line, without its color and texture escapes and padding.
-function ns.Lines.Clean(part)
-	local name = part:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|T.-|t", "")
-	return name:match("^%s*(.-)%s*$")
-end
+-- Escapes that can wrap a name: |cAARRGGBB and |cnNAME: colors, |r, |T...|t textures and
+-- |A...|a atlases.
+local ESCAPES = { "|c%x%x%x%x%x%x%x%x", "|cn[^:]*:", "|r", "|T.-|t", "|A.-|a" }
 
--- Returns the known nodes named in one tooltip line, as a list of { name, gray }. A line can
--- hold several names, one per text line, each with its own color and texture escapes; r, g, b
--- is the line's own color, used for names without a color escape. Names not in ns.Nodes
--- (players, NPCs, "Peacebloom 3/8" quest progress) are left out, and each name comes once.
-function ns.Lines.Parse(text, r, g, b)
-	local found, seen = {}, {}
-	for part in text:gmatch("[^\n]+") do
-		local gray = ns.Lines.IsGray(r, g, b)
-		local hexR, hexG, hexB = part:match("^%s*|c%x%x(%x%x)(%x%x)(%x%x)")
-		if hexR then
-			gray = ns.Lines.IsGray(tonumber(hexR, 16) / 255, tonumber(hexG, 16) / 255, tonumber(hexB, 16) / 255)
-		end
-		local name = ns.Lines.Clean(part)
-		if ns.Nodes[name] and not seen[name] then
-			seen[name] = true
-			table.insert(found, { name = name, gray = gray })
+-- One text line of a tooltip line: the bare name, and whether its own color escape (if it has
+-- one) is gray. A named color counts as gray when its name says so (GRAY_FONT_COLOR); its
+-- value can't be read outside the client. Returns the name and true, false or nil (no escape).
+function ns.Lines.Split(part)
+	local gray
+	local red, green, blue = part:match("|c%x%x(%x%x)(%x%x)(%x%x)")
+	if red then
+		gray = ns.Lines.IsGray(tonumber(red, 16) / 255, tonumber(green, 16) / 255, tonumber(blue, 16) / 255)
+	else
+		local colorName = part:match("|cn([^:]*):")
+		if colorName then
+			gray = colorName:find("GRAY") ~= nil
 		end
 	end
-	return found
+	local name = part
+	for _, escape in ipairs(ESCAPES) do
+		name = name:gsub(escape, "")
+	end
+	return name:match("^%s*(.-)%s*$"), gray
+end
+
+-- The known nodes named in one tooltip line, as a list of { name, gray }. A line can hold
+-- several names, one per text line; r, g, b is the line's own color, used where a name has no
+-- color escape. Names not in ns.Nodes (players, NPCs, "Peacebloom 3/8" quest progress) are
+-- left out, and each name comes once.
+function ns.Lines.Parse(text, r, g, b)
+	local nodes, listed = {}, {}
+	for part in text:gmatch("[^\n]+") do
+		local name, gray = ns.Lines.Split(part)
+		if gray == nil then
+			gray = ns.Lines.IsGray(r, g, b)
+		end
+		if ns.Nodes[name] and not listed[name] then
+			listed[name] = true
+			table.insert(nodes, { name = name, gray = gray })
+		end
+	end
+	return nodes
 end

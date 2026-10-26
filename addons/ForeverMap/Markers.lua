@@ -9,19 +9,9 @@ ns.Markers = {}
 
 local markers = {}
 
--- Replaces every marker with the dots of a scan (Scanner.lua): each dot has its minimap offset
--- (ox, oy) and the view it was measured in, or no view.
-function ns.Markers.Replace(dots)
-	wipe(markers)
-	for _, dot in ipairs(dots) do
-		local view = dot.view
-		if view then
-			local mapX, mapY = ns.Anchor.ToMap(dot.ox, dot.oy, view)
-			table.insert(markers, { kind = dot.kind, gray = dot.gray, mapID = view.mapID, mapX = mapX, mapY = mapY })
-		else
-			table.insert(markers, { kind = dot.kind, gray = dot.gray, ox = dot.ox, oy = dot.oy })
-		end
-	end
+-- Replaces every marker with a scan's (Scanner.lua).
+function ns.Markers.Replace(list)
+	markers = list
 end
 
 function ns.Markers.Enumerate()
@@ -45,17 +35,20 @@ local function Yards(marker, view, pixelsPerYard)
 	end
 end
 
--- Removes the marker nearest the player within the given yards: the node gathered just now.
+-- Removes the marker nearest the player if it is within the given yards: the node gathered just
+-- now. Returns whether one went, and how far the nearest marker was (nil if none could be told).
 function ns.Markers.RemoveNearPlayer(yards, pixelsPerYard)
 	local view = ns.Scanner.CurrentView()
 	local nearest, nearestYards
 	for index, marker in ipairs(markers) do
 		local distance = Yards(marker, view, pixelsPerYard)
-		if distance and distance <= yards and (not nearestYards or distance < nearestYards) then
+		if distance and (not nearestYards or distance < nearestYards) then
 			nearest, nearestYards = index, distance
 		end
 	end
-	if nearest then
+	if nearest and nearestYards <= yards then
 		table.remove(markers, nearest)
+		return true, nearestYards
 	end
+	return false, nearestYards
 end

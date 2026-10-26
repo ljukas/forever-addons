@@ -3,8 +3,8 @@ local ADDON_NAME, ns = ...
 -- Dev-only logging, probing and evidence through ForeverDev (addons/ForeverDev/ForeverDev.lua,
 -- scripts/devlog.sh). Without ForeverDev, ns.dev is inert: ns.dev.enabled is false and every
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
---   LOADED                 Core.lua
---   SCAN DOT LINE MISS     Scanner.lua
+--   LOADED                   Core.lua
+--   SCAN DOT LINE MISS LOOT  Scanner.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.

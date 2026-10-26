@@ -3,52 +3,43 @@ local ADDON_NAME, ns = ...
 -- Turning minimap probe hits into dots. Pure functions: no client API, so a reviewer can check
 -- them by reading (and they run outside the game).
 --
--- Probe points sit on square grids over the minimap. A point is a key, gx * 1000 + gy, for the
--- grid point (gx * step, gy * step) in pixels from the minimap's bottom left. A scan probes a
--- coarse grid first; each group of touching hits is then probed again on a fine grid, and the
--- fine hits give the dots' centers.
+-- The first look at the minimap probes a coarse grid of points. A grid point is a key,
+-- gx * 1000 + gy, for (gx * step, gy * step) pixels from the minimap's bottom left; touching
+-- hits form a group. Each group is then probed again on a fine grid laid out in the world
+-- (Cover), and its fine hits, as plain { x, y } points in any unit, give the dots (Dots).
 ns.Grid = {}
 
-local function Key(gx, gy)
-	return gx * 1000 + gy
-end
-
-local function Coords(key)
-	return math.floor(key / 1000), key % 1000
-end
-
--- The grid points inside the round minimap of the given width, as a list of keys.
+-- The coarse grid points inside the round minimap of the given width, as a list of keys.
 function ns.Grid.Points(width, step)
-	local points, radius = {}, width / 2
-	for gx = 0, math.floor(width / step) do
-		for gy = 0, math.floor(width / step) do
+	local keys, radius = {}, width / 2
+	local last = math.floor(width / step)
+	for gx = 0, last do
+		for gy = 0, last do
 			local dx, dy = gx * step - radius, gy * step - radius
 			if dx * dx + dy * dy <= radius * radius then
-				table.insert(points, Key(gx, gy))
+				table.insert(keys, gx * 1000 + gy)
 			end
 		end
 	end
-	return points
+	return keys
 end
 
--- Splits a set of hit keys ({ [key] = true }) into groups of touching points, diagonals
+-- Splits a set of coarse keys ({ [key] = true }) into groups of touching points, diagonals
 -- included. Returns a list of lists of keys.
 function ns.Grid.Groups(set)
-	local groups, done = {}, {}
-	for start in pairs(set) do
-		if not done[start] then
-			local group, queue = {}, { start }
-			done[start] = true
-			while #queue > 0 do
-				local key = table.remove(queue)
+	local groups, seen = {}, {}
+	for first in pairs(set) do
+		if not seen[first] then
+			seen[first] = true
+			local group, pending = {}, { first }
+			while #pending > 0 do
+				local key = table.remove(pending)
 				table.insert(group, key)
-				for dx = -1, 1 do
-					for dy = -1, 1 do
-						local neighbour = key + dx * 1000 + dy
-						if set[neighbour] and not done[neighbour] then
-							done[neighbour] = true
-							table.insert(queue, neighbour)
-						end
+				for _, step in ipairs({ -1001, -1000, -999, -1, 1, 999, 1000, 1001 }) do
+					local other = key + step
+					if set[other] and not seen[other] then
+						seen[other] = true
+						table.insert(pending, other)
 					end
 				end
 			end
@@ -58,34 +49,52 @@ function ns.Grid.Groups(set)
 	return groups
 end
 
--- The fine grid points that cover a coarse group: its bounding box, in pixels, widened by one
--- coarse step on every side so the edges of its dots are probed too.
-function ns.Grid.FinePoints(group, coarseStep, fineStep)
-	local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
-	for _, key in ipairs(group) do
-		local gx, gy = Coords(key)
-		minX, maxX = math.min(minX, gx * coarseStep), math.max(maxX, gx * coarseStep)
-		minY, maxY = math.min(minY, gy * coarseStep), math.max(maxY, gy * coarseStep)
+-- A grid of points every `spacing` (aligned to multiples of it, so overlapping covers share
+-- points) over the box around the given points, widened by `margin` on every side.
+function ns.Grid.Cover(points, margin, spacing)
+	local left, right, bottom, top = math.huge, -math.huge, math.huge, -math.huge
+	for _, p in ipairs(points) do
+		left, right = math.min(left, p.x), math.max(right, p.x)
+		bottom, top = math.min(bottom, p.y), math.max(top, p.y)
 	end
-	local points = {}
-	local fromX, toX =
-		math.max(0, math.floor((minX - coarseStep) / fineStep)), math.ceil((maxX + coarseStep) / fineStep)
-	local fromY, toY =
-		math.max(0, math.floor((minY - coarseStep) / fineStep)), math.ceil((maxY + coarseStep) / fineStep)
-	for gx = fromX, toX do
-		for gy = fromY, toY do
-			table.insert(points, Key(gx, gy))
+	local cover = {}
+	for i = math.floor((left - margin) / spacing), math.ceil((right + margin) / spacing) do
+		for j = math.floor((bottom - margin) / spacing), math.ceil((top + margin) / spacing) do
+			table.insert(cover, { x = i * spacing, y = j * spacing })
 		end
 	end
-	return points
+	return cover
 end
 
--- The area in pixels that a set of fine hits covers.
-function ns.Grid.DotArea(fineKeys, fineStep)
-	return #fineKeys * fineStep * fineStep
+-- The points of a cover that belong to one group: within reach of its own coarse hits, and
+-- nearer to them than to the hits of any other group of the same name. Without this, a group's
+-- cover box reaches into a neighbouring node of the same name and takes part of it.
+function ns.Grid.Claim(cover, own, others, reach)
+	local claimed = {}
+	for _, p in ipairs(cover) do
+		local mine = math.huge
+		for _, q in ipairs(own) do
+			mine = math.min(mine, (p.x - q.x) ^ 2 + (p.y - q.y) ^ 2)
+		end
+		if mine <= reach * reach then
+			local theirs = math.huge
+			for _, q in ipairs(others) do
+				theirs = math.min(theirs, (p.x - q.x) ^ 2 + (p.y - q.y) ^ 2)
+			end
+			if mine <= theirs then
+				table.insert(claimed, p)
+			end
+		end
+	end
+	return claimed
 end
 
-local function Mean(points)
+-- The area a set of fine hits covers, each standing for one grid cell of cellArea.
+function ns.Grid.DotArea(points, cellArea)
+	return #points * cellArea
+end
+
+local function Middle(points)
 	local x, y = 0, 0
 	for _, p in ipairs(points) do
 		x, y = x + p.x, y + p.y
@@ -97,86 +106,107 @@ local function Distance2(a, b)
 	return (a.x - b.x) ^ 2 + (a.y - b.y) ^ 2
 end
 
--- The point farthest from every center so far: a seed for the next center.
-local function Farthest(points, centers)
-	local best, bestDistance = points[1], -1
-	for _, p in ipairs(points) do
-		local nearest = math.huge
-		for _, c in ipairs(centers) do
-			nearest = math.min(nearest, Distance2(p, c))
-		end
-		if nearest > bestDistance then
-			best, bestDistance = p, nearest
+-- The index of the center nearest to a point.
+function ns.Grid.Nearest(point, centers)
+	local best, bestDistance = 1, math.huge
+	for i, center in ipairs(centers) do
+		local distance = Distance2(point, center)
+		if distance < bestDistance then
+			best, bestDistance = i, distance
 		end
 	end
 	return best
 end
 
--- Whether a group of points is stretched out: its spread along its long axis is more than
--- twice its spread across it. A dot is round; dots of the same name that touch make a stretched
--- group. A dot cut off at the minimap's edge is stretched too, but covers less than a dot's
--- area, so the area check in Dots keeps it whole.
-local function Stretched(points, center)
+-- Whether a group of points is round: its spread along its long axis is at most twice its
+-- spread across it (the eigenvalues of its covariance). Dots of the same name that touch in a
+-- row make a long group; a dot cut off at the minimap's edge does too, but covers less than a
+-- dot's area, so Dots keeps it whole.
+function ns.Grid.IsRound(points, middle)
+	middle = middle or Middle(points)
 	local xx, yy, xy = 0, 0, 0
 	for _, p in ipairs(points) do
-		local dx, dy = p.x - center.x, p.y - center.y
+		local dx, dy = p.x - middle.x, p.y - middle.y
 		xx, yy, xy = xx + dx * dx, yy + dy * dy, xy + dx * dy
 	end
-	-- The spreads along the long and short axes: the eigenvalues of the covariance matrix.
 	local mean = (xx + yy) / 2
-	local offset = math.sqrt(((xx - yy) / 2) ^ 2 + xy * xy)
-	return mean + offset > 2 * (mean - offset)
+	local spread = math.sqrt(((xx - yy) / 2) ^ 2 + xy * xy)
+	return mean + spread <= 2 * (mean - spread)
 end
 
--- Dots in a group's fine hits, as a list of { x, y } centers in pixels from the minimap's
--- bottom left, and whether the group was one round dot. A round group is one dot. A stretched
--- group covering about k times dotArea (the area one dot's hits cover, learned by the caller
--- from round groups) is k dots of the same name close together, split with k-means.
-function ns.Grid.Dots(fineKeys, fineStep, dotArea)
-	if #fineKeys == 0 then
+-- How far past one dot's area a round group must reach to hold several dots: a triangle or
+-- square of nodes is round too. Below it, a wrong dot-area estimate can't split a lone dot.
+local ROUND_SPLIT = 2.5
+
+-- The dots in a group's fine hits: their centers as { x, y }, and whether the group was one
+-- round dot (the caller learns dotArea, the area of one dot's hits, from those). cellArea is
+-- the area each hit stands for, in the same unit as dotArea.
+function ns.Grid.Dots(points, cellArea, dotArea)
+	if #points == 0 then
 		return {}, false
 	end
-	local points = {}
-	for _, key in ipairs(fineKeys) do
-		local gx, gy = Coords(key)
-		table.insert(points, { x = gx * fineStep, y = gy * fineStep })
+	local middle = Middle(points)
+	local ratio = ns.Grid.DotArea(points, cellArea) / dotArea
+	local round = ns.Grid.IsRound(points, middle)
+	local count = 1
+	if not round or ratio > ROUND_SPLIT then
+		count = math.max(1, math.floor(ratio + 0.5))
 	end
-	local center = Mean(points)
-	local round = not Stretched(points, center)
-	local k = 1
-	if not round then
-		k = math.max(1, math.floor(ns.Grid.DotArea(fineKeys, fineStep) / dotArea + 0.5))
-	end
-	if k == 1 then
-		return { center }, round
+	if count == 1 then
+		return { middle }, round
 	end
 
-	-- Seeds spread out: the point farthest from the middle, then each next one farthest
-	-- from the seeds so far.
-	local centers = { Farthest(points, { center }) }
-	while #centers < k do
-		table.insert(centers, Farthest(points, centers))
+	-- k-means from spread-out seeds: the point farthest from the middle, then each next one
+	-- farthest from every seed so far.
+	local centers = {}
+	while #centers < count do
+		local seed, seedDistance = points[1], -1
+		for _, p in ipairs(points) do
+			local distance = #centers == 0 and Distance2(p, middle)
+				or Distance2(p, centers[ns.Grid.Nearest(p, centers)])
+			if distance > seedDistance then
+				seed, seedDistance = p, distance
+			end
+		end
+		table.insert(centers, { x = seed.x, y = seed.y })
 	end
 	for _ = 1, 10 do
-		local clusters = {}
-		for i = 1, k do
-			clusters[i] = {}
+		local members = {}
+		for i = 1, count do
+			members[i] = {}
 		end
 		for _, p in ipairs(points) do
-			local nearest, nearestDistance = 1, math.huge
-			for i, c in ipairs(centers) do
-				local distance = Distance2(p, c)
-				if distance < nearestDistance then
-					nearest, nearestDistance = i, distance
-				end
-			end
-			table.insert(clusters[nearest], p)
+			table.insert(members[ns.Grid.Nearest(p, centers)], p)
 		end
-		for i = 1, k do
-			if #clusters[i] > 0 then
-				centers[i] = Mean(clusters[i])
+		for i = 1, count do
+			if #members[i] > 0 then
+				centers[i] = Middle(members[i])
 			end
 		end
 	end
 	return centers, false
+end
+
+-- Joins dots closer than `distance` into one at their middle: the same dot found twice when the
+-- minimap moved under the first look and split its hits into two groups.
+function ns.Grid.Merge(dots, distance)
+	local joined = {}
+	for _, dot in ipairs(dots) do
+		local into
+		for _, other in ipairs(joined) do
+			if Distance2(dot, other) < distance * distance then
+				into = other
+				break
+			end
+		end
+		if into then
+			into.x, into.y, into.count =
+				(into.x * into.count + dot.x) / (into.count + 1),
+				(into.y * into.count + dot.y) / (into.count + 1),
+				into.count + 1
+		else
+			table.insert(joined, { x = dot.x, y = dot.y, count = 1 })
+		end
+	end
+	return joined
 end

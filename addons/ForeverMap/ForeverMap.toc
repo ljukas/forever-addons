@@ -16,6 +16,7 @@ Data/GatherNodes.lua
 Database.lua
 Layers.lua
 Skills.lua
+Knowledge.lua
 Tooltip.lua
 Options.lua
 Menus.lua

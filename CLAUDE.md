@@ -59,7 +59,8 @@ scripts/new-addon.sh MyAddon        # scaffold addons/MyAddon from the template 
 scripts/lint.sh                     # StyLua check + LuaLS diagnostics + TOC checks. Run after every change.
 stylua addons template types        # auto-format
 scripts/link.sh                     # (re)symlink every addon into _forever_/Interface/AddOns
-scripts/devlog.sh [--errors] [--all]  # print what ForeverDev captured in game (errors, taint, logs)
+scripts/devlog.sh [--errors] [--all] [--addon NAME] [--tag TAG]  # print what ForeverDev captured in game (errors, taint, logs)
+scripts/observed.sh [Addon] [filter] # print the evidence addons keep through ForeverDev (e.g. ForeverMap's gathers)
 scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about DoTs/HoTs (IDs, ticks, intervals, misses)
 scripts/package.sh MyAddon [v1.0.0] # build the release zip locally into .release/MyAddon/
 scripts/check-pr-title.sh "<title>" # check a PR title is a Conventional Commit (CI runs it on every PR)
@@ -77,18 +78,47 @@ Addons are symlinked into the game, so there is no copy or build step:
    `/reload` picks up Lua/XML/TOC edits and new files listed in the TOC. A **brand-new
    addon folder** may need a full client restart before it shows in the AddOns list.
 3. Claude runs `scripts/devlog.sh` to read the Lua errors, `ADDON_ACTION_BLOCKED/FORBIDDEN`
-   (taint) events and `ns.log(...)` lines from that session.
+   (taint) events and `ns.log(...)` lines from that session, and `scripts/observed.sh` for
+   the evidence kept across sessions.
 
 SavedVariables (and so the devlog) are only written on `/reload`, logout or exit. To see
 the result of a test, ask the user to `/rl` *after* doing it. Instrument code with
-`ns.log(...)` (from the template) rather than `print` when Claude needs to see the output.
-It is a no-op when ForeverDev isn't loaded.
+`ns.log(...)` rather than `print` when Claude needs to see the output.
+
+## Logging, probing and evidence
+
+All of it goes through ForeverDev's API (`addons/ForeverDev/ForeverDev.lua`), so released
+addons carry no dev code beyond the shim at the top of their `Core.lua` (from the template):
+`ns.dev` is ForeverDev's logger for the addon, or an inert stand-in (`ns.Inert`) whose calls
+do nothing and return nil when ForeverDev isn't loaded (`ns.dev.enabled` is false).
+
+- `ns.log(TAG, ...)` logs a line. `TAG` is one upper-case word (`TICK`, `GATHER`, `PROBE`) that
+  `devlog.sh --tag` filters on. Each addon lists its tags, by file, in the shim's comment.
+- `ns.dev:LogOnce(key, TAG, ...)` logs once per session and key, and
+  `ns.dev:LogChanged(key, value, TAG, ...)` only when `value` differs from the last one. Use
+  them instead of hand-rolled "already logged" flags.
+- **Evidence** (what the addon saw in game, kept across sessions) goes in
+  `ns.dev:Observed(defaults, category, key, ...)`, a table in `ForeverDevDB.observed[addon]`,
+  with `ForeverDev.Count`, `Extend` and `Sample`. Each addon keeps it in a `Knowledge.lua` that
+  documents the layout and starts with
+  `if not ns.dev.enabled then ns.Knowledge = ns.Inert() return end`, so for players every
+  `ns.Knowledge` function does nothing. `/fdev forget <Addon>` drops the evidence once the
+  data it checked has been corrected.
+- **Probes** that only log go in `addons/<Name>/Dev/`, listed in the TOC between
+  `#@do-not-package@` lines and ignored in `.pkgmeta`, so releases leave them out. They start
+  with `if not ns.dev.enabled then return end`. Probes that hold for every addon (restriction
+  states, which unit values are secret) belong in `addons/ForeverDev/Probes.lua`.
+- Code that always runs may call `ns.log` and any `ns.dev` method, but must not use their
+  results, and work done only to feed a log line goes inside `if ns.dev.enabled then`.
+  `Observed` and the `ForeverDev.*` helpers (`Situation`, `SecretNames`, `Describe`, `Count`,
+  ...) are only for code that runs with ForeverDev: `Dev/` files and enabled `Knowledge.lua`.
 
 ## Code conventions
 
 - WoW runs **Lua 5.1**: no `goto`, no `//` or bitwise operators (use `bit.band` etc.), no
   integer type. WoW adds `strsplit`, `strtrim`, `wipe`, `tinsert`, `CopyTable`, `Mixin`, etc.
-- Each file starts with `local ADDON_NAME, ns = ...` and shares state through `ns`. Create no
+- Each file starts with `local ADDON_NAME, ns = ...` and shares state through `ns` (ForeverDev,
+  which exposes its API as the `ForeverDev` global instead, takes only `ADDON_NAME`). Create no
   globals except SavedVariables and names the client requires (`SLASH_*`, `BINDING_*`,
   TOC-referenced functions). Prefix all of those with the addon name.
 - Prefer modern client facilities over libraries: `EventUtil.ContinueOnAddOnLoaded`,

@@ -35,6 +35,11 @@ scripts/lint.sh                # format + LuaLS + TOC checks (CI runs the same)
 Edit, then `/rl` in game. New addon folders may need a client restart before they show up in
 the AddOns list.
 
+Claude works through `/feature-workflow`, `/bugfix-workflow` and `/refactor-workflow` (the
+process is in [docs/](docs/feature-workflow.md)), each in its own worktree under
+`.claude/worktrees/`. To try a worktree's version in game, run `scripts/worktree.sh game` from it
+and `/rl`. `scripts/worktree.sh restore` points the game back at the main checkout.
+
 VS Code: install the recommended extensions (LuaLS, StyLua). `.luarc.json` already points LuaLS
 at the WoW API annotations in `.cache/`.
 

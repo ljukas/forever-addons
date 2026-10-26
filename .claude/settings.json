@@ -2,4 +2,5 @@
   "Bash(scripts/lint.sh:*)", "Bash(scripts/devlog.sh:*)", "Bash(scripts/setup.sh:*)",
   "Bash(scripts/link.sh:*)", "Bash(scripts/new-addon.sh:*)", "Bash(scripts/package.sh:*)",
   "Bash(scripts/observed.sh:*)", "Bash(scripts/combat-knowledge.sh:*)",
+  "Bash(scripts/worktree.sh:*)", "Bash(scripts/check-pr-title.sh:*)",
   "Bash(stylua:*)", "Bash(lua-language-server:*)" ] } }

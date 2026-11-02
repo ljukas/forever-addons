@@ -47,6 +47,6 @@ for name in "${names[@]}"; do
 		echo "skipped $name: $link is a real folder (move it away to link the repo copy)" >&2
 		continue
 	fi
-	ln -sfn "$source_dir" "$link"
+	link_path "$source_dir" "$link"
 	echo "linked $name -> $link"
 done

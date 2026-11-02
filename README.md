@@ -7,10 +7,19 @@ Personal addons for World of Warcraft: Forever (interface 16001).
 ```sh
 brew install stylua lua-language-server luajit
 scripts/setup.sh   # fetch WoW API annotations + Blizzard's Forever UI source into .cache/
-scripts/link.sh    # symlink addons/* into /Applications/World of Warcraft/_forever_/Interface/AddOns
+scripts/link.sh    # link addons/* into the game's _forever_/Interface/AddOns
 ```
 
-If the game lives somewhere else, put `WOW_DIR="/path/to/World of Warcraft/_forever_"` in `.env.local`.
+`WOW_DIR` defaults to `/Applications/World of Warcraft/_forever_` on macOS and
+`C:\Program Files (x86)\World of Warcraft\_forever_` on Windows. If the game lives somewhere
+else, put `WOW_DIR="/path/to/World of Warcraft/_forever_"` in `.env.local`.
+
+On Windows, run the scripts from Git Bash. They link folders with NTFS junctions (Git Bash's
+`ln -s` would silently copy them), so neither admin rights nor Developer Mode is needed.
+
+The game loads the main checkout's addons, so `git pull` there updates what's in game. To try a
+branch before it's merged, run `scripts/worktree.sh game` in its worktree, `/rl` in game, and
+`scripts/worktree.sh restore` when done.
 
 In game, enable **ForeverDev**. It gives you:
 
@@ -58,8 +67,8 @@ On launch day, before testing any real addon:
    `addons/*/*.toc` and in `template/Addon/__ADDON__.toc`.
 3. **Re-link the addons:** run `scripts/link.sh`. Then start the game and confirm
    **ForeverDev** shows up in the AddOns list. If it doesn't appear even after a full client
-   restart, the client may not follow symlinked folders. Ask Claude to switch `link.sh` to
-   copying files instead.
+   restart, the client may not follow linked folders (symlinks on macOS, junctions on
+   Windows). Ask Claude to switch `link.sh` to copying files instead.
 4. **Try ForeverDev in game:**
    - `/rl` reloads the UI.
    - `/fdev` prints the session number and the list of commands.

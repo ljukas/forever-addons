@@ -11,7 +11,7 @@ set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
 # The main checkout is the parent of the .git directory all worktrees share.
-MAIN_ROOT="$(dirname "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir)")"
+MAIN_ROOT="$(shell_path "$(dirname "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir)")")"
 target_dir="$WOW_DIR/Interface/AddOns"
 
 require_game() {
@@ -23,6 +23,7 @@ require_game() {
 unlink_all_but() {
 	local keep="$1" root link
 	while IFS= read -r root; do
+		root="$(shell_path "$root")"
 		[[ "$root" != "$keep" ]] || continue
 		for link in "$target_dir"/*; do
 			if [[ -L "$link" && "$(readlink "$link")" == "$root/addons/"* ]]; then
@@ -43,7 +44,13 @@ setup)
 			echo "kept $name (already present)"
 			continue
 		fi
-		ln -s "$MAIN_ROOT/$name" "$ROOT/$name"
+		if is_windows && [[ -f "$MAIN_ROOT/$name" ]]; then
+			# Junctions can't link files, and a hard link silently breaks when an editor replaces it.
+			cp "$MAIN_ROOT/$name" "$ROOT/$name"
+			echo "copied $name from $MAIN_ROOT (a snapshot: edit both if you change it)"
+			continue
+		fi
+		link_path "$MAIN_ROOT/$name" "$ROOT/$name"
 		echo "linked $name -> $MAIN_ROOT/$name"
 	done
 	;;
@@ -56,7 +63,9 @@ game)
 restore)
 	require_game
 	# The main checkout's link.sh reads its own .env.local, so both must name the same game.
-	main_wow_dir="$(source "$MAIN_ROOT/scripts/lib.sh" && echo "$WOW_DIR")"
+	# A new bash, so this checkout's WOW_DIR doesn't leak into the answer the way a subshell's would.
+	# shellcheck disable=SC2016
+	main_wow_dir="$(bash -c 'source "$1/scripts/lib.sh" && echo "$WOW_DIR"' _ "$MAIN_ROOT")"
 	[[ "$main_wow_dir" == "$WOW_DIR" ]] ||
 		die "WOW_DIR here ($WOW_DIR) differs from the main checkout's ($main_wow_dir); make .env.local match first"
 	unlink_all_but "$MAIN_ROOT"

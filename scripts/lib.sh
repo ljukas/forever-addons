@@ -8,13 +8,50 @@ if [[ -f "$ROOT/.env.local" ]]; then
 	source "$ROOT/.env.local"
 fi
 
-WOW_DIR="${WOW_DIR:-/Applications/World of Warcraft/_forever_}"
-ADDONS_DIR="$ROOT/addons"
-CACHE_DIR="$ROOT/.cache"
-
 die() {
 	echo "error: $*" >&2
 	exit 1
+}
+
+# Git Bash (MSYS) on Windows.
+is_windows() {
+	[[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]
+}
+
+if is_windows; then
+	# pwd keeps the case the path was typed in, but links are compared against git's paths, which
+	# have the real case.
+	ROOT="$(cygpath -u "$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || echo "$ROOT")")"
+	WOW_DIR="${WOW_DIR:-/c/Program Files (x86)/World of Warcraft/_forever_}"
+else
+	WOW_DIR="${WOW_DIR:-/Applications/World of Warcraft/_forever_}"
+fi
+ADDONS_DIR="$ROOT/addons"
+CACHE_DIR="$ROOT/.cache"
+
+# A path as this shell spells it. On Windows git prints C:/..., while pwd and readlink give /c/...
+shell_path() {
+	if is_windows; then cygpath -u "$1"; else echo "$1"; fi
+}
+
+# Points <link> at <target>, replacing <link> if it is already a link. On Windows, Git Bash's
+# `ln -s` silently copies instead (real symlinks need Developer Mode), so this makes an NTFS
+# junction, which needs no admin rights but only works for folders.
+link_path() {
+	local target="$1" link="$2"
+	if ! is_windows; then
+		ln -sfn "$target" "$link"
+		return
+	fi
+	[[ -d "$target" ]] || die "can't link $target: Windows junctions only link folders"
+	if [[ -L "$link" ]]; then
+		rm "$link"
+	fi
+	# Paths go through the environment so spaces and "(x86)" survive the trip, and through cmd's
+	# mklink because PowerShell's New-Item reads [ ] in the target as a wildcard.
+	JUNCTION_LINK="$(cygpath -w "$link")" JUNCTION_TARGET="$(cygpath -w "$target")" \
+		powershell.exe -NoProfile -NonInteractive -Command \
+		'cmd /c mklink /J "$env:JUNCTION_LINK" "$env:JUNCTION_TARGET" > $null; exit $LASTEXITCODE'
 }
 
 # Convert a client version like 1.60.1 to its TOC interface number (16001).

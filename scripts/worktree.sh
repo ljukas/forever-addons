@@ -66,7 +66,8 @@ restore)
 	# A new bash, so this checkout's WOW_DIR doesn't leak into the answer the way a subshell's would.
 	# shellcheck disable=SC2016
 	main_wow_dir="$(bash -c 'source "$1/scripts/lib.sh" && echo "$WOW_DIR"' _ "$MAIN_ROOT")"
-	[[ "$main_wow_dir" == "$WOW_DIR" ]] ||
+	# -ef also matches one folder spelled two ways (C:/... and /c/..., or a different case).
+	[[ "$main_wow_dir" == "$WOW_DIR" || "$main_wow_dir" -ef "$WOW_DIR" ]] ||
 		die "WOW_DIR here ($WOW_DIR) differs from the main checkout's ($main_wow_dir); make .env.local match first"
 	unlink_all_but "$MAIN_ROOT"
 	"$MAIN_ROOT/scripts/link.sh"

@@ -22,7 +22,8 @@ if is_windows; then
 	# pwd keeps the case the path was typed in, but links are compared against git's paths, which
 	# have the real case.
 	ROOT="$(cygpath -u "$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || echo "$ROOT")")"
-	WOW_DIR="${WOW_DIR:-/c/Program Files (x86)/World of Warcraft/_forever_}"
+	# Through cygpath, since Cygwin mounts C: at /cygdrive/c where Git Bash uses /c.
+	WOW_DIR="${WOW_DIR:-$(cygpath -u 'C:\Program Files (x86)\World of Warcraft\_forever_')}"
 else
 	WOW_DIR="${WOW_DIR:-/Applications/World of Warcraft/_forever_}"
 fi

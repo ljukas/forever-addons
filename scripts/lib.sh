@@ -30,13 +30,17 @@ fi
 ADDONS_DIR="$ROOT/addons"
 CACHE_DIR="$ROOT/.cache"
 
-# Dies unless WOW_DIR holds an installed Forever client. On Windows Wow.exe is only there while the
-# game is installed, so a folder left behind by an uninstall doesn't count. On macOS only the
-# folder is checked.
+# Dies unless WOW_DIR holds an installed Forever client: the game's executable is only there while
+# it is installed, so a folder left behind by an uninstall doesn't count. That is Wow.exe on
+# Windows and an .app bundle on macOS (any name, since Forever's isn't confirmed yet).
 require_game() {
 	[[ -d "$WOW_DIR" ]] || die "WoW Forever not found at $WOW_DIR (set WOW_DIR in .env.local)"
 	if is_windows; then
-		[[ -f "$WOW_DIR/Wow.exe" ]] || die "no Wow.exe in $WOW_DIR: is WoW Forever installed there? (set WOW_DIR in .env.local)"
+		[[ -f "$WOW_DIR/Wow.exe" ]] ||
+			die "no Wow.exe in $WOW_DIR: is WoW Forever installed there? (set WOW_DIR in .env.local)"
+	else
+		compgen -G "$WOW_DIR/*.app" >/dev/null ||
+			die "no game .app in $WOW_DIR: is WoW Forever installed there? (set WOW_DIR in .env.local)"
 	fi
 }
 

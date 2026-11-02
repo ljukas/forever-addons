@@ -6,20 +6,21 @@ local ADDON_NAME = ...
 --   PROBE        secret restrictions, addon message restriction and every restriction type's
 --                state, on entering the world, changing zones and every restriction change
 --   RESTRICTION  a restriction type changing state
---   UNIT         which of a unit's values are secret (health, power, ...), once per unit, situation
---                (ForeverDev.Situation) and power type: the target when it changes, the player when
---                its power changes
+--   UNIT         which of a unit's values are secret (health, power, ...) and its power type's base
+--                secrecy, once per unit, situation (ForeverDev.Situation), power type and answer:
+--                the target when it changes, the player on login, power and form changes and
+--                leaving combat
 -- Addon-specific probes live in that addon's Dev/ folder.
 
 local dev = ForeverDev.For(ADDON_NAME)
 
-local function RestrictionName(restriction)
-	for name, value in pairs(Enum.AddOnRestrictionType) do
-		if value == restriction then
+local function EnumName(enum, value)
+	for name, enumValue in pairs(enum) do
+		if enumValue == value then
 			return name
 		end
 	end
-	return tostring(restriction)
+	return tostring(value)
 end
 
 local function RestrictionStates()
@@ -50,29 +51,36 @@ local function ProbeUnit(unit)
 		return
 	end
 	local situation = ForeverDev.Situation(unit)
-	local _, powerToken = UnitPowerType(unit)
+	-- The unit's primary (displayed) power only.
+	local powerType, powerToken = UnitPowerType(unit)
+	local secrecy = powerType and EnumName(Enum.SecrecyLevel, C_Secrets.GetPowerTypeSecrecy(powerType)) or "none"
 	powerToken = powerToken or "NOPOWER"
+	local secret = ForeverDev.SecretNames(
+		"guid",
+		UnitGUID(unit),
+		"name",
+		(UnitName(unit)),
+		"health",
+		UnitHealth(unit),
+		"max",
+		UnitHealthMax(unit),
+		"power",
+		UnitPower(unit),
+		"powerMax",
+		UnitPowerMax(unit)
+	)
+	-- The answer is part of the key: InCombatLockdown and the secret restrictions may not switch
+	-- at the same moment, so a first sample taken between them mustn't hide the later ones.
 	dev:LogOnce(
-		"unit " .. unit .. " " .. situation .. " " .. powerToken,
+		"unit " .. unit .. " " .. situation .. " " .. powerToken .. " " .. secret,
 		"UNIT",
 		unit,
 		situation,
 		powerToken,
+		"secrecy",
+		secrecy,
 		"secret:",
-		ForeverDev.SecretNames(
-			"guid",
-			UnitGUID(unit),
-			"name",
-			(UnitName(unit)),
-			"health",
-			UnitHealth(unit),
-			"max",
-			UnitHealthMax(unit),
-			"power",
-			UnitPower(unit),
-			"powerMax",
-			UnitPowerMax(unit)
-		)
+		secret
 	)
 end
 
@@ -84,6 +92,7 @@ function handlers.PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
 		dev:Log("CLIENT", version, build, "class", select(2, UnitClass("player")), "level", UnitLevel("player"))
 	end
 	Probe("entering world")
+	ProbeUnit("player")
 end
 
 function handlers.ZONE_CHANGED_NEW_AREA()
@@ -91,7 +100,7 @@ function handlers.ZONE_CHANGED_NEW_AREA()
 end
 
 function handlers.ADDON_RESTRICTION_STATE_CHANGED(restriction, state)
-	dev:Log("RESTRICTION", RestrictionName(restriction), "state", state)
+	dev:Log("RESTRICTION", EnumName(Enum.AddOnRestrictionType, restriction), "state", state)
 	Probe("restriction change")
 end
 
@@ -99,13 +108,24 @@ function handlers.PLAYER_TARGET_CHANGED()
 	ProbeUnit("target")
 end
 
+-- The player's power is probed whenever it might read differently: as it changes, on a form
+-- change, and once lockdown has ended (a fight that ends at 0 rage has no decay to fire on).
 function handlers.UNIT_POWER_UPDATE()
+	ProbeUnit("player")
+end
+
+function handlers.UNIT_DISPLAYPOWER()
+	ProbeUnit("player")
+end
+
+function handlers.PLAYER_REGEN_ENABLED()
 	ProbeUnit("player")
 end
 
 -- Events registered for one unit only, so they don't fire for every party member and nameplate.
 local unitEvents = {
 	UNIT_POWER_UPDATE = "player",
+	UNIT_DISPLAYPOWER = "player",
 }
 
 local frame = CreateFrame("Frame")

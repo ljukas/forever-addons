@@ -84,6 +84,11 @@ local function ProbeUnit(unit)
 	)
 end
 
+local function ProbeUnits()
+	ProbeUnit("player")
+	ProbeUnit("target")
+end
+
 local handlers = {}
 
 function handlers.PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
@@ -103,9 +108,9 @@ function handlers.ADDON_RESTRICTION_STATE_CHANGED(restriction, state)
 	dev:Log("RESTRICTION", EnumName(Enum.AddOnRestrictionType, restriction), "state", state)
 	Probe("restriction change")
 	-- Secrecy follows the restriction states, not combat, so this is when unit values can start
-	-- or stop reading as secret, whether or not they change.
-	ProbeUnit("player")
-	ProbeUnit("target")
+	-- or stop reading as secret, whether or not they change. A restriction that is activating is
+	-- only enforced once this event's dispatch has completed, so the units are probed after it.
+	C_Timer.After(0, ProbeUnits)
 end
 
 function handlers.PLAYER_TARGET_CHANGED()

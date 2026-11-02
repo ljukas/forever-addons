@@ -31,17 +31,13 @@ ADDONS_DIR="$ROOT/addons"
 CACHE_DIR="$ROOT/.cache"
 
 # Dies unless WOW_DIR holds an installed Forever client: the game's executable is only there while
-# it is installed, so a folder left behind by an uninstall doesn't count. That is Wow.exe on
-# Windows and an .app bundle on macOS (any name, since Forever's isn't confirmed yet).
+# it is installed, so a folder left behind by an uninstall doesn't count.
 require_game() {
+	local game
 	[[ -d "$WOW_DIR" ]] || die "WoW Forever not found at $WOW_DIR (set WOW_DIR in .env.local)"
-	if is_windows; then
-		[[ -f "$WOW_DIR/Wow.exe" ]] ||
-			die "no Wow.exe in $WOW_DIR: is WoW Forever installed there? (set WOW_DIR in .env.local)"
-	else
-		compgen -G "$WOW_DIR/*.app" >/dev/null ||
-			die "no game .app in $WOW_DIR: is WoW Forever installed there? (set WOW_DIR in .env.local)"
-	fi
+	if is_windows; then game="Wow.exe"; else game="World of Warcraft.app"; fi
+	[[ -e "$WOW_DIR/$game" ]] ||
+		die "no $game in $WOW_DIR: is WoW Forever installed there? (set WOW_DIR in .env.local)"
 }
 
 # A path as this shell spells it. On Windows git prints C:/..., while pwd and readlink give /c/...

@@ -14,10 +14,6 @@ source "$(dirname "$0")/lib.sh"
 MAIN_ROOT="$(shell_path "$(dirname "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir)")")"
 target_dir="$WOW_DIR/Interface/AddOns"
 
-require_game() {
-	[[ -d "$WOW_DIR" ]] || die "WoW Forever not found at $WOW_DIR (set WOW_DIR in .env.local)"
-}
-
 # Removes the game's links into every checkout of this repo except <keep>, so the game never
 # loads a mix of checkouts (link.sh only replaces links for addons the checkout it runs in has).
 unlink_all_but() {

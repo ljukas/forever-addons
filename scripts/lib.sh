@@ -30,6 +30,16 @@ fi
 ADDONS_DIR="$ROOT/addons"
 CACHE_DIR="$ROOT/.cache"
 
+# Dies unless WOW_DIR holds an installed Forever client. On Windows Wow.exe is only there while the
+# game is installed, so a folder left behind by an uninstall doesn't count. On macOS only the
+# folder is checked.
+require_game() {
+	[[ -d "$WOW_DIR" ]] || die "WoW Forever not found at $WOW_DIR (set WOW_DIR in .env.local)"
+	if is_windows; then
+		[[ -f "$WOW_DIR/Wow.exe" ]] || die "no Wow.exe in $WOW_DIR: is WoW Forever installed there? (set WOW_DIR in .env.local)"
+	fi
+}
+
 # A path as this shell spells it. On Windows git prints C:/..., while pwd and readlink give /c/...
 shell_path() {
 	if is_windows; then cygpath -u "$1"; else echo "$1"; fi

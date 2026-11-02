@@ -7,7 +7,7 @@
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
-[[ -d "$WOW_DIR" ]] || die "WoW Forever not found at $WOW_DIR (set WOW_DIR in .env.local)"
+require_game
 target_dir="$WOW_DIR/Interface/AddOns"
 mkdir -p "$target_dir"
 

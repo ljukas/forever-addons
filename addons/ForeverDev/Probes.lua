@@ -6,7 +6,9 @@ local ADDON_NAME = ...
 --   PROBE        secret restrictions, addon message restriction and every restriction type's
 --                state, on entering the world, changing zones and every restriction change
 --   RESTRICTION  a restriction type changing state
---   UNIT         which of a target's values are secret, once per situation (ForeverDev.Situation)
+--   UNIT         which of a unit's values are secret (health, power, ...), once per unit, situation
+--                (ForeverDev.Situation) and power type: the target when it changes, the player when
+--                its power changes
 -- Addon-specific probes live in that addon's Dev/ folder.
 
 local dev = ForeverDev.For(ADDON_NAME)
@@ -48,10 +50,14 @@ local function ProbeUnit(unit)
 		return
 	end
 	local situation = ForeverDev.Situation(unit)
+	local _, powerToken = UnitPowerType(unit)
+	powerToken = powerToken or "NOPOWER"
 	dev:LogOnce(
-		"unit " .. situation,
+		"unit " .. unit .. " " .. situation .. " " .. powerToken,
 		"UNIT",
+		unit,
 		situation,
+		powerToken,
 		"secret:",
 		ForeverDev.SecretNames(
 			"guid",
@@ -61,7 +67,11 @@ local function ProbeUnit(unit)
 			"health",
 			UnitHealth(unit),
 			"max",
-			UnitHealthMax(unit)
+			UnitHealthMax(unit),
+			"power",
+			UnitPower(unit),
+			"powerMax",
+			UnitPowerMax(unit)
 		)
 	)
 end
@@ -89,9 +99,22 @@ function handlers.PLAYER_TARGET_CHANGED()
 	ProbeUnit("target")
 end
 
+function handlers.UNIT_POWER_UPDATE()
+	ProbeUnit("player")
+end
+
+-- Events registered for one unit only, so they don't fire for every party member and nameplate.
+local unitEvents = {
+	UNIT_POWER_UPDATE = "player",
+}
+
 local frame = CreateFrame("Frame")
 for event in pairs(handlers) do
-	frame:RegisterEvent(event)
+	if unitEvents[event] then
+		frame:RegisterUnitEvent(event, unitEvents[event])
+	else
+		frame:RegisterEvent(event)
+	end
 end
 frame:SetScript("OnEvent", function(_, event, ...)
 	handlers[event](...)

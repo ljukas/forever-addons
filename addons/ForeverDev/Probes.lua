@@ -6,18 +6,21 @@ local ADDON_NAME = ...
 --   PROBE        secret restrictions, addon message restriction and every restriction type's
 --                state, on entering the world, changing zones and every restriction change
 --   RESTRICTION  a restriction type changing state
---   UNIT         which of a target's values are secret, once per situation (ForeverDev.Situation)
+--   UNIT         which of a unit's values are secret (health, power, ...) and its power type's base
+--                secrecy, once per unit, situation (ForeverDev.Situation), power type and answer:
+--                the player on entering the world (any loading screen) and form changes, the
+--                target when it changes, and both on every restriction change
 -- Addon-specific probes live in that addon's Dev/ folder.
 
 local dev = ForeverDev.For(ADDON_NAME)
 
-local function RestrictionName(restriction)
-	for name, value in pairs(Enum.AddOnRestrictionType) do
-		if value == restriction then
+local function EnumName(enum, value)
+	for name, enumValue in pairs(enum) do
+		if enumValue == value then
 			return name
 		end
 	end
-	return tostring(restriction)
+	return tostring(value)
 end
 
 local function RestrictionStates()
@@ -48,22 +51,42 @@ local function ProbeUnit(unit)
 		return
 	end
 	local situation = ForeverDev.Situation(unit)
-	dev:LogOnce(
-		"unit " .. situation,
-		"UNIT",
-		situation,
-		"secret:",
-		ForeverDev.SecretNames(
-			"guid",
-			UnitGUID(unit),
-			"name",
-			(UnitName(unit)),
-			"health",
-			UnitHealth(unit),
-			"max",
-			UnitHealthMax(unit)
-		)
+	-- The unit's primary (displayed) power only.
+	local powerType, powerToken = UnitPowerType(unit)
+	local secrecy = powerType and EnumName(Enum.SecrecyLevel, C_Secrets.GetPowerTypeSecrecy(powerType)) or "none"
+	powerToken = powerToken or "NOPOWER"
+	local secret = ForeverDev.SecretNames(
+		"guid",
+		UnitGUID(unit),
+		"name",
+		(UnitName(unit)),
+		"health",
+		UnitHealth(unit),
+		"max",
+		UnitHealthMax(unit),
+		"power",
+		UnitPower(unit),
+		"powerMax",
+		UnitPowerMax(unit)
 	)
+	-- The answer is part of the key: InCombatLockdown and the secret restrictions may not switch
+	-- at the same moment, so a first sample taken between them mustn't hide the later ones.
+	dev:LogOnce(
+		"unit " .. unit .. " " .. situation .. " " .. powerToken .. " " .. secret,
+		"UNIT",
+		unit,
+		situation,
+		powerToken,
+		"secrecy",
+		secrecy,
+		"secret:",
+		secret
+	)
+end
+
+local function ProbeUnits()
+	ProbeUnit("player")
+	ProbeUnit("target")
 end
 
 local handlers = {}
@@ -74,6 +97,7 @@ function handlers.PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
 		dev:Log("CLIENT", version, build, "class", select(2, UnitClass("player")), "level", UnitLevel("player"))
 	end
 	Probe("entering world")
+	ProbeUnit("player")
 end
 
 function handlers.ZONE_CHANGED_NEW_AREA()
@@ -81,17 +105,31 @@ function handlers.ZONE_CHANGED_NEW_AREA()
 end
 
 function handlers.ADDON_RESTRICTION_STATE_CHANGED(restriction, state)
-	dev:Log("RESTRICTION", RestrictionName(restriction), "state", state)
+	dev:Log("RESTRICTION", EnumName(Enum.AddOnRestrictionType, restriction), "state", state)
 	Probe("restriction change")
+	-- Secrecy follows the restriction states, not combat, so this is when unit values can start
+	-- or stop reading as secret, whether or not they change. A restriction that is activating is
+	-- only enforced once this event's dispatch has completed, so the units are probed after it.
+	C_Timer.After(0, ProbeUnits)
 end
 
 function handlers.PLAYER_TARGET_CHANGED()
 	ProbeUnit("target")
 end
 
+-- A form change switches the player's displayed power type.
+function handlers.UNIT_DISPLAYPOWER()
+	ProbeUnit("player")
+end
+
 local frame = CreateFrame("Frame")
 for event in pairs(handlers) do
-	frame:RegisterEvent(event)
+	-- UNIT_ events are the player's only, so they don't fire for every party member and nameplate.
+	if event:find("^UNIT_") then
+		frame:RegisterUnitEvent(event, "player")
+	else
+		frame:RegisterEvent(event)
+	end
 end
 frame:SetScript("OnEvent", function(_, event, ...)
 	handlers[event](...)

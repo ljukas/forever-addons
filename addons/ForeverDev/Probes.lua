@@ -8,8 +8,8 @@ local ADDON_NAME = ...
 --   RESTRICTION  a restriction type changing state
 --   UNIT         which of a unit's values are secret (health, power, ...) and its power type's base
 --                secrecy, once per unit, situation (ForeverDev.Situation), power type and answer:
---                the target when it changes, the player on login, power and form changes and
---                leaving combat
+--                the player on entering the world (any loading screen) and form changes, the
+--                target when it changes, and both on every restriction change
 -- Addon-specific probes live in that addon's Dev/ folder.
 
 local dev = ForeverDev.For(ADDON_NAME)
@@ -102,36 +102,26 @@ end
 function handlers.ADDON_RESTRICTION_STATE_CHANGED(restriction, state)
 	dev:Log("RESTRICTION", EnumName(Enum.AddOnRestrictionType, restriction), "state", state)
 	Probe("restriction change")
+	-- Secrecy follows the restriction states, not combat, so this is when unit values can start
+	-- or stop reading as secret, whether or not they change.
+	ProbeUnit("player")
+	ProbeUnit("target")
 end
 
 function handlers.PLAYER_TARGET_CHANGED()
 	ProbeUnit("target")
 end
 
--- The player's power is probed whenever it might read differently: as it changes, on a form
--- change, and once lockdown has ended (a fight that ends at 0 rage has no decay to fire on).
-function handlers.UNIT_POWER_UPDATE()
-	ProbeUnit("player")
-end
-
+-- A form change switches the player's displayed power type.
 function handlers.UNIT_DISPLAYPOWER()
 	ProbeUnit("player")
 end
 
-function handlers.PLAYER_REGEN_ENABLED()
-	ProbeUnit("player")
-end
-
--- Events registered for one unit only, so they don't fire for every party member and nameplate.
-local unitEvents = {
-	UNIT_POWER_UPDATE = "player",
-	UNIT_DISPLAYPOWER = "player",
-}
-
 local frame = CreateFrame("Frame")
 for event in pairs(handlers) do
-	if unitEvents[event] then
-		frame:RegisterUnitEvent(event, unitEvents[event])
+	-- UNIT_ events are the player's only, so they don't fire for every party member and nameplate.
+	if event:find("^UNIT_") then
+		frame:RegisterUnitEvent(event, "player")
 	else
 		frame:RegisterEvent(event)
 	end

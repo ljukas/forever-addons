@@ -5,6 +5,7 @@ local ADDON_NAME, ns = ...
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
 --   LOADED                   Core.lua
 --   SCAN DOT LINE MISS LOOT  Scanner.lua
+--   BAG                      UI/BagButton.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.
@@ -35,14 +36,17 @@ ns.L = {
 	DIRECTION_UP = "Up",
 	DIRECTION_LEFT = "Left",
 	DIRECTION_RIGHT = "Right",
+	BAG_TOOLTIP_TOGGLE = "Left-click to open or close the button bag.",
+	BAG_TOOLTIP_KEEP = "Right-click to choose buttons to keep out of the bag.",
 }
 
 -- Internal events between the modules. Callbacks are called as func(owner, ...).
 --   OptionChanged()    a ForeverMapDB.settings value changed
 --   TrackingChanged()  the minimap tracking types may have changed
+--   BagToggled(open)   the button bag was opened or closed (UI/BagButton.lua)
 ns.callbacks = CreateFromMixins(CallbackRegistryMixin)
 ns.callbacks:OnLoad()
-ns.callbacks:GenerateCallbackEvents({ "OptionChanged", "TrackingChanged" })
+ns.callbacks:GenerateCallbackEvents({ "OptionChanged", "TrackingChanged", "BagToggled" })
 
 -- Modules register setup that needs ForeverMapDB. It runs in TOC order once the
 -- SavedVariables have loaded.

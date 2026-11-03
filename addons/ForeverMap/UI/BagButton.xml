@@ -1,0 +1,31 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\..\..\..\WoW\Data\Interface\AddOns\Blizzard_SharedXML\UI.xsd">
+	<Script file="BagButton.lua"/>
+
+	<!-- The button on the minimap ring that opens the button bag, drawn with the art of the
+	     minimap's own zoom-in button (Blizzard_Minimap/Mainline/Minimap.xml). It is created in
+	     BagButton.lua with Minimap as its parent, and its icon is picked there. -->
+	<Button name="ForeverMapBagButtonTemplate" mixin="ForeverMapBagButtonMixin" virtual="true">
+		<Size x="17" y="17"/>
+		<Layers>
+			<Layer level="OVERLAY">
+				<Texture parentKey="Icon">
+					<Size x="11" y="11"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnClick method="OnClick"/>
+			<OnEnter method="OnEnter"/>
+			<OnLeave method="OnLeave"/>
+			<OnDragStart method="OnDragStart"/>
+			<OnDragStop method="OnDragStop"/>
+		</Scripts>
+		<NormalTexture atlas="ui-hud-minimap-zoom-in"/>
+		<PushedTexture atlas="ui-hud-minimap-zoom-in-down"/>
+		<HighlightTexture atlas="ui-hud-minimap-zoom-in-mouseover"/>
+	</Button>
+</Ui>

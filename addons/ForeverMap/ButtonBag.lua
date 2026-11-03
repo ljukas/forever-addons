@@ -22,8 +22,9 @@ local PARENTS = { "Minimap", "MinimapBackdrop", "MinimapCluster" }
 local LIBDBICON_PREFIX = "^LibDBIcon10_"
 
 local container -- the strip, anchored to our bag button and shown while the bag is open
-local found = {} -- [name] = { key, label, frame }
--- [frame] = { parent, points, strata, level, scale } for Release to restore, plus key, label, libDBIcon
+local found = {} -- [name] = { key, label, frame, fighting = true once its addon fought the bag }
+-- [frame] = { parent, points, strata, level, scale } for Release to restore, plus key, label,
+-- libDBIcon, object (its LibDBIcon name) and moves/movesSince (foreign re-anchors, see OnForeignMove)
 local collected = {}
 local hooked = {} -- [frame] = true once its hooks are in (hooks can't be removed)
 local layingOut = false -- set while our own calls move a frame, so its hooks ignore them
@@ -227,13 +228,31 @@ local function LayoutSoon()
 	end)
 end
 
+local Release
+
+-- An addon that re-anchors its button more than FIGHT_MOVES times in FIGHT_SECONDS is fighting the
+-- bag: the button goes back to it and stays out for the session.
+local FIGHT_MOVES, FIGHT_SECONDS = 10, 1
+
 local function OnForeignMove(frame)
-	if collected[frame] and not layingOut then
-		if ns.dev.enabled then
-			ns.log("BAG", "reanchor", frame:GetName())
-		end
-		LayoutSoon()
+	local saved = collected[frame]
+	if not saved or layingOut then
+		return
 	end
+	if ns.dev.enabled then
+		ns.log("BAG", "reanchor", frame:GetName())
+	end
+	local now = GetTime()
+	if not saved.movesSince or now - saved.movesSince > FIGHT_SECONDS then
+		saved.movesSince, saved.moves = now, 0
+	end
+	saved.moves = saved.moves + 1
+	if saved.moves > FIGHT_MOVES then
+		found[saved.key].fighting = true
+		ns.log("BAG", "fighting", saved.key)
+		Release(frame)
+	end
+	LayoutSoon()
 end
 
 -- The addon placing its own button while it is in the bag: remembered, so Release puts it where
@@ -292,7 +311,7 @@ local function Hook(frame)
 end
 
 local function Collect(frame, entry)
-	if collected[frame] then
+	if collected[frame] or entry.fighting then
 		return
 	end
 	local points = {}
@@ -335,7 +354,7 @@ local function Collect(frame, entry)
 end
 
 -- Puts a collected frame back as it was. A no-op for frames not collected.
-local function Release(frame)
+function Release(frame)
 	local saved = collected[frame]
 	if not saved then
 		return

@@ -4,6 +4,7 @@ local ADDON_NAME, ns = ...
 -- our bag button (UI/BagButton.lua), keeps them there and puts them back.
 --   ns.ButtonBag.Found()                  every button found, ignored and hidden ones too, sorted
 --                                         by label: { { key = frame name, label, frame } }
+--   ns.ButtonBag.IsIgnored(key)           whether the player keeps that button on the minimap
 --   ns.ButtonBag.SetIgnored(key, ignored) keeps a button out of the bag (or lets it back in) now
 --
 -- A collected button is reparented into the strip container, so its own shown state is left alone
@@ -188,8 +189,11 @@ local function ClearDrag(frame)
 	clearingDrag = false
 end
 
-local function OnForeignRegisterForDrag(frame)
-	if collected[frame] and not clearingDrag then
+-- What its addon registers while the button is in the bag is what Release gives back.
+local function OnForeignRegisterForDrag(frame, ...)
+	local saved = collected[frame]
+	if saved and not clearingDrag then
+		saved.drag = { n = select("#", ...), ... }
 		ClearDrag(frame)
 	end
 end
@@ -217,7 +221,9 @@ local function Collect(frame, entry)
 		local point = { frame:GetPoint(i) }
 		-- An anchor we can't read is one we couldn't restore: leave the frame where it is.
 		if IsSecret(unpack(point, 1, 5)) then
-			ns.dev:LogOnce("secret:" .. entry.key, "BAG", "secret", "anchor", entry.key)
+			if ns.dev.enabled then
+				ns.dev:LogOnce("secret:" .. entry.key, "BAG", "secret", "anchor", entry.key)
+			end
 			return
 		end
 		point.n = 5
@@ -227,7 +233,9 @@ local function Collect(frame, entry)
 	local parent, scale = frame:GetParent(), frame:GetScale()
 	local strata, level = frame:GetFrameStrata(), frame:GetFrameLevel()
 	if IsSecret(parent, strata, level, scale) then
-		ns.dev:LogOnce("secret:" .. entry.key, "BAG", "secret", "frame values", entry.key)
+		if ns.dev.enabled then
+			ns.dev:LogOnce("secret:" .. entry.key, "BAG", "secret", "frame values", entry.key)
+		end
 		return
 	end
 	local libDBIcon = entry.key:find(LIBDBICON_PREFIX) ~= nil
@@ -257,7 +265,9 @@ local function Collect(frame, entry)
 	end
 	ClearDrag(frame)
 	Hook(frame)
-	ns.dev:LogOnce("collect:" .. entry.key, "BAG", "collect", entry.key)
+	if ns.dev.enabled then
+		ns.dev:LogOnce("collect:" .. entry.key, "BAG", "collect", entry.key)
+	end
 end
 
 -- Puts a collected frame back as it was. A no-op for frames not collected.
@@ -282,7 +292,7 @@ function Release(frame)
 		if saved.alpha then
 			frame:SetAlpha(saved.alpha)
 		end
-		lib:Refresh(saved.object)
+		lib:Refresh(saved.object, nil) -- no new db: it keeps the one the addon registered
 	else
 		frame:ClearAllPoints()
 		for _, point in ipairs(saved.points) do
@@ -293,10 +303,12 @@ function Release(frame)
 			frame:SetPoint("CENTER", Minimap, "CENTER")
 			ns.log("BAG", "release", "noanchor", saved.key)
 		end
-		-- The registration it had can't be read back, so a button that looks draggable (a drag
-		-- script, or movable) gets the usual left-button drag.
-		local movable = frame:IsMovable()
-		if HasHandler(frame, "OnDragStart") or (not IsSecret(movable) and movable) then
+		-- The client can't read a drag registration back. One its addon made while the button was in
+		-- the bag is given back exactly; otherwise a button with a drag script gets the usual
+		-- left-button drag (a registration without a drag script does nothing).
+		if saved.drag then
+			frame:RegisterForDrag(unpack(saved.drag, 1, saved.drag.n))
+		elseif HasHandler(frame, "OnDragStart") then
 			frame:RegisterForDrag("LeftButton")
 		end
 	end
@@ -335,7 +347,9 @@ function Scan()
 			libDBIconRegistered = true
 			lib.RegisterCallback(ns.ButtonBag, "LibDBIcon_IconCreated", ScanSoon)
 		end
-		for _, object in ipairs(lib:GetButtonList()) do
+		-- It returns the registered names (the annotation says buttons).
+		local objects = lib:GetButtonList() --[[@as string[] ]]
+		for _, object in ipairs(objects) do
 			local button = lib:GetMinimapButton(object)
 			local reason = button and H.RejectLibDBIcon(button)
 			local name = button and not reason and H.Name(button)
@@ -380,6 +394,10 @@ function ns.ButtonBag.Found()
 	end
 	table.sort(list, ByLabel)
 	return list
+end
+
+function ns.ButtonBag.IsIgnored(key)
+	return ns.db.buttonBag.ignored[key] == true
 end
 
 function ns.ButtonBag.SetIgnored(key, ignored)

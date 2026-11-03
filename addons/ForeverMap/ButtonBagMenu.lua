@@ -5,9 +5,7 @@ local ADDON_NAME, ns = ...
 --   ns.ButtonBag.OpenIgnoreMenu(owner)  opens the menu next to the region `owner`
 local L = ns.L
 
-local function IsKept(key)
-	return ns.db.buttonBag.ignored[key] == true
-end
+local IsKept = ns.ButtonBag.IsIgnored
 
 -- Refresh keeps the menu open and redraws the ticks, so several buttons can be chosen in one go.
 local function ToggleKept(key)

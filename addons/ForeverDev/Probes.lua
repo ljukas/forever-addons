@@ -105,6 +105,9 @@ local CANDIDATE_ATLASES = {
 	"ui-hud-minimap-zoom-in-mouseover",
 	"ui-hud-minimap-zoom-out",
 	"ui-hud-minimap-addon-indicator",
+	-- ForeverMap's button bag: the addon compartment button's plain art (source)
+	"ui-hud-minimap-button",
+	"ui-hud-minimap-button-down",
 	-- ForeverMap's button bag: a "list / more" icon, ideally three horizontal lines
 	"friends-icon-menu", -- source: Blizzard_SocialUI
 	"OptionsIcon-Brown", -- source: Blizzard_GroupFinder_VanillaStyle

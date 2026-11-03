@@ -76,6 +76,15 @@ function ForeverMapBagButtonMixin:OnDragStop()
 	ns.db.buttonBag.angle = self.angle
 end
 
+-- The icon sinks 1px down-right while the button is held, as Blizzard's buttons do.
+function ForeverMapBagButtonMixin:OnMouseDown()
+	self.Icon:SetPoint("CENTER", 1, -1)
+end
+
+function ForeverMapBagButtonMixin:OnMouseUp()
+	self.Icon:SetPoint("CENTER", 0, 0)
+end
+
 function ForeverMapBagButtonMixin:OnClick(mouseButton)
 	if mouseButton == "RightButton" then
 		if self.OnRightClick then

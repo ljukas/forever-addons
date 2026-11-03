@@ -126,7 +126,7 @@ end
 -- distance from the ring (or why there is none) for the log.
 local function Reject(frame, name)
 	local distance, why = RingDistance(frame)
-	local ring = distance and string.format("%.2f", distance) or why
+	local ring = distance or why
 	local verdict = ns.ButtonRules.Verdict(name)
 	if verdict ~= "ok" then
 		return verdict, ring
@@ -275,7 +275,7 @@ end
 
 local function OnShownChanged(frame)
 	if collected[frame] and not layingOut then
-		Layout()
+		LayoutSoon()
 	end
 end
 
@@ -319,7 +319,7 @@ local function Collect(frame, entry)
 		local point = { frame:GetPoint(i) }
 		-- An anchor we can't read is one we couldn't restore: leave the frame where it is.
 		if IsSecret(unpack(point, 1, 5)) then
-			ns.dev:LogOnce(entry.key, "BAG", "skip", "secret anchor", entry.key)
+			ns.dev:LogOnce("secret:" .. entry.key, "BAG", "secret", "anchor", entry.key)
 			return
 		end
 		point.n = 5
@@ -329,7 +329,7 @@ local function Collect(frame, entry)
 	local parent, scale = frame:GetParent(), frame:GetScale()
 	local strata, level = frame:GetFrameStrata(), frame:GetFrameLevel()
 	if IsSecret(parent, strata, level, scale) then
-		ns.dev:LogOnce(entry.key, "BAG", "skip", "secret", entry.key)
+		ns.dev:LogOnce("secret:" .. entry.key, "BAG", "secret", "frame values", entry.key)
 		return
 	end
 	local libDBIcon = entry.key:find(LIBDBICON_PREFIX) ~= nil
@@ -359,6 +359,7 @@ local function Collect(frame, entry)
 	end
 	ClearDrag(frame)
 	Hook(frame)
+	ns.dev:LogOnce("collect:" .. entry.key, "BAG", "collect", entry.key)
 end
 
 -- Puts a collected frame back as it was. A no-op for frames not collected.
@@ -368,6 +369,7 @@ function Release(frame)
 		return
 	end
 	collected[frame] = nil
+	ns.log("BAG", "release", saved.key)
 	layingOut = true
 	frame:SetParent(saved.parent)
 	frame:SetScale(saved.scale)
@@ -408,7 +410,6 @@ local function Consider(frame, name)
 	if not entry then
 		entry = { key = name, label = Label(name), frame = frame }
 		found[name] = entry
-		ns.dev:LogOnce(name, "BAG", "collect", "ok", name)
 	end
 	if Enabled() and not ns.db.buttonBag.ignored[name] then
 		Collect(frame, entry)
@@ -441,7 +442,9 @@ function Scan()
 			local reason = button and RejectLibDBIcon(button)
 			local name = button and not reason and Name(button)
 			if reason then
-				ns.dev:LogOnce(object, "BAG", "skip", reason, object)
+				if ns.dev.enabled then
+					ns.dev:LogOnce("skip:" .. object .. reason, "BAG", "skip", reason, object)
+				end
 			elseif name then
 				Consider(button, name)
 			end
@@ -459,7 +462,10 @@ function Scan()
 					reason, ring = Reject(frame, name)
 				end
 				if reason then
-					ns.dev:LogOnce(name, "BAG", "skip", reason, name, "ring", ring)
+					if ns.dev.enabled then
+						ring = type(ring) == "number" and string.format("%.2f", ring) or ring
+						ns.dev:LogOnce("skip:" .. name .. reason, "BAG", "skip", reason, name, "ring", ring)
+					end
 				else
 					Consider(frame, name)
 				end
@@ -506,6 +512,20 @@ local function Refresh()
 	end
 end
 
+-- OptionChanged fires for every setting; only the bag's two matter here.
+local lastEnabled, lastDirection
+
+local function OnOptionChanged()
+	local enabled, direction = Enabled(), Direction()
+	if enabled ~= lastEnabled then
+		lastEnabled, lastDirection = enabled, direction
+		Refresh()
+	elseif direction ~= lastDirection then
+		lastDirection = direction
+		Layout()
+	end
+end
+
 -- Runs after UI/BagButton.lua's initializer (TOC order), which creates ns.BagButton.
 ns.OnInitialize(function()
 	container = CreateFrame("Frame", nil, ns.BagButton)
@@ -517,8 +537,8 @@ ns.OnInitialize(function()
 	ns.callbacks:RegisterCallback("BagToggled", function(_, open)
 		container:SetShown(open)
 	end, ns.ButtonBag)
-	-- Any setting: the bag turned on or off, or the direction changed.
-	ns.callbacks:RegisterCallback("OptionChanged", Refresh, ns.ButtonBag)
+	lastEnabled, lastDirection = Enabled(), Direction()
+	ns.callbacks:RegisterCallback("OptionChanged", OnOptionChanged, ns.ButtonBag)
 
 	local events = CreateFrame("Frame")
 	events:RegisterEvent("PLAYER_LOGIN")

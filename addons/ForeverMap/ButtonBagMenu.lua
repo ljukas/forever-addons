@@ -1,4 +1,4 @@
-local _, ns = ...
+local ADDON_NAME, ns = ...
 
 -- The "Keep on minimap" menu of the button bag: one checkbox per button found, ticked while the
 -- button stays out of the bag. Opened by right-clicking the bag button and from Options.
@@ -9,8 +9,10 @@ local function IsKept(key)
 	return ns.db.buttonBag.ignored[key] == true
 end
 
+-- Refresh keeps the menu open and redraws the ticks, so several buttons can be chosen in one go.
 local function ToggleKept(key)
 	ns.ButtonBag.SetIgnored(key, not IsKept(key))
+	return MenuResponse.Refresh
 end
 
 function ns.ButtonBag.OpenIgnoreMenu(owner)

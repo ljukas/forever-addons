@@ -7,8 +7,9 @@ local ADDON_NAME, ns = ...
 --   ns.ButtonBag.SetIgnored(key, ignored) keeps a button out of the bag (or lets it back in) now
 --
 -- A collected button is reparented into the strip container, so its own shown state is left alone
--- and closing the bag hides it through the parent. Everything it had before (parent, points,
--- strata, level, scale) is saved and restored when it leaves. Blizzard's and protected frames are
+-- and closing the bag hides it through the parent. Its parent, strata, level and scale are saved
+-- and restored when it leaves. Its anchors are those its addon last gave it (recorded while it is
+-- in the bag); a LibDBIcon button is placed by LibDBIcon itself. Blizzard's and protected frames are
 -- never touched (Logic/ButtonRules.lua and the checks in Reject). Nothing is moved or hooked while
 -- the bag is turned off.
 ns.ButtonBag = {}
@@ -235,6 +236,24 @@ local function OnForeignMove(frame)
 	end
 end
 
+-- The addon placing its own button while it is in the bag: remembered, so Release puts it where
+-- the addon last wanted it rather than where it was when collected.
+local function OnForeignSetPoint(frame, ...)
+	local saved = collected[frame]
+	if saved and not layingOut then
+		table.insert(saved.points, { n = select("#", ...), ... })
+	end
+	OnForeignMove(frame)
+end
+
+local function OnForeignClearAllPoints(frame)
+	local saved = collected[frame]
+	if saved and not layingOut then
+		wipe(saved.points)
+		LayoutSoon()
+	end
+end
+
 local function OnShownChanged(frame)
 	if collected[frame] and not layingOut then
 		Layout()
@@ -246,7 +265,8 @@ local function Hook(frame, libDBIcon)
 		return
 	end
 	hooked[frame] = true
-	hooksecurefunc(frame, "SetPoint", OnForeignMove)
+	hooksecurefunc(frame, "SetPoint", OnForeignSetPoint)
+	hooksecurefunc(frame, "ClearAllPoints", OnForeignClearAllPoints)
 	hooksecurefunc(frame, "SetParent", OnForeignMove)
 	hooksecurefunc(frame, "Show", OnShownChanged)
 	hooksecurefunc(frame, "Hide", OnShownChanged)
@@ -269,6 +289,7 @@ local function Collect(frame, entry)
 			ns.dev:LogOnce(entry.key, "BAG", "skip", "secret anchor", entry.key)
 			return
 		end
+		point.n = 5
 		points[i] = point
 	end
 	-- Nor a parent, strata, level or scale we can't read.
@@ -288,6 +309,7 @@ local function Collect(frame, entry)
 		key = entry.key,
 		label = entry.label,
 		libDBIcon = libDBIcon,
+		object = libDBIcon and entry.key:match(LIBDBICON_PREFIX .. "(.+)") or nil,
 	}
 	layingOut = true
 	frame:SetParent(container)
@@ -314,15 +336,25 @@ local function Release(frame)
 	frame:SetScale(saved.scale)
 	frame:SetFrameStrata(saved.strata)
 	frame:SetFrameLevel(saved.level)
-	frame:ClearAllPoints()
-	for _, point in ipairs(saved.points) do
-		frame:SetPoint(unpack(point, 1, 5))
+	local lib = saved.libDBIcon and LibDBIcon()
+	if lib then
+		-- LibDBIcon locks a button by clearing its drag scripts, not its drag registration, so the
+		-- registration always comes back. Refresh then places the button from its own minimapPos
+		-- and applies its hide and lock settings.
+		frame:RegisterForDrag("LeftButton")
+		lib:Refresh(saved.object)
+	else
+		frame:ClearAllPoints()
+		for _, point in ipairs(saved.points) do
+			frame:SetPoint(unpack(point, 1, point.n))
+		end
+		-- Its addon cleared its anchors and never set new ones: somewhere visible beats nowhere.
+		if #saved.points == 0 then
+			frame:SetPoint("CENTER", Minimap, "CENTER")
+			ns.log("BAG", "release", "noanchor", saved.key)
+		end
 	end
 	layingOut = false
-	-- A button its player locked in LibDBIcon stays undraggable.
-	if saved.libDBIcon and not (frame.db and frame.db.lock) then
-		frame:RegisterForDrag("LeftButton")
-	end
 end
 
 local function Consider(frame, name)

@@ -26,3 +26,4 @@ Markers.lua
 Scanner.lua
 UI/NodeIcon.xml
 UI/BagButton.xml
+ButtonBag.lua

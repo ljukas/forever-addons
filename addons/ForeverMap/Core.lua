@@ -5,7 +5,7 @@ local ADDON_NAME, ns = ...
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
 --   LOADED                   Core.lua
 --   SCAN DOT LINE MISS LOOT  Scanner.lua
---   BAG                      UI/BagButton.lua
+--   BAG                      UI/BagButton.lua, ButtonBag.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.

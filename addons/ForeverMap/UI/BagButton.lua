@@ -17,6 +17,8 @@ local RING_MARGIN = 5
 ---@field Icon Texture
 ---@field open boolean
 ---@field angle number
+---@field dragging boolean? while a drag is moving it
+---@field dragged boolean? from a drag's end until the click that may follow it
 ---@field OnRightClick fun()?
 ForeverMapBagButtonMixin = {}
 
@@ -68,12 +70,42 @@ end
 
 function ForeverMapBagButtonMixin:OnDragStart()
 	GameTooltip:Hide()
+	self.dragging = true
 	self:SetScript("OnUpdate", FollowCursor)
 end
 
-function ForeverMapBagButtonMixin:OnDragStop()
+-- Ends a drag and saves where it ended. A no-op when no drag is running.
+function ForeverMapBagButtonMixin:EndDrag()
+	if not self.dragging then
+		return
+	end
+	self.dragging = false
 	self:SetScript("OnUpdate", nil)
 	ns.db.buttonBag.angle = self.angle
+end
+
+function ForeverMapBagButtonMixin:OnDragStop()
+	self:EndDrag()
+	-- The mouse-up that ends a drag may also click: OnClick skips that one click. The flag is
+	-- cleared next frame in case no click follows.
+	self.dragged = true
+	C_Timer.After(0, function()
+		self.dragged = false
+	end)
+end
+
+-- Hidden mid-drag or mid-press (the bag turned off, a UI hide): stop following the cursor, and
+-- don't wait for a mouse-up that won't come.
+function ForeverMapBagButtonMixin:OnHide()
+	self:EndDrag()
+	self:OnMouseUp()
+end
+
+-- The minimap's shape may have changed while hidden.
+function ForeverMapBagButtonMixin:OnShow()
+	if self.angle then
+		self:SetAngle(self.angle)
+	end
 end
 
 -- The icon sinks 1px down-right while the button is held, as Blizzard's buttons do.
@@ -86,6 +118,10 @@ function ForeverMapBagButtonMixin:OnMouseUp()
 end
 
 function ForeverMapBagButtonMixin:OnClick(mouseButton)
+	if self.dragged then
+		self.dragged = false
+		return
+	end
 	if mouseButton == "RightButton" then
 		if self.OnRightClick then
 			self:OnRightClick()
@@ -124,8 +160,17 @@ ns.OnInitialize(function()
 	button:RegisterForDrag("LeftButton")
 	button.open = false
 	ChooseIcon(button.Icon)
-	button:SetAngle(ns.db.buttonBag.angle or ns.Ring.DEFAULT_ANGLE)
+	-- A hand-edited angle that isn't a number falls back to the default spot.
+	local angle = ns.db.buttonBag.angle
+	if type(angle) ~= "number" then
+		angle = ns.Ring.DEFAULT_ANGLE
+	end
+	button:SetAngle(angle % 360)
 	button:Refresh()
 	ns.BagButton = button
 	ns.callbacks:RegisterCallback("OptionChanged", button.Refresh, button)
+	-- A resized minimap moves its ring.
+	Minimap:HookScript("OnSizeChanged", function()
+		button:SetAngle(button.angle)
+	end)
 end)

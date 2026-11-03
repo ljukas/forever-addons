@@ -27,6 +27,8 @@
 			<OnDragStop method="OnDragStop"/>
 			<OnMouseDown method="OnMouseDown"/>
 			<OnMouseUp method="OnMouseUp"/>
+			<OnShow method="OnShow"/>
+			<OnHide method="OnHide"/>
 		</Scripts>
 		<NormalTexture atlas="ui-hud-minimap-button"/>
 		<PushedTexture atlas="ui-hud-minimap-button-down"/>

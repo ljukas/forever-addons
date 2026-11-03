@@ -19,7 +19,9 @@ local SIZE, GAP = 24, 2
 -- Blizzard frames whose named children are looked at.
 local PARENTS = { "Minimap", "MinimapBackdrop", "MinimapCluster" }
 
-local LIBDBICON_PREFIX = "^LibDBIcon10_"
+local H = ns.ButtonBagHelpers -- Logic/ButtonBagHelpers.lua
+local IsSecret, Direction, HasHandler, ByLabel = H.IsSecret, H.Direction, H.HasHandler, H.ByLabel
+local LIBDBICON_PREFIX = H.LIBDBICON_PREFIX
 
 local container -- the strip, anchored to our bag button and shown while the bag is open
 local found = {} -- [name] = { key, label, frame, fighting = true once its addon fought the bag }
@@ -39,93 +41,10 @@ local function Enabled()
 	return ns.Options.Get("showButtonBag")
 end
 
-local function IsSecret(...)
-	for i = 1, select("#", ...) do
-		if issecretvalue(select(i, ...)) then
-			return true
-		end
-	end
-	return false
-end
-
--- A hand-edited direction outside the four falls back to DOWN.
-local function Direction()
-	local direction = ns.Options.Get("buttonBagDirection")
-	for _, value in pairs(ns.Options.DIRECTION) do
-		if direction == value then
-			return direction
-		end
-	end
-	return ns.Options.DIRECTION.DOWN
-end
-
--- The LibDBIcon object name, else the title of the addon that created the frame (when
--- issecurevariable exists and knows), else the frame name.
-local function Label(name)
-	local object = name:match(LIBDBICON_PREFIX .. "(.+)")
-	if object then
-		return object
-	end
-	if issecurevariable then
-		local secure, addon = issecurevariable(_G, name)
-		if not secure and type(addon) == "string" and C_AddOns.DoesAddOnExist(addon) then
-			return C_AddOns.GetAddOnTitle(addon) or name
-		end
-	end
-	return name
-end
-
--- The frame's name, or nil when it has none or it is secret (a frame we can't name is left alone).
-local function Name(frame)
-	local name = frame:GetName()
-	if IsSecret(name) then
-		return nil
-	end
-	return name
-end
-
-local function HasHandler(frame, script)
-	local has = frame:HasScript(script)
-	return not IsSecret(has) and has and frame:GetScript(script) ~= nil
-end
-
--- Whether HereBeDragons-Pins placed this frame on the minimap. `minimapPins` and
--- `activeMinimapPins` are the library's [icon] tables (assumed from HereBeDragons-Pins-2.0's source,
--- not checkable here), read only when present.
-local function IsHereBeDragonsPin(frame)
-	local pins = LibStub and LibStub("HereBeDragons-Pins-2.0", true)
-	if not pins then
-		return false
-	end
-	for _, field in ipairs({ "minimapPins", "activeMinimapPins" }) do
-		if type(pins[field]) == "table" and pins[field][frame] ~= nil then
-			return true
-		end
-	end
-	return false
-end
-
--- How far the frame's center is from Minimap's, in minimap radii (Logic/ButtonRules.lua), or nil
--- and why not: "secret", or "not placed yet" for a frame not laid out (checked again next scan).
-local function RingDistance(frame)
-	local x, y = frame:GetCenter()
-	local centerX, centerY = Minimap:GetCenter()
-	local scale, minimapScale, width = frame:GetEffectiveScale(), Minimap:GetEffectiveScale(), Minimap:GetWidth()
-	if IsSecret(x, y, centerX, centerY, scale, minimapScale, width) then
-		return nil, "secret"
-	end
-	if not (x and centerX) or width <= 0 then
-		return nil, "not placed yet"
-	end
-	-- GetCenter is in each frame's own scaled units: compare both in Minimap's.
-	scale = scale / minimapScale
-	return ns.ButtonRules.RingDistance(x * scale, y * scale, centerX, centerY, width / 2)
-end
-
 -- Why a named, non-forbidden minimap child isn't a candidate, or nil when it is one, then its
 -- distance from the ring (or why there is none) for the log.
 local function Reject(frame, name)
-	local distance, why = RingDistance(frame)
+	local distance, why = H.RingDistance(frame)
 	local ring = distance or why
 	local verdict = ns.ButtonRules.Verdict(name)
 	if verdict ~= "ok" then
@@ -148,7 +67,7 @@ local function Reject(frame, name)
 	if not HasHandler(frame, "OnClick") then
 		return "not clickable", ring
 	end
-	if IsHereBeDragonsPin(frame) then
+	if H.IsHereBeDragonsPin(frame) then
 		return "pin", ring
 	end
 	if not distance then
@@ -162,27 +81,6 @@ local function Reject(frame, name)
 		return "secure", ring
 	end
 	return nil, ring
-end
-
--- Why a LibDBIcon button must be left alone, or nil. Its name and place are LibDBIcon's, so only
--- the checks that keep us off frames we may not touch apply.
-local function RejectLibDBIcon(frame)
-	local forbidden = frame:IsForbidden()
-	if IsSecret(forbidden) or forbidden then
-		return "forbidden"
-	end
-	local protected = frame:IsProtected()
-	if IsSecret(protected) or protected then
-		return "protected"
-	end
-	return nil
-end
-
-local function ByLabel(a, b)
-	if a.label ~= b.label then
-		return a.label < b.label
-	end
-	return a.key < b.key
 end
 
 -- Lays the shown collected buttons out along the strip, sorted by label, each SIZE pixels across.
@@ -408,7 +306,7 @@ end
 local function Consider(frame, name)
 	local entry = found[name]
 	if not entry then
-		entry = { key = name, label = Label(name), frame = frame }
+		entry = { key = name, label = H.Label(name), frame = frame }
 		found[name] = entry
 	end
 	if Enabled() and not ns.db.buttonBag.ignored[name] then
@@ -439,8 +337,8 @@ function Scan()
 		end
 		for _, object in ipairs(lib:GetButtonList()) do
 			local button = lib:GetMinimapButton(object)
-			local reason = button and RejectLibDBIcon(button)
-			local name = button and not reason and Name(button)
+			local reason = button and H.RejectLibDBIcon(button)
+			local name = button and not reason and H.Name(button)
 			if reason then
 				if ns.dev.enabled then
 					ns.dev:LogOnce("skip:" .. object .. reason, "BAG", "skip", reason, object)
@@ -455,7 +353,7 @@ function Scan()
 		for _, frame in ipairs(parent and { parent:GetChildren() } or {}) do
 			-- A forbidden frame refuses every other method call, so this comes first.
 			local forbidden = frame:IsForbidden()
-			local name = not IsSecret(forbidden) and not forbidden and Name(frame)
+			local name = not IsSecret(forbidden) and not forbidden and H.Name(frame)
 			if name then
 				local reason, ring
 				if not found[name] then

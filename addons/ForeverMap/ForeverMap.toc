@@ -20,6 +20,7 @@ Logic/Anchor.lua
 Logic/Ring.lua
 Logic/Strip.lua
 Logic/ButtonRules.lua
+Logic/ButtonBagHelpers.lua
 Options.lua
 Tracking.lua
 Markers.lua

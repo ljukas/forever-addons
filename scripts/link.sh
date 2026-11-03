@@ -7,14 +7,19 @@
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
-require_game
-target_dir="$WOW_DIR/Interface/AddOns"
-mkdir -p "$target_dir"
-
 unlink=false
 if [[ "${1:-}" == "--unlink" ]]; then
 	unlink=true
 	shift
+fi
+
+target_dir="$WOW_DIR/Interface/AddOns"
+if $unlink; then
+	# Unlinking also cleans up after an uninstall, so it only needs the folder.
+	[[ -d "$WOW_DIR" ]] || die "WoW Forever not found at $WOW_DIR (set WOW_DIR in .env.local)"
+else
+	require_game
+	mkdir -p "$target_dir"
 fi
 
 names=("$@")

@@ -15,7 +15,7 @@
 - Never touch a Blizzard frame: not reparent, re-anchor, hide or hook it. When unsure whether a frame is Blizzard's, leave it alone.
 - Never collect map pins (HandyNotes, GatherMate2, TomTom, HereBeDragons-Pins, ForeverMap's own node icons).
 - No replacing anyone's functions or scripts: `hooksecurefunc` / `HookScript` only. Skip protected frames (`frame:IsProtected()`).
-- Blizzard atlases only, no custom art. Our button: `ui-hud-minimap-zoom-in` normal / `-down` pushed / `-mouseover` highlight, 17×17.
+- Blizzard atlases only, no custom art. Our button: `ui-hud-minimap-button` normal / `-button-down` pushed, the same art additive at 0.3 alpha as highlight, 17×17 (amended in review: the zoom-in atlas has its "+" baked in).
 - Our button is draggable around the ring only, never detached.
 - Lua 5.1; every file starts `local ADDON_NAME, ns = ...`; no new globals except a mixin named in XML (add it to `.luacheckrc`); every file listed in `ForeverMap.toc`.
 - `ns.log`, never `print`. Dev-only work goes inside `if ns.dev.enabled then`.
@@ -63,7 +63,7 @@ Core: `addon-reviewer`, `api-verifier`, correctness and spec reviewers. Speciali
   - `ns.Ring.AngleTo(x: number, y: number) -> number`. Degrees, 0–360, of the point (x, y) relative to the center. Use `math.atan2`.
   - `ns.Ring.DEFAULT_ANGLE = 225` (bottom-left).
   - `ns.Strip.Offset(index: number, direction: number, perLine: number, size: number, gap: number) -> x, y`. The slot offset of the 1-based `index` from our button's center. Slot 1 sits one step away from our button in `direction`. Lines grow along the direction and wrap after `perLine`. Wrapped lines stack perpendicular, to the right for DOWN/UP and downward for LEFT/RIGHT. `ns.Strip.PER_LINE = 6`.
-  - `ns.ButtonRules.Verdict(name: string|nil) -> "ok" | reason: string`. Reasons: `"anonymous"` (nil name), `"blizzard"` (name in `BLIZZARD_NAMES` or matching `^Minimap`, `^MiniMap`, `^GameTime`, `^Queue`, `^GarrisonLandingPage`, `^ExpansionLandingPage`, `^AddonCompartment`, `^TimeManager`), `"pin"` (matches `^HandyNotes`, `^GatherMate`, `^TomTom`, `^HereBeDragons`, `^ForeverMap`, `^ForeverProfessions`). `BLIZZARD_NAMES` lists every name in `Blizzard_Minimap/Mainline/Minimap.xml` and `Camelot/*.xml` (`MinimapCluster`, `Minimap`, `MinimapBackdrop`, `MinimapCompassTexture`, `MinimapCompassTextureUnderlay`, `ExpansionLandingPageMinimapButton`, `GameTimeFrame`, `AddonCompartmentFrame`, ...). Grep those files and copy every `name="..."`.
+  - `ns.ButtonRules.Verdict(name: string|nil) -> "ok" | reason: string`. Reasons: `"anonymous"` (nil name), `"blizzard"` (name in `BLIZZARD_NAMES` or matching `^Minimap`, `^MiniMap`, `^GameTime`, `^Queue`, `^GarrisonLandingPage`, `^ExpansionLandingPage`, `^AddonCompartment`, `^TimeManager`), `"pin"` (matches `^HandyNotes`, `^GatherMate`, `^TomTom`, `^HereBeDragons`, `^Questie`, `^ForeverMap`, `^ForeverProfessions`, or ends in digits, `%d+$`, as numbered pin frames do; added in review). `BLIZZARD_NAMES` lists every name in `Blizzard_Minimap/Mainline/Minimap.xml` and `Camelot/*.xml` (`MinimapCluster`, `Minimap`, `MinimapBackdrop`, `MinimapCompassTexture`, `MinimapCompassTextureUnderlay`, `ExpansionLandingPageMinimapButton`, `GameTimeFrame`, `AddonCompartmentFrame`, ...). Grep those files and copy every `name="..."`.
   - LibDBIcon buttons are named `LibDBIcon10_<object>`. `Verdict` returns `"ok"` for them before the other rules.
 
 - [ ] **Step 1:** Write the three files as pure functions (no client API apart from `math`), each with a header comment like `Logic/Anchor.lua`'s explaining the coordinate conventions.
@@ -80,7 +80,7 @@ Core: `addon-reviewer`, `api-verifier`, correctness and spec reviewers. Speciali
 - Consumes: `ns.Ring.*` (Task 2), `ns.db.buttonBag.angle` (Task 1), `ns.Options.Get("showButtonBag")`.
 - Produces: `ns.BagButton` (the frame), `ns.BagButton:IsOpen() -> boolean`, `ns.BagButton:SetOpen(open: boolean)` (fires `ns.callbacks` `BagToggled(open)`), and `ns.BagButton.OnRightClick: function|nil`, which Task 5 sets to open the ignore menu.
 
-- [ ] **Step 1:** In XML, define a 17×17 `Button` parented to `Minimap`, with mixin `ForeverMapBagButtonMixin` and the zoom-in atlases as Normal/Pushed/Highlight. Add an `OVERLAY` texture `Icon` (about 11×11, centered) and a `frameLevel` above Minimap's border.
+- [ ] **Step 1:** In XML, define a 17×17 `Button` parented to `Minimap`, with mixin `ForeverMapBagButtonMixin` and the button atlases above as Normal/Pushed/Highlight. Add an `OVERLAY` texture `Icon` (about 11×11, centered) and a `frameLevel` above Minimap's border.
 - [ ] **Step 2: Icon by runtime fallback.** `local ICON_ATLASES = { "uitools-icon-hamburger", "common-icon-hamburger", "friends-icon-menu", "OptionsIcon-Brown" }`. Use the first one for which `C_Texture.GetAtlasInfo` returns info, and log the choice with `ns.dev:LogOnce("icon", "BAG", "icon", atlas)`. If none exists, hide the icon. Keep this list in step with the `ATLAS` probe in `addons/ForeverDev/Probes.lua` and reorder it once launch shows which looks right.
 - [ ] **Step 3: Ring drag.** `RegisterForDrag("LeftButton")`. While dragging, an `OnUpdate` computes the cursor's offset from `Minimap:GetCenter()` (both divided by effective scale) and sets `angle = ns.Ring.AngleTo`. Position with `SetPoint("CENTER", Minimap, "CENTER", ns.Ring.Offset(angle, Minimap:GetWidth() / 2 + 5, GetMinimapShape and GetMinimapShape() or "ROUND"))`. On drag stop, save `ns.db.buttonBag.angle`.
 - [ ] **Step 4: Clicks and tooltip.** `RegisterForClicks("LeftButtonUp", "RightButtonUp")`. Left toggles `SetOpen`; right calls `OnRightClick`. The tooltip uses `GameTooltip_SetTitle(tooltip, ADDON_NAME)` plus two hint lines from `ns.L` (`BAG_TOOLTIP_TOGGLE`, `BAG_TOOLTIP_KEEP`). The button is shown only while `showButtonBag` is true, and `OptionChanged` re-checks that.
@@ -101,7 +101,7 @@ Core: `addon-reviewer`, `api-verifier`, correctness and spec reviewers. Speciali
   - `Verdict(name) == "ok"`;
   - `_G[name] == frame`;
   - not `IsForbidden()` and not `IsProtected()`;
-  - an `OnClick` or `OnMouseUp` script;
+  - a `Button` with an `OnClick` script (narrowed in review, with a ring-distance band and a HereBeDragons-pin check, so map pins aren't taken);
   - if `issecurevariable` exists, not secure (secure means Blizzard).
 
   LibDBIcon buttons qualify directly, via `LibStub("LibDBIcon-1.0", true)` and `GetButtonList()`. `Scan()` runs on `PLAYER_LOGIN` + `C_Timer.After(2)`, on `ADDON_LOADED` (debounced to the next frame) and on LibDBIcon's `LibDBIcon_IconCreated` callback (`lib.RegisterCallback(ns.ButtonBag, "LibDBIcon_IconCreated", ...)`). Log each frame once with `ns.dev:LogOnce(name, "BAG", "collect"|"skip", reason, name)`.

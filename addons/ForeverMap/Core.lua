@@ -38,6 +38,10 @@ ns.L = {
 	DIRECTION_RIGHT = "Right",
 	BAG_TOOLTIP_TOGGLE = "Left-click to open or close the button bag.",
 	BAG_TOOLTIP_KEEP = "Right-click to choose buttons to keep out of the bag.",
+	KEEP_ON_MINIMAP = "Keep on minimap",
+	NO_BUTTONS_FOUND = "No addon buttons found",
+	CHOOSE_BUTTONS = "Choose buttons",
+	KEEP_ON_MINIMAP_TOOLTIP = "Choose which addon buttons stay on the minimap instead of going into the button bag.",
 }
 
 -- Internal events between the modules. Callbacks are called as func(owner, ...).

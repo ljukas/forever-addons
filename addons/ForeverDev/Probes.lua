@@ -130,14 +130,26 @@ local function ProbeAtlases()
 	end
 end
 
--- Distance between the centers of frame and Minimap, or "?" when either isn't laid out yet.
+-- Distance between the centers of frame and Minimap, "?" when either isn't laid out yet, or "secret"
+-- when a center or scale is secret.
 local function DistanceFromMinimap(frame)
 	local x, y = frame:GetCenter()
 	local mx, my = Minimap:GetCenter()
+	local frameScale, minimapScale = frame:GetEffectiveScale(), Minimap:GetEffectiveScale()
+	if
+		issecretvalue(x)
+		or issecretvalue(y)
+		or issecretvalue(mx)
+		or issecretvalue(my)
+		or issecretvalue(frameScale)
+		or issecretvalue(minimapScale)
+	then
+		return "secret"
+	end
 	if not (x and mx) then
 		return "?"
 	end
-	local scale = frame:GetEffectiveScale() / Minimap:GetEffectiveScale()
+	local scale = frameScale / minimapScale
 	return math.floor(math.sqrt((x * scale - mx) ^ 2 + (y * scale - my) ^ 2) + 0.5)
 end
 

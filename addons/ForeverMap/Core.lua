@@ -28,6 +28,13 @@ ns.L = {
 	SHOW_NODE_ICONS_TOOLTIP = "Show the herbs and ore your tracking finds as icons on the minimap.",
 	NODE_ICON_SIZE = "Icon size",
 	NODE_ICON_SIZE_TOOLTIP = "Size of the node icons on the minimap. Larger icons can cover the arrows that show a node above or below you.",
+	SHOW_BUTTON_BAG = "Gather addon minimap buttons",
+	SHOW_BUTTON_BAG_TOOLTIP = "Collect the minimap buttons other addons add into one button on the minimap edge.",
+	BUTTON_BAG_DIRECTION = "Open buttons towards",
+	DIRECTION_DOWN = "Down",
+	DIRECTION_UP = "Up",
+	DIRECTION_LEFT = "Left",
+	DIRECTION_RIGHT = "Right",
 }
 
 -- Internal events between the modules. Callbacks are called as func(owner, ...).

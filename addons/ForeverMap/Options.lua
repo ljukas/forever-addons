@@ -33,7 +33,6 @@ end
 -- fires OptionChanged.
 ns.OnInitialize(function()
 	local category, layout = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)
-	ns.Options.layout = layout -- the button bag's ignore list adds its own entry to it
 
 	local function Register(key, varType, label)
 		local setting = Settings.RegisterAddOnSetting(

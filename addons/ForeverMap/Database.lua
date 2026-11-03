@@ -4,10 +4,11 @@ local ADDON_NAME, ns = ...
 --   version   = schema version, see migrations below
 --   settings  = { showNodeIcons = boolean, nodeIconSize = number, showButtonBag = boolean,
 --                 buttonBagDirection = number (ns.Options.DIRECTION) }, owned by Options.lua
---   buttonBag = { angle = number|nil, ignored = { [key] = true } }, owned by ButtonBag.lua
+--   buttonBag = { angle = number|nil, ignored = { [key] = true } }
 --     angle   = where the bag button sits on the minimap edge, in degrees counter-clockwise from east
---               (0 = east, 90 = north, LibDBIcon's minimapPos convention); nil means the default spot
---     ignored = keys of the addon buttons the player keeps out of the bag
+--               (0 = east, 90 = north, LibDBIcon's minimapPos convention); nil means the default
+--               spot. Owned by UI/BagButton.lua
+--     ignored = keys of the addon buttons the player keeps out of the bag. Owned by ButtonBag.lua
 -- Missing settings get their defaults when Options.lua registers them.
 
 ns.DB = {}

@@ -260,7 +260,24 @@ local function OnShownChanged(frame)
 	end
 end
 
-local function Hook(frame, libDBIcon)
+-- No dragging in the strip: a drag would pull the button out (and a LibDBIcon drag rewrites its
+-- addon's saved minimapPos), so drag registration is cleared on collect and again whenever its
+-- addon (or LibDBIcon's Refresh or Unlock) registers it while the button is in the bag.
+local clearingDrag = false
+
+local function ClearDrag(frame)
+	clearingDrag = true
+	frame:RegisterForDrag()
+	clearingDrag = false
+end
+
+local function OnForeignRegisterForDrag(frame)
+	if collected[frame] and not clearingDrag then
+		ClearDrag(frame)
+	end
+end
+
+local function Hook(frame)
 	if hooked[frame] then
 		return
 	end
@@ -271,10 +288,7 @@ local function Hook(frame, libDBIcon)
 	hooksecurefunc(frame, "Show", OnShownChanged)
 	hooksecurefunc(frame, "Hide", OnShownChanged)
 	hooksecurefunc(frame, "SetShown", OnShownChanged)
-	-- A hand-made button that moves itself on drag goes back to its slot when the drag ends.
-	if not libDBIcon and frame:HasScript("OnDragStop") then
-		frame:HookScript("OnDragStop", OnShownChanged)
-	end
+	hooksecurefunc(frame, "RegisterForDrag", OnForeignRegisterForDrag)
 end
 
 local function Collect(frame, entry)
@@ -316,12 +330,8 @@ local function Collect(frame, entry)
 	frame:SetFrameStrata(container:GetFrameStrata())
 	frame:SetFrameLevel(container:GetFrameLevel() + 2)
 	layingOut = false
-	-- No dragging in the strip: a LibDBIcon drag would pull the button out and rewrite its
-	-- addon's saved minimapPos.
-	if libDBIcon then
-		frame:RegisterForDrag()
-	end
-	Hook(frame, libDBIcon)
+	ClearDrag(frame)
+	Hook(frame)
 end
 
 -- Puts a collected frame back as it was. A no-op for frames not collected.
@@ -352,6 +362,12 @@ local function Release(frame)
 		if #saved.points == 0 then
 			frame:SetPoint("CENTER", Minimap, "CENTER")
 			ns.log("BAG", "release", "noanchor", saved.key)
+		end
+		-- The registration it had can't be read back, so a button that looks draggable (a drag
+		-- script, or movable) gets the usual left-button drag.
+		local movable = frame:IsMovable()
+		if HasHandler(frame, "OnDragStart") or (not IsSecret(movable) and movable) then
+			frame:RegisterForDrag("LeftButton")
 		end
 	end
 	layingOut = false

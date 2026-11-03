@@ -26,11 +26,16 @@ MinimapButtonHub, MinimapIconBar, MinimapOrganizer, Leatrix Plus's button bag, M
 - **Ignore list.** The player can keep chosen addons' buttons on the ring at all times. The
   options panel lists every addon button the bag has found, each with a "Keep on minimap"
   checkbox *(the checkbox UI is Claude's call; the user asked for ignoring, not for this UI)*.
+  *Amended in the plan:* a vertical Settings category can't add a row per button found at
+  runtime, so the options panel has a "Choose buttons" entry that opens the same checkbox menu
+  as right-clicking the bag button.
   Ticking it puts that button back where its addon put it, immediately.
-- **Our button looks native.** It uses the same art family as the minimap zoom buttons
-  (`ui-hud-minimap-zoom-in` with its `-down` and `-mouseover` states, 17×17 in
-  `Blizzard_Minimap/Mainline/Minimap.xml`): ring styling, pressed state, hover glow. On it, a
-  native "list / more" icon, ideally three horizontal lines.
+- **Our button looks native.** It uses the same HUD minimap art family as the zoom buttons
+  (17×17, like `ui-hud-minimap-zoom-in` in `Blizzard_Minimap/Mainline/Minimap.xml`): ring
+  styling, pressed state, hover glow. *Amended during review:* the zoom-in atlas has its "+"
+  baked in, so the button uses the family's plain button, `ui-hud-minimap-button` / `-down`
+  (Blizzard's own addon compartment button), with an additive hover. On it, a native "list /
+  more" icon, ideally three horizontal lines.
 - **Draggable around the ring.** Our button sits on the minimap's edge and the player can drag
   it to any angle around the ring, like a LibDBIcon button. The angle is saved. Default
   position: bottom-left, away from the zoom buttons *(Claude's call)*.

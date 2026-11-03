@@ -78,28 +78,91 @@ local function HasHandler(frame, script)
 	return not IsSecret(has) and has and frame:GetScript(script) ~= nil
 end
 
--- Why a named, non-forbidden minimap child isn't a candidate, or nil when it is one.
+-- Whether HereBeDragons-Pins placed this frame on the minimap. `minimapPins` and
+-- `activeMinimapPins` are the library's [icon] tables (assumed from HereBeDragons-Pins-2.0's source,
+-- not checkable here), read only when present.
+local function IsHereBeDragonsPin(frame)
+	local pins = LibStub and LibStub("HereBeDragons-Pins-2.0", true)
+	if not pins then
+		return false
+	end
+	for _, field in ipairs({ "minimapPins", "activeMinimapPins" }) do
+		if type(pins[field]) == "table" and pins[field][frame] ~= nil then
+			return true
+		end
+	end
+	return false
+end
+
+-- How far the frame's center is from Minimap's, in minimap radii (Logic/ButtonRules.lua), or nil
+-- and why not: "secret", or "not placed yet" for a frame not laid out (checked again next scan).
+local function RingDistance(frame)
+	local x, y = frame:GetCenter()
+	local centerX, centerY = Minimap:GetCenter()
+	local scale, minimapScale, width = frame:GetEffectiveScale(), Minimap:GetEffectiveScale(), Minimap:GetWidth()
+	if IsSecret(x, y, centerX, centerY, scale, minimapScale, width) then
+		return nil, "secret"
+	end
+	if not (x and centerX) or width <= 0 then
+		return nil, "not placed yet"
+	end
+	-- GetCenter is in each frame's own scaled units: compare both in Minimap's.
+	scale = scale / minimapScale
+	return ns.ButtonRules.RingDistance(x * scale, y * scale, centerX, centerY, width / 2)
+end
+
+-- Why a named, non-forbidden minimap child isn't a candidate, or nil when it is one, then its
+-- distance from the ring (or why there is none) for the log.
 local function Reject(frame, name)
+	local distance, why = RingDistance(frame)
+	local ring = distance and string.format("%.2f", distance) or why
 	local verdict = ns.ButtonRules.Verdict(name)
 	if verdict ~= "ok" then
-		return verdict
+		return verdict, ring
 	end
 	if _G[name] ~= frame then
-		return "not its global"
+		return "not its global", ring
 	end
 	if frame == ns.BagButton or frame == container then
-		return "ours"
+		return "ours", ring
+	end
+	local protected = frame:IsProtected()
+	if IsSecret(protected) or protected then
+		return "protected", ring
+	end
+	local isButton = frame:IsObjectType("Button")
+	if IsSecret(isButton) or not isButton then
+		return "not a button", ring
+	end
+	if not HasHandler(frame, "OnClick") then
+		return "not clickable", ring
+	end
+	if IsHereBeDragonsPin(frame) then
+		return "pin", ring
+	end
+	if not distance then
+		return why, ring
+	end
+	if not ns.ButtonRules.NearRing(distance) then
+		return "off the ring", ring
+	end
+	-- Unverified in Forever: without it the other checks alone decide.
+	if issecurevariable and issecurevariable(_G, name) then
+		return "secure", ring
+	end
+	return nil, ring
+end
+
+-- Why a LibDBIcon button must be left alone, or nil. Its name and place are LibDBIcon's, so only
+-- the checks that keep us off frames we may not touch apply.
+local function RejectLibDBIcon(frame)
+	local forbidden = frame:IsForbidden()
+	if IsSecret(forbidden) or forbidden then
+		return "forbidden"
 	end
 	local protected = frame:IsProtected()
 	if IsSecret(protected) or protected then
 		return "protected"
-	end
-	if not HasHandler(frame, "OnClick") and not HasHandler(frame, "OnMouseUp") then
-		return "not clickable"
-	end
-	-- Unverified in Forever: without it the name rules alone decide.
-	if issecurevariable and issecurevariable(_G, name) then
-		return "secure"
 	end
 	return nil
 end
@@ -279,8 +342,11 @@ function Scan()
 		end
 		for _, object in ipairs(lib:GetButtonList()) do
 			local button = lib:GetMinimapButton(object)
-			local name = button and button:GetName()
-			if name then
+			local reason = button and RejectLibDBIcon(button)
+			local name = button and not reason and button:GetName()
+			if reason then
+				ns.dev:LogOnce(object, "BAG", "skip", reason, object)
+			elseif name then
 				Consider(button, name)
 			end
 		end
@@ -292,9 +358,12 @@ function Scan()
 			local forbidden = frame:IsForbidden()
 			local name = not IsSecret(forbidden) and not forbidden and frame:GetName()
 			if name then
-				local reason = not found[name] and Reject(frame, name)
+				local reason, ring
+				if not found[name] then
+					reason, ring = Reject(frame, name)
+				end
 				if reason then
-					ns.dev:LogOnce(name, "BAG", "skip", reason, name)
+					ns.dev:LogOnce(name, "BAG", "skip", reason, name, "ring", ring)
 				else
 					Consider(frame, name)
 				end

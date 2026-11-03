@@ -2,7 +2,8 @@ local ADDON_NAME, ns = ...
 
 -- ForeverMapDB layout (account-wide):
 --   version  = schema version, see migrations below
---   settings = { showNodeIcons = boolean, nodeIconSize = number }, owned by Options.lua
+--   settings = { showNodeIcons = boolean }, owned by Options.lua. (A nodeIconSize key from
+--              development builds before the first release is ignored.)
 -- Missing settings get their defaults when Options.lua registers them.
 
 ns.DB = {}

@@ -111,3 +111,19 @@ function Minimap:UpdateMouseoverAtPoint(pointX, pointY) end
 
 ---@param usingSoftCursor boolean
 function Minimap:SetUsingSoftCursor(usingSoftCursor) end
+
+---@param scale number
+function Minimap:SetIconScale(scale) end
+
+-- Blizzard_Minimap/Mainline/Minimap.xml: the Edit Mode minimap system
+-- (EditModeMinimapSystemMixin, Blizzard_EditMode/Shared/EditModeSystemTemplates.lua). Only the
+-- members our addons use.
+
+---@class MinimapCluster : Frame
+---@field GetSettingValue fun(self: MinimapCluster, setting: number, useRawValue: boolean?): number
+MinimapCluster = {}
+
+-- Blizzard_APIDocumentationGenerated/EditModeManagerConstantsDocumentation.lua. Ketho's
+-- annotations stop at Size.
+---@diagnostic disable-next-line: inject-field
+Enum.EditModeMinimapSetting.IconScale = 3

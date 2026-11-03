@@ -27,7 +27,9 @@ license: learn from the technique, copy no code.
 - The icon sticks to its dot as the player moves and turns. It doesn't trail behind.
 - The game's up and down arrows (a node above or below you) stay fully visible, at the default size.
 - When the player gathers a node, its icon disappears at once.
-- Options → AddOns → ForeverMap: "Show icons on tracked nodes" (on by default) and an icon-size slider.
+- Options → AddOns → ForeverMap: "Show icons on tracked nodes" (on by default). The icons'
+  size follows Edit Mode → Minimap → Icon Scale, like the game's own minimap icons (amended
+  2026-11-03; it was an icon-size slider).
 
 ## Non-goals
 
@@ -59,7 +61,8 @@ license: learn from the technique, copy no code.
 
 - There is no API for where tracked nodes are, and none to change or hide individual minimap
   blips. `Minimap:SetIconScale(scale)` resizes every minimap icon (party, POIs, ...) and Edit
-  Mode sets it too, so it is off limits. Hence the dots are covered, not removed.
+  Mode sets it too, so we never call it. We follow it instead: there is no getter, so a
+  `hooksecurefunc` on it keeps the last scale Edit Mode set. Hence the dots are covered, not removed.
 - The engine draws minimap blips under addon textures, so an icon covers whatever is under it,
   including the player's own arrow.
 - Available (generated docs for this build; none returns secret values, the setters take
@@ -159,7 +162,7 @@ icon until the next scan puts it back, which is acceptable.
   left, so the ring is drawn larger than the icon and offset to center the hole on the icon:
   Blizzard's help plates center a 64 px ring at (+12, -13) from the icon center
   (`Blizzard_HelpPlate/Blizzard_HelpPlate.xml`), so scale that: ring size about 2.5 × the icon,
-  offset (+12/64, -13/64) × ring size. Both scale with the icon-size option.
+  offset (+12/64, -13/64) × ring size. Both scale with the icon size.
 - Drawn on a frame that is a child of the Minimap, above the blips (unavoidable).
 - An icon over the player's own arrow (near the minimap center) is drawn see-through, so the
   arrow stays visible while standing on a node.
@@ -171,18 +174,20 @@ icon until the next scan puts it back, which is acceptable.
 
 ### Size and the arrows
 
-The default icon size is chosen so the ring's outer edge clears the game's up and down arrows.
-Their pixel size can only be measured in game, so the default is an estimate until launch
-(a launch check). The slider lets the player go smaller or larger; its tooltip says that larger
-sizes can cover the arrows.
+The icon size is a base size times the minimap's icon scale (Edit Mode, 50% to 200%), rounded
+to whole pixels. The base size (9 px at 100%) is chosen so the ring's outer edge clears the
+game's up and down arrows. Their pixel size can only be measured in game, so it is an estimate
+until launch (a launch check). Presumably the arrows grow with the icon scale too, so the ratio
+holds; that is a launch check as well. Until Edit Mode first calls `SetIconScale` (it does on
+every layout apply, so at login and `/reload`), the scale is read from Edit Mode's minimap
+setting, or taken as 100%.
 
 ### Options and saved data
 
 - `ForeverMapDB` (account-wide), with a `version` and migrations from the start, like the other
-  addons' `Database.lua`: `settings = { showNodeIcons = true, nodeIconSize = <default> }`.
-- Options → AddOns → ForeverMap, registered with Blizzard's `Settings` API: a checkbox and a
-  slider, writing straight into `ForeverMapDB.settings`, like ForeverProfessions' `Options.lua`.
-  Changes apply immediately (icons resize, or all clear when turned off).
+  addons' `Database.lua`: `settings = { showNodeIcons = true }`.
+- Options → AddOns → ForeverMap, registered with Blizzard's `Settings` API: a checkbox, writing straight into `ForeverMapDB.settings`, like ForeverProfessions' `Options.lua`.
+  Changes apply immediately (all icons clear when turned off; a new icon scale applies on the next frame).
 - No slash commands or key bindings.
 
 ### Dev logging (launch checks)
@@ -204,7 +209,7 @@ these log once or in summary rather than every sweep:
   scans), within the frame-rate anti-goal.
 - The center-finding and group-splitting method.
 - Icon pooling, frame structure, file layout within the addon.
-- The default icon size and slider range (estimate now, measured at launch).
+- The base icon size (estimate now, measured at launch).
 - The see-through alpha and the "near the player arrow" distance; the "few yards" for gathering.
 
 ## Launch checks (to verify in game, 2026-11-04)

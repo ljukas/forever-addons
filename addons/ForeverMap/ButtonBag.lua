@@ -346,9 +346,17 @@ local function Collect(frame, entry)
 	}
 	layingOut = true
 	frame:SetParent(container)
+	-- LibDBIcon buttons have a fixed strata and level and keep theirs, which is fine.
 	frame:SetFrameStrata(container:GetFrameStrata())
 	frame:SetFrameLevel(container:GetFrameLevel() + 2)
 	layingOut = false
+	-- LibDBIcon's showOnMouseover fades a button out; in the bag it is always visible. Release's
+	-- Refresh hands the alpha back to LibDBIcon, and the saved one is put back first in case it doesn't.
+	if libDBIcon then
+		local alpha = frame:GetAlpha()
+		collected[frame].alpha = not IsSecret(alpha) and alpha or nil
+		frame:SetAlpha(1)
+	end
 	ClearDrag(frame)
 	Hook(frame)
 end
@@ -371,6 +379,9 @@ function Release(frame)
 		-- registration always comes back. Refresh then places the button from its own minimapPos
 		-- and applies its hide and lock settings.
 		frame:RegisterForDrag("LeftButton")
+		if saved.alpha then
+			frame:SetAlpha(saved.alpha)
+		end
 		lib:Refresh(saved.object)
 	else
 		frame:ClearAllPoints()
@@ -498,6 +509,8 @@ end
 -- Runs after UI/BagButton.lua's initializer (TOC order), which creates ns.BagButton.
 ns.OnInitialize(function()
 	container = CreateFrame("Frame", nil, ns.BagButton)
+	-- Above the minimap cluster and most addon frames, so the open strip isn't drawn under them.
+	container:SetFrameStrata("HIGH")
 	container:SetSize(1, 1)
 	container:SetPoint("CENTER", ns.BagButton, "CENTER")
 	container:SetShown(ns.BagButton:IsOpen())

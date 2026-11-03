@@ -109,6 +109,7 @@ end
 
 ns.OnInitialize(function()
 	local button = CreateFrame("Button", nil, Minimap, "ForeverMapBagButtonTemplate")
+	button:SetFrameStrata("MEDIUM")
 	button:SetFrameLevel(Minimap:GetFrameLevel() + 10)
 	button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	button:RegisterForDrag("LeftButton")

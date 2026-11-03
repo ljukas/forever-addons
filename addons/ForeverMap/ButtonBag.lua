@@ -73,6 +73,15 @@ local function Label(name)
 	return name
 end
 
+-- The frame's name, or nil when it has none or it is secret (a frame we can't name is left alone).
+local function Name(frame)
+	local name = frame:GetName()
+	if IsSecret(name) then
+		return nil
+	end
+	return name
+end
+
 local function HasHandler(frame, script)
 	local has = frame:HasScript(script)
 	return not IsSecret(has) and has and frame:GetScript(script) ~= nil
@@ -183,7 +192,9 @@ local function Layout()
 		if frame:GetParent() ~= container then
 			frame:SetParent(container)
 		end
-		if frame:IsShown() then
+		-- A shown state we can't read leaves the frame out of the layout.
+		local isShown = frame:IsShown()
+		if not IsSecret(isShown) and isShown then
 			table.insert(shown, { frame = frame, label = saved.label, key = saved.key })
 		end
 	end
@@ -260,13 +271,20 @@ local function Collect(frame, entry)
 		end
 		points[i] = point
 	end
+	-- Nor a parent, strata, level or scale we can't read.
+	local parent, scale = frame:GetParent(), frame:GetScale()
+	local strata, level = frame:GetFrameStrata(), frame:GetFrameLevel()
+	if IsSecret(parent, strata, level, scale) then
+		ns.dev:LogOnce(entry.key, "BAG", "skip", "secret", entry.key)
+		return
+	end
 	local libDBIcon = entry.key:find(LIBDBICON_PREFIX) ~= nil
 	collected[frame] = {
-		parent = frame:GetParent(),
+		parent = parent,
 		points = points,
-		strata = frame:GetFrameStrata(),
-		level = frame:GetFrameLevel(),
-		scale = frame:GetScale(),
+		strata = strata,
+		level = level,
+		scale = scale,
 		key = entry.key,
 		label = entry.label,
 		libDBIcon = libDBIcon,
@@ -343,7 +361,7 @@ function Scan()
 		for _, object in ipairs(lib:GetButtonList()) do
 			local button = lib:GetMinimapButton(object)
 			local reason = button and RejectLibDBIcon(button)
-			local name = button and not reason and button:GetName()
+			local name = button and not reason and Name(button)
 			if reason then
 				ns.dev:LogOnce(object, "BAG", "skip", reason, object)
 			elseif name then
@@ -356,7 +374,7 @@ function Scan()
 		for _, frame in ipairs(parent and { parent:GetChildren() } or {}) do
 			-- A forbidden frame refuses every other method call, so this comes first.
 			local forbidden = frame:IsForbidden()
-			local name = not IsSecret(forbidden) and not forbidden and frame:GetName()
+			local name = not IsSecret(forbidden) and not forbidden and Name(frame)
 			if name then
 				local reason, ring
 				if not found[name] then

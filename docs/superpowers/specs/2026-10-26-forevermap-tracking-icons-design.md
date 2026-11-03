@@ -178,15 +178,16 @@ The icon size is a base size times the minimap's icon scale (Edit Mode, 50% to 2
 to whole pixels. The base size (9 px at 100%) is chosen so the ring's outer edge clears the
 game's up and down arrows. Their pixel size can only be measured in game, so it is an estimate
 until launch (a launch check). Presumably the arrows grow with the icon scale too, so the ratio
-holds; that is a launch check as well. Until Edit Mode first calls `SetIconScale` (it does on
-every layout apply, so at login and `/reload`), the scale is read from Edit Mode's minimap
+holds; that is a launch check as well. Until Edit Mode first calls `SetIconScale` (it does on its
+first layout apply, at login and `/reload`, and then whenever the scale changes), the scale is read from Edit Mode's minimap
 setting, or taken as 100%.
 
 ### Options and saved data
 
 - `ForeverMapDB` (account-wide), with a `version` and migrations from the start, like the other
   addons' `Database.lua`: `settings = { showNodeIcons = true }`.
-- Options → AddOns → ForeverMap, registered with Blizzard's `Settings` API: a checkbox, writing straight into `ForeverMapDB.settings`, like ForeverProfessions' `Options.lua`.
+- Options → AddOns → ForeverMap, registered with Blizzard's `Settings` API: a checkbox,
+  writing straight into `ForeverMapDB.settings`, like ForeverProfessions' `Options.lua`.
   Changes apply immediately (all icons clear when turned off; a new icon scale applies on the next frame).
 - No slash commands or key bindings.
 
@@ -202,6 +203,8 @@ these log once or in summary rather than every sweep:
 - `SCAN`: a summary every 20 sweeps (probes and dots per sweep, time spent inside the sweep and
   the worst single frame, the measured dot radius);
 - `LOOT`: what gathering removed (and how far the nearest icon was).
+- `SCALE`: every icon scale received from `Minimap:SetIconScale` (or read from Edit Mode at
+  load), with its source, and any unusable value.
 
 ## Left to the builder
 
@@ -223,3 +226,10 @@ these log once or in summary rather than every sweep:
 - Frame-rate cost while tracking in a node-dense zone.
 - Whether node tooltip lines carry a texture escape.
 - Gray node names in the minimap tooltip mean the node is in a cave.
+- The icons follow Edit Mode's minimap Icon Scale: `SCALE` lines at login, at `/reload` and as
+  the slider moves. None → the hook on `Minimap:SetIconScale` doesn't see Edit Mode's calls.
+- At Icon Scale 50% and 200% (a `/reload` at each, since `DOT` logs once per session): rings
+  still centred, the up and down arrows still clear, and the scan still finds every dot. At 50%
+  a hit radius under about 5.7 px can fall between the 8 px coarse grid's points (icons flicker
+  between sweeps); at 200% the fine probes per dot grow with the radius squared (`SCAN` ms and
+  probes per sweep).

@@ -72,14 +72,16 @@ end
 
 -- The icons follow the minimap's icon scale (Edit Mode → Minimap → Icon Scale), as the game's
 -- own minimap icons do. The client has no getter for it, so it is kept from the calls to
--- Minimap:SetIconScale: Edit Mode makes one whenever a layout is applied (login, /reload, a
--- layout switch) and whenever the slider moves (EditModeMinimapSystemMixin, Blizzard_EditMode).
+-- Minimap:SetIconScale: Edit Mode makes one on its first layout apply (login, /reload), and
+-- later whenever the scale changes: the slider, a revert, a layout with another scale
+-- (EditModeMinimapSystemMixin, Blizzard_EditMode).
 -- A value we can't use (secret, or not a positive number) leaves the last one in place.
 local iconScale = 1
 
 local function SetIconScale(scale, source)
 	if issecretvalue(scale) or type(scale) ~= "number" or scale <= 0 then
-		ns.log("SCALE", "unusable icon scale from", source, "kept", iconScale)
+		local got = issecretvalue(scale) and "secret" or type(scale) .. " " .. tostring(scale)
+		ns.log("SCALE", "unusable icon scale from", source, got, "kept", iconScale)
 		return
 	end
 	iconScale = scale

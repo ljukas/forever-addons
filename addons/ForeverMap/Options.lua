@@ -84,15 +84,9 @@ ns.OnInitialize(function()
 
 	-- The buttons found change at runtime, so the panel opens the same menu as the bag button's
 	-- right click. The click handler gets the clicked button, which the menu anchors to.
-	local keepInitializer = CreateSettingsButtonInitializer(
-		L.KEEP_ON_MINIMAP,
-		L.CHOOSE_BUTTONS,
-		function(button)
-			ns.ButtonBag.OpenIgnoreMenu(button)
-		end,
-		L.KEEP_ON_MINIMAP_TOOLTIP,
-		true
-	)
+	local keepInitializer = CreateSettingsButtonInitializer(L.KEEP_ON_MINIMAP, L.CHOOSE_BUTTONS, function(button)
+		ns.ButtonBag.OpenIgnoreMenu(button)
+	end, L.KEEP_ON_MINIMAP_TOOLTIP, true)
 	keepInitializer:SetParentInitializer(bagInitializer, function()
 		return bag:GetValue()
 	end)

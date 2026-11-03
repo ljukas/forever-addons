@@ -111,3 +111,12 @@ function Minimap:UpdateMouseoverAtPoint(pointX, pointY) end
 
 ---@param usingSoftCursor boolean
 function Minimap:SetUsingSoftCursor(usingSoftCursor) end
+
+-- Blizzard_Minimap/Mainline/Minimap.xml; the minimap's parent and the frame its buttons sit in.
+---@type Frame
+MinimapCluster = {}
+
+-- Not Blizzard's: an addon convention. An addon that reshapes the minimap defines it to return the
+-- shape ("ROUND", "SQUARE", "CORNER-TOPLEFT", ...); nil when no addon does.
+---@type (fun(): string)?
+GetMinimapShape = nil

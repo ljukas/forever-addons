@@ -137,6 +137,11 @@ MinimapCluster = {}
 ---@diagnostic disable-next-line: inject-field
 Enum.EditModeMinimapSetting.IconScale = 3
 
+-- Blizzard_APIDocumentationGenerated/TooltipInfoSharedDocumentation.lua. Ketho's annotations stop
+-- before the unit line types.
+---@diagnostic disable-next-line: inject-field
+Enum.TooltipDataLineType.UnitLevel = 47
+
 -- Not Blizzard's: an addon convention. An addon that reshapes the minimap defines it to return the
 -- shape ("ROUND", "SQUARE", "CORNER-TOPLEFT", ...); nil when no addon does.
 ---@type (fun(): string)?

@@ -1,7 +1,9 @@
 local _, ns = ...
 
--- Colours a hovered player's tooltip: the name line in the player's class colour, the level line in
--- the reaction colour Blizzard would have given the name (GameTooltip_UnitColor).
+-- Colours a hovered player's tooltip: the name line in the player's class colour, the level line
+-- red for enemies, yellow for players you can attack who aren't hostile, green for allies, using
+-- the same FACTION_BAR_COLORS entries Blizzard's GameTooltip_UnitColor uses for players. (Blizzard's
+-- own function gives ordinary allies white, so it isn't reused.)
 --
 -- Why a tooltip post-call that recolours the finished font strings, not a line pre-call that sets
 -- lineData.leftColor: Blizzard reads lineData after the pre-calls, so a field written by addon code
@@ -13,14 +15,16 @@ local _, ns = ...
 -- Secret values: when anything this needs is secret (unit identity restricted, e.g. in instances),
 -- the line is left exactly as Blizzard drew it.
 
+local ENEMY, ATTACKABLE, ALLY = 2, 4, 6 -- FACTION_BAR_COLORS indices, as in GameTooltip_UnitColor
+
 -- The player unit token this unit tooltip shows, or nil when it isn't a player or can't be read.
 local function GetPlayerUnit(data)
 	local guid = data and data.guid
-	if guid == nil or issecretvalue(guid) then
+	if issecretvalue(guid) or guid == nil then
 		return nil
 	end
 	local unit = UnitTokenFromGUID(guid)
-	if unit == nil or issecretvalue(unit) then
+	if issecretvalue(unit) or unit == nil then
 		return nil
 	end
 	local isPlayer = UnitIsPlayer(unit)
@@ -32,7 +36,7 @@ end
 
 local function ColorName(tooltip, unit)
 	local _, classFilename = UnitClass(unit)
-	if classFilename == nil or issecretvalue(classFilename) then
+	if issecretvalue(classFilename) or classFilename == nil then
 		ns.dev:LogOnce("secret-class", "COLOR", "class unreadable, name left to Blizzard")
 		return
 	end
@@ -42,37 +46,87 @@ local function ColorName(tooltip, unit)
 	end
 end
 
--- GameTooltip_UnitColor branches on UnitIsPVP, which is secret when the unit's identity is
--- restricted; called from addon code that branch would error, so check it first.
-local function CanReadReaction(unit)
-	return not issecretvalue(UnitIsPVP(unit))
+-- The FACTION_BAR_COLORS entry for this player, or nil when it can't be read.
+local function GetReactionColor(unit)
+	local canAttack = UnitCanAttack("player", unit)
+	local canBeAttacked = UnitCanAttack(unit, "player")
+	if issecretvalue(canAttack) or issecretvalue(canBeAttacked) then
+		return nil
+	end
+	if canBeAttacked then
+		return FACTION_BAR_COLORS[ENEMY]
+	elseif canAttack then
+		return FACTION_BAR_COLORS[ATTACKABLE]
+	end
+	return FACTION_BAR_COLORS[ALLY]
 end
 
-local function ColorLevelLine(tooltip, unit)
-	local level = UnitLevel(unit)
-	if level == nil or issecretvalue(level) or not CanReadReaction(unit) then
-		ns.dev:LogOnce("secret-level", "LEVEL", "level or reaction unreadable, level line left to Blizzard")
-		return
+-- The tooltip line index of the level line, from its line type in the tooltip data. Blizzard sets
+-- lineData.lineIndex when it adds each line (TooltipDataHandlerMixin:ProcessLineData).
+local function FindLevelLineByType(data)
+	if type(data.lines) ~= "table" then
+		return nil
 	end
+	for _, lineData in ipairs(data.lines) do
+		local lineType = lineData.type
+		if not issecretvalue(lineType) and lineType == Enum.TooltipDataLineType.UnitLevel then
+			local index = lineData.lineIndex
+			if not issecretvalue(index) then
+				return index
+			end
+		end
+	end
+	return nil
+end
 
+-- Fallback: the first line after the name that starts with the client's level text.
+local function FindLevelLineByText(tooltip, unit)
+	local level = UnitLevel(unit)
+	if issecretvalue(level) or level == nil then
+		return nil
+	end
+	local numLines = tooltip:NumLines()
 	local texts = {}
-	for i = 2, tooltip:NumLines() do
+	for i = 2, numLines do
 		local text = tooltip:GetLeftLine(i):GetText()
 		if issecretvalue(text) then
 			ns.dev:LogOnce("secret-text", "LEVEL", "secret line text, level line left to Blizzard")
-			return
+			return nil
 		end
-		texts[i] = text or "" -- an empty line has no text; keep texts free of holes for table.concat
+		texts[i] = text or "" -- an empty line has no text
+	end
+	local index = ns.LevelLine.Find(texts, ns.LevelLine.LevelText(UNIT_LEVEL_TEMPLATE, level), 2, numLines)
+	if not index and ns.dev.enabled then
+		ns.dev:LogOnce("level-miss", "LEVEL", "no level line in", table.concat(texts, " | ", 2, numLines))
+	end
+	return index
+end
+
+local function ColorLevelLine(tooltip, unit, data)
+	local color = GetReactionColor(unit)
+	if not color then
+		ns.dev:LogOnce("secret-reaction", "LEVEL", "reaction unreadable, level line left to Blizzard")
+		return
 	end
 
-	local index = ns.LevelLine.Find(texts, ns.LevelLine.LevelText(UNIT_LEVEL_TEMPLATE, level), 2)
+	local index = FindLevelLineByType(data)
+	local how = "type"
+	if not index then
+		how = "text"
+		index = FindLevelLineByText(tooltip, unit)
+		if ns.dev.enabled then
+			local types = {}
+			for i, lineData in ipairs(type(data.lines) == "table" and data.lines or {}) do
+				types[i] = issecretvalue(lineData.type) and "?" or tostring(lineData.type)
+			end
+			ns.dev:LogOnce("level-types", "LEVEL", "no UnitLevel line type; line types", table.concat(types, ","))
+		end
+	end
 	if index then
-		tooltip:GetLeftLine(index):SetTextColor(GameTooltip_UnitColor(unit))
-	elseif ns.dev.enabled then
-		ns.dev:LogOnce("level-miss", "LEVEL", "no level line in", table.concat(texts, " | ", 2))
+		tooltip:GetLeftLine(index):SetTextColor(color:GetRGB())
 	end
 	if ns.dev.enabled then
-		ns.dev:LogChanged("level-index", index, "LEVEL", "level line at", index)
+		ns.dev:LogChanged("level-index", how .. " " .. tostring(index), "LEVEL", "level line by", how, "at", index)
 	end
 end
 
@@ -85,5 +139,5 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tool
 		return
 	end
 	ColorName(tooltip, unit)
-	ColorLevelLine(tooltip, unit)
+	ColorLevelLine(tooltip, unit, data)
 end)

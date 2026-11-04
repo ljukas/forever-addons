@@ -107,6 +107,20 @@
 - [ ] **Step 1:** Under `## Unreleased`, replace "Initial version." with player-facing lines: hovered players' names in their class colour; the level line red/yellow/green by friend or foe; an option in Options → AddOns → ForeverTooltip to make tooltips for things in the world follow the cursor.
 - [ ] **Step 2:** Commit: `docs(forevertooltip): describe the first version in the changelog`.
 
+### Task 6: Choose which way the tooltip grows from the cursor (added after review, user request)
+
+**Files:**
+- Create: `addons/ForeverTooltip/Logic/CursorAnchor.lua` (pure)
+- Modify: `Core.lua` (strings), `Options.lua` (dropdown), `Anchor.lua` (positioning), `Database.lua` (layout comment), TOC, `CHANGELOG.md`
+
+**Interfaces:**
+- `ns.Options.DIRECTION = { DOWN_RIGHT = 1, DOWN_LEFT = 2, UP_RIGHT = 3, UP_LEFT = 4 }`; new setting `cursorDirection` (Number, default `UP_RIGHT`, variable `FOREVERTOOLTIP_CURSORDIRECTION`), a dropdown whose parent initializer is the `cursorAnchor` checkbox.
+- `ns.CursorAnchor.Point(direction: number) -> point: string, offsetX: number, offsetY: number` — the tooltip corner pinned to the cursor and its offset from the pointer: DOWN_RIGHT `"TOPLEFT", 20, -24`; DOWN_LEFT `"TOPRIGHT", -8, -8`; UP_RIGHT `"BOTTOMLEFT", 8, 8`; UP_LEFT `"BOTTOMRIGHT", -8, 8`; unknown values fall back to UP_RIGHT.
+
+- [ ] **Step 1:** Pure `Logic/CursorAnchor.lua` with the table above in a header comment.
+- [ ] **Step 2:** `Anchor.lua`: the hook sets `following = true` and shows a driver frame instead of `SetAnchorType`; the driver's `OnUpdate` pins the corner at `GetCursorPosition() / GameTooltip:GetEffectiveScale()` relative to `UIParent` `"BOTTOMLEFT"`, and stops (hides itself) when `GameTooltip` is hidden, `GetOwner() ~= UIParent` or `GetAnchorType() ~= "ANCHOR_NONE"`. The hook clears `following` for non-world default anchors.
+- [ ] **Step 3:** Options dropdown, strings, CHANGELOG line; `scripts/lint.sh` clean; `savedvariables-guard` on the new key.
+
 ## Launch checks (become the `forevertooltip-launch-checks` memory in Phase 6)
 
 *Updated after the step review to match the code's log text.*

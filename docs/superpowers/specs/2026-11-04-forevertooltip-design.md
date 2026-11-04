@@ -184,3 +184,21 @@ Six reviewers read the finished step; these changes supersede the text above whe
 - **Fade trails the cursor.** With a cursor anchor, Blizzard's fade-out after leaving a unit keeps
   following the pointer. Blizzard's own cursor mode hides instead of fading. Changing that would
   mean writing Blizzard fields, so it stays a launch check.
+
+## Amendment: choose which way the tooltip grows (user request, 2026-11-04)
+
+- **New option**, shown under "Tooltip follows the cursor" while it is ticked: *Tooltip grows
+  towards* with four choices: down and right, down and left, up and right, up and left.
+- **Default: up and right.** The user asked for whatever Blizzard uses. Bag tooltips don't follow
+  the cursor (they anchor beside the item button, `ContainerFrame.lua`), so the precedent is
+  Blizzard's own world cursor mode (`Enum.WorldCursorAnchorType.Cursor`), which uses
+  `ANCHOR_CURSOR` and grows up from the pointer. *Claude's call; the launch check compares it with
+  Blizzard's.*
+- **Mechanism (replaces the engine cursor anchor).** The client's cursor anchors can only grow
+  upward, so all four directions use one mechanism: after `GameTooltip_SetDefaultAnchor` for a
+  world hover, the matching corner of the tooltip is pinned to `GetCursorPosition()` (scaled by the
+  tooltip's effective scale) every frame by the addon's own driver frame, until the tooltip hides or
+  is re-anchored by anything else (`GetOwner() ~= UIParent` or `GetAnchorType() ~= "ANCHOR_NONE"`).
+  No script is hooked onto `GameTooltip`.
+- The offsets from the pointer differ by direction: the cursor arrow extends down and right from
+  its hotspot, so down-right needs the largest gap. Values are tuned at launch.

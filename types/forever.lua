@@ -52,6 +52,11 @@ UNIT_LEVEL_TEMPLATE = ""
 
 -- Frames created by Blizzard XML.
 
+-- The frame the 3D world renders in, created by the client; the mouse focus while the cursor is over
+-- the world. Used by Blizzard_ActionStatus/Mainline/ActionStatus.lua.
+---@type Frame
+WorldFrame = {}
+
 -- Blizzard_WorldMap/Blizzard_WorldMap.xml, a MapCanvasFrameTemplate.
 ---@class WorldMapFrame : MapCanvasFrame
 ---@field AddDataProvider fun(self: WorldMapFrame, dataProvider: table)

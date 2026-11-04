@@ -5,7 +5,8 @@
 ## X-License: MIT
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\Spell_Shadow_AbominationExplosion
-## Category: Combat
+## X-Category: Combat
+## Category: Forever Enhanced Addons
 ## SavedVariables: ForeverCombatDB
 #@do-not-package@
 ## OptionalDeps: ForeverDev

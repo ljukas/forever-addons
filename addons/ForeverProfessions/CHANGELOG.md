@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Now grouped under "Forever Enhanced Addons" in the AddOns list.
 - Remembers every herb and mineral node you gather, shared across your characters, and
   counts how many times each one has been gathered.
 - Shows known nodes on the world map and the minimap with Blizzard's tracking icons.

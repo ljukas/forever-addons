@@ -5,7 +5,8 @@
 ## X-License: MIT
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\Trade_Herbalism
-## Category: Professions
+## X-Category: Professions
+## Category: Forever Enhanced Addons
 ## SavedVariables: ForeverProfessionsDB
 #@do-not-package@
 ## OptionalDeps: ForeverDev

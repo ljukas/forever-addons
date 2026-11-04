@@ -50,7 +50,8 @@ grep -rn 'function EventUtil\.' .cache/wow-ui-source/Interface/AddOns/Blizzard_S
 ## Layout
 
 - `addons/<Name>/` – one addon per folder; the folder name must equal the TOC name (`<Name>.toc`).
-  PascalCase names.
+  PascalCase names. Released addons set `## Category: Forever Enhanced Addons` (the AddOns list's
+  group header; the string must match exactly) and keep their genre in `## X-Category`.
 - `addons/ForeverDev/` – dev-only helper addon, **never released** (see the feedback loop below).
 - `template/Addon/` – scaffold used by `scripts/new-addon.sh` (`__ADDON__` is replaced).
 - `scripts/` – all tooling, see below. `scripts/lib.sh` holds shared helpers and `WOW_DIR`.

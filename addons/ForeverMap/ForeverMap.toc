@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: ForeverMap
-## Notes: Shows the herbs and ore your minimap tracking finds as icons in the minimap's gold tracking ring.
+## Notes: Shows the herbs and ore your minimap tracking finds as icons in the minimap's gold tracking ring, and gathers other addons' minimap buttons into one button.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
@@ -17,8 +17,15 @@ Data/Nodes.lua
 Logic/Lines.lua
 Logic/Grid.lua
 Logic/Anchor.lua
+Logic/Ring.lua
+Logic/Strip.lua
+Logic/ButtonRules.lua
+Logic/ButtonBagHelpers.lua
 Options.lua
 Tracking.lua
 Markers.lua
 Scanner.lua
 UI/NodeIcon.xml
+UI/BagButton.xml
+ButtonBag.lua
+ButtonBagMenu.lua

@@ -9,7 +9,7 @@ ns.Options.DEFAULTS = {
 }
 
 function ns.Options.Get(key)
-	local value = ns.db and ns.db.settings[key]
+	local value = ns.db and ns.db.settings and ns.db.settings[key]
 	if value == nil then
 		return ns.Options.DEFAULTS[key]
 	end

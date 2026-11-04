@@ -13,14 +13,14 @@ local ICON_ATLASES = { "uitools-icon-hamburger", "common-icon-hamburger", "frien
 -- Pixels the button's center sits outside the minimap's edge.
 local RING_MARGIN = 5
 
----@class ForeverMapBagButtonMixin : Button
+---@class ForeverMinimapBagButtonMixin : Button
 ---@field Icon Texture
 ---@field open boolean
 ---@field angle number
 ---@field dragging boolean? while a drag is moving it
 ---@field dragged boolean? from a drag's end until the click that may follow it
 ---@field OnRightClick fun()?
-ForeverMapBagButtonMixin = {}
+ForeverMinimapBagButtonMixin = {}
 
 local function ChooseIcon(icon)
 	for _, atlas in ipairs(ICON_ATLASES) do
@@ -35,11 +35,11 @@ local function ChooseIcon(icon)
 	icon:Hide()
 end
 
-function ForeverMapBagButtonMixin:IsOpen()
+function ForeverMinimapBagButtonMixin:IsOpen()
 	return self.open
 end
 
-function ForeverMapBagButtonMixin:SetOpen(open)
+function ForeverMinimapBagButtonMixin:SetOpen(open)
 	open = open and true or false
 	if self.open == open then
 		return
@@ -49,7 +49,7 @@ function ForeverMapBagButtonMixin:SetOpen(open)
 end
 
 -- Puts the button on the ring at `angle` degrees (Logic/Ring.lua).
-function ForeverMapBagButtonMixin:SetAngle(angle)
+function ForeverMinimapBagButtonMixin:SetAngle(angle)
 	self.angle = angle
 	local shape = GetMinimapShape and GetMinimapShape() or "ROUND"
 	self:ClearAllPoints()
@@ -68,14 +68,14 @@ local function FollowCursor(self)
 	self:SetAngle(CursorAngle())
 end
 
-function ForeverMapBagButtonMixin:OnDragStart()
+function ForeverMinimapBagButtonMixin:OnDragStart()
 	GameTooltip:Hide()
 	self.dragging = true
 	self:SetScript("OnUpdate", FollowCursor)
 end
 
 -- Ends a drag and saves where it ended. A no-op when no drag is running.
-function ForeverMapBagButtonMixin:EndDrag()
+function ForeverMinimapBagButtonMixin:EndDrag()
 	if not self.dragging then
 		return
 	end
@@ -84,7 +84,7 @@ function ForeverMapBagButtonMixin:EndDrag()
 	ns.db.buttonBag.angle = self.angle
 end
 
-function ForeverMapBagButtonMixin:OnDragStop()
+function ForeverMinimapBagButtonMixin:OnDragStop()
 	self:EndDrag()
 	-- The mouse-up that ends a drag may also click: OnClick skips that one click. The flag is
 	-- cleared next frame in case no click follows.
@@ -96,28 +96,28 @@ end
 
 -- Hidden mid-drag or mid-press (the bag turned off, a UI hide): stop following the cursor, and
 -- don't wait for a mouse-up that won't come.
-function ForeverMapBagButtonMixin:OnHide()
+function ForeverMinimapBagButtonMixin:OnHide()
 	self:EndDrag()
 	self:OnMouseUp()
 end
 
 -- The minimap's shape may have changed while hidden.
-function ForeverMapBagButtonMixin:OnShow()
+function ForeverMinimapBagButtonMixin:OnShow()
 	if self.angle then
 		self:SetAngle(self.angle)
 	end
 end
 
 -- The icon sinks 1px down-right while the button is held, as Blizzard's buttons do.
-function ForeverMapBagButtonMixin:OnMouseDown()
+function ForeverMinimapBagButtonMixin:OnMouseDown()
 	self.Icon:SetPoint("CENTER", 1, -1)
 end
 
-function ForeverMapBagButtonMixin:OnMouseUp()
+function ForeverMinimapBagButtonMixin:OnMouseUp()
 	self.Icon:SetPoint("CENTER", 0, 0)
 end
 
-function ForeverMapBagButtonMixin:OnClick(mouseButton)
+function ForeverMinimapBagButtonMixin:OnClick(mouseButton)
 	if self.dragged then
 		self.dragged = false
 		return
@@ -131,7 +131,7 @@ function ForeverMapBagButtonMixin:OnClick(mouseButton)
 	end
 end
 
-function ForeverMapBagButtonMixin:OnEnter()
+function ForeverMinimapBagButtonMixin:OnEnter()
 	GameTooltip:SetOwner(self, "ANCHOR_LEFT")
 	GameTooltip_SetTitle(GameTooltip, ADDON_NAME)
 	GameTooltip:AddLine(ns.L.BAG_TOOLTIP_TOGGLE, 1, 1, 1)
@@ -139,12 +139,12 @@ function ForeverMapBagButtonMixin:OnEnter()
 	GameTooltip:Show()
 end
 
-function ForeverMapBagButtonMixin:OnLeave()
+function ForeverMinimapBagButtonMixin:OnLeave()
 	GameTooltip:Hide()
 end
 
 -- Shown only while the setting is on; turning it off closes the bag.
-function ForeverMapBagButtonMixin:Refresh()
+function ForeverMinimapBagButtonMixin:Refresh()
 	local show = ns.Options.Get("showButtonBag")
 	if not show then
 		self:SetOpen(false)
@@ -153,7 +153,7 @@ function ForeverMapBagButtonMixin:Refresh()
 end
 
 ns.OnInitialize(function()
-	local button = CreateFrame("Button", nil, Minimap, "ForeverMapBagButtonTemplate")
+	local button = CreateFrame("Button", nil, Minimap, "ForeverMinimapBagButtonTemplate")
 	button:SetFrameStrata("MEDIUM")
 	button:SetFrameLevel(Minimap:GetFrameLevel() + 10)
 	button:RegisterForClicks("LeftButtonUp", "RightButtonUp")

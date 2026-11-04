@@ -44,14 +44,14 @@ ns.L = {
 }
 
 -- Internal events between the modules. Callbacks are called as func(owner, ...).
---   OptionChanged()    a ForeverMapDB.settings value changed
+--   OptionChanged()    a ForeverMinimapDB.settings value changed
 --   TrackingChanged()  the minimap tracking types may have changed
 --   BagToggled(open)   the button bag was opened or closed (UI/BagButton.lua)
 ns.callbacks = CreateFromMixins(CallbackRegistryMixin)
 ns.callbacks:OnLoad()
 ns.callbacks:GenerateCallbackEvents({ "OptionChanged", "TrackingChanged", "BagToggled" })
 
--- Modules register setup that needs ForeverMapDB. It runs in TOC order once the
+-- Modules register setup that needs ForeverMinimapDB. It runs in TOC order once the
 -- SavedVariables have loaded.
 local initializers = {}
 
@@ -60,8 +60,8 @@ function ns.OnInitialize(func)
 end
 
 EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
-	ForeverMapDB = ForeverMapDB or {}
-	ns.db = ForeverMapDB
+	ForeverMinimapDB = ForeverMinimapDB or {}
+	ns.db = ForeverMinimapDB
 	ns.DB.Migrate(ns.db)
 
 	for _, func in ipairs(initializers) do

@@ -28,14 +28,14 @@ local CAVE_SHADE = 0.6
 -- to leave the game's up and down arrows visible.
 local BASE_SIZE = 9
 
----@class ForeverMapNodeIconMixin : Frame
+---@class ForeverMinimapNodeIconMixin : Frame
 ---@field Background Texture
 ---@field Icon Texture
 ---@field Ring Texture
 ---@field kind string?
 ---@field gray boolean?
 ---@field size number?
-ForeverMapNodeIconMixin = {}
+ForeverMinimapNodeIconMixin = {}
 
 -- Whole pixels: Blizzard sizes and places these textures on the pixel grid, and a fractional
 -- ring would wobble against the icon as it moves.
@@ -43,7 +43,7 @@ local function Round(value)
 	return math.floor(value + 0.5)
 end
 
-function ForeverMapNodeIconMixin:SetNode(kind, gray, size)
+function ForeverMinimapNodeIconMixin:SetNode(kind, gray, size)
 	if self.kind ~= kind then
 		self.kind = kind
 		self.Icon:SetAtlas(ATLASES[kind])
@@ -142,7 +142,7 @@ local function Draw()
 			shown = shown + 1
 			local icon = icons[shown]
 			if not icon then
-				icon = CreateFrame("Frame", nil, container, "ForeverMapNodeIconTemplate") --[[@as ForeverMapNodeIconMixin]]
+				icon = CreateFrame("Frame", nil, container, "ForeverMinimapNodeIconTemplate") --[[@as ForeverMinimapNodeIconMixin]]
 				icons[shown] = icon
 			end
 			icon:SetNode(marker.kind, marker.gray, size)

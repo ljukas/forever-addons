@@ -7,7 +7,7 @@
 	     tracking atlas made round with the mask Blizzard uses on round icons (Blizzard_PVPUI.xml),
 	     and the gold tracking ring. The frame takes no mouse, so hovering still reaches the
 	     minimap. Sizes are set in Lua. -->
-	<Frame name="ForeverMapNodeIconTemplate" mixin="ForeverMapNodeIconMixin" virtual="true">
+	<Frame name="ForeverMinimapNodeIconTemplate" mixin="ForeverMinimapNodeIconMixin" virtual="true">
 		<Size x="9" y="9"/>
 		<Layers>
 			<Layer level="BACKGROUND">

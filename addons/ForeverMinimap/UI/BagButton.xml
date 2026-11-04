@@ -7,7 +7,7 @@
 	     the same HUD minimap family as the zoom buttons. The highlight is that art again, added
 	     faintly on top, like Camelot's compartment (Camelot/AddonCompartment.lua). It is created in
 	     BagButton.lua with Minimap as its parent, and its icon is picked there. -->
-	<Button name="ForeverMapBagButtonTemplate" mixin="ForeverMapBagButtonMixin" virtual="true">
+	<Button name="ForeverMinimapBagButtonTemplate" mixin="ForeverMinimapBagButtonMixin" virtual="true">
 		<Size x="17" y="17"/>
 		<Layers>
 			<Layer level="OVERLAY">

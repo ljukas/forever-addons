@@ -80,8 +80,10 @@ local iconScale = 1
 
 local function SetIconScale(scale, source)
 	if issecretvalue(scale) or type(scale) ~= "number" or scale <= 0 then
-		local got = issecretvalue(scale) and "secret" or type(scale) .. " " .. tostring(scale)
-		ns.log("SCALE", "unusable icon scale from", source, got, "kept", iconScale)
+		if ns.dev.enabled then
+			local got = issecretvalue(scale) and "secret" or type(scale) .. " " .. tostring(scale)
+			ns.log("SCALE", "unusable icon scale from", source, got, "kept", iconScale)
+		end
 		return
 	end
 	iconScale = scale
@@ -89,12 +91,12 @@ local function SetIconScale(scale, source)
 end
 
 -- Before the first call, Edit Mode's minimap setting may already hold the scale (as the percent
--- its slider shows; it reads 0 until Edit Mode has set the minimap up).
+-- its slider shows; it reads 0 until Edit Mode has set the minimap up). An unusable value is
+-- passed on as it is, so SetIconScale logs and drops it.
 if MinimapCluster and MinimapCluster.GetSettingValue and Enum.EditModeMinimapSetting then
 	local percent = MinimapCluster:GetSettingValue(Enum.EditModeMinimapSetting.IconScale)
-	if not issecretvalue(percent) and type(percent) == "number" and percent > 0 then
-		SetIconScale(percent / 100, "edit mode")
-	end
+	local usable = not issecretvalue(percent) and type(percent) == "number" and percent > 0
+	SetIconScale(usable and percent / 100 or percent, "edit mode")
 end
 
 hooksecurefunc(Minimap, "SetIconScale", function(_, scale)

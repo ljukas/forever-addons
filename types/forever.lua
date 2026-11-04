@@ -46,7 +46,16 @@ TRAINER_REQ_SKILL_RANK = ""
 ---@type string
 INT_SPELL_DURATION_SEC = ""
 
+-- "Level %d"; Blizzard_StableUI/Camelot/Blizzard_StableUI formats it with a pet's level.
+---@type string
+UNIT_LEVEL_TEMPLATE = ""
+
 -- Frames created by Blizzard XML.
+
+-- The frame the 3D world renders in, created by the client; the mouse focus while the cursor is over
+-- the world. Used by Blizzard_ActionStatus/Mainline/ActionStatus.lua.
+---@type Frame
+WorldFrame = {}
 
 -- Blizzard_WorldMap/Blizzard_WorldMap.xml, a MapCanvasFrameTemplate.
 ---@class WorldMapFrame : MapCanvasFrame
@@ -127,6 +136,11 @@ MinimapCluster = {}
 -- annotations stop at Size.
 ---@diagnostic disable-next-line: inject-field
 Enum.EditModeMinimapSetting.IconScale = 3
+
+-- Blizzard_APIDocumentationGenerated/TooltipInfoSharedDocumentation.lua. Ketho's annotations stop
+-- before the unit line types.
+---@diagnostic disable-next-line: inject-field
+Enum.TooltipDataLineType.UnitLevel = 47
 
 -- Not Blizzard's: an addon convention. An addon that reshapes the minimap defines it to return the
 -- shape ("ROUND", "SQUARE", "CORNER-TOPLEFT", ...); nil when no addon does.

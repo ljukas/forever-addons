@@ -17,9 +17,18 @@ local ADDON_NAME, ns = ...
 
 local ENEMY, ATTACKABLE, ALLY = 2, 4, 6 -- FACTION_BAR_COLORS indices, as in GameTooltip_UnitColor
 
+-- Whether this code may index t. A secret table (or one whose contents taint hides) raises an error
+-- when indexed by addon code; canaccesstable is the check Blizzard's own Dump.lua uses.
+local function IsReadableTable(t)
+	return type(t) == "table" and canaccesstable(t)
+end
+
 -- The player unit token this unit tooltip shows, or nil when it isn't a player or can't be read.
 local function GetPlayerUnit(data)
-	local guid = data and data.guid
+	if not IsReadableTable(data) then
+		return nil
+	end
+	local guid = data.guid
 	if issecretvalue(guid) or guid == nil then
 		return nil
 	end
@@ -64,15 +73,17 @@ end
 -- The tooltip line index of the level line, from its line type in the tooltip data. Blizzard sets
 -- lineData.lineIndex when it adds each line (TooltipDataHandlerMixin:ProcessLineData).
 local function FindLevelLineByType(data)
-	if type(data.lines) ~= "table" then
+	if not IsReadableTable(data.lines) then
 		return nil
 	end
 	for _, lineData in ipairs(data.lines) do
-		local lineType = lineData.type
-		if not issecretvalue(lineType) and lineType == Enum.TooltipDataLineType.UnitLevel then
-			local index = lineData.lineIndex
-			if not issecretvalue(index) then
-				return index
+		if IsReadableTable(lineData) then
+			local lineType = lineData.type
+			if not issecretvalue(lineType) and lineType == Enum.TooltipDataLineType.UnitLevel then
+				local index = lineData.lineIndex
+				if not issecretvalue(index) then
+					return index
+				end
 			end
 		end
 	end
@@ -116,8 +127,9 @@ local function ColorLevelLine(tooltip, unit, data)
 		index = FindLevelLineByText(tooltip, unit)
 		if ns.dev.enabled then
 			local types = {}
-			for i, lineData in ipairs(type(data.lines) == "table" and data.lines or {}) do
-				types[i] = issecretvalue(lineData.type) and "?" or tostring(lineData.type)
+			for i, lineData in ipairs(IsReadableTable(data.lines) and data.lines or {}) do
+				local readable = IsReadableTable(lineData) and not issecretvalue(lineData.type)
+				types[i] = readable and tostring(lineData.type) or "?"
 			end
 			ns.dev:LogOnce("level-types", "LEVEL", "no UnitLevel line type; line types", table.concat(types, ","))
 		end

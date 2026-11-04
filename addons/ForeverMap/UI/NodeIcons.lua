@@ -24,6 +24,9 @@ local OVER_PLAYER_ALPHA = 0.35
 local EDGE_MARGIN = 4
 -- A node in a cave: dimmed as well as gray.
 local CAVE_SHADE = 0.6
+-- Icon size in minimap pixels at an icon scale of 100%: an estimate until launch, small enough
+-- to leave the game's up and down arrows visible.
+local BASE_SIZE = 9
 
 ---@class ForeverMapNodeIconMixin : Frame
 ---@field Background Texture
@@ -67,6 +70,39 @@ function ForeverMapNodeIconMixin:SetNode(kind, gray, size)
 	end
 end
 
+-- The icons follow the minimap's icon scale (Edit Mode → Minimap → Icon Scale), as the game's
+-- own minimap icons do. The client has no getter for it, so it is kept from the calls to
+-- Minimap:SetIconScale: Edit Mode makes one on its first layout apply (login, /reload), and
+-- later whenever the scale changes: the slider, a revert, a layout with another scale
+-- (EditModeMinimapSystemMixin, Blizzard_EditMode).
+-- A value we can't use (secret, or not a positive number) leaves the last one in place.
+local iconScale = 1
+
+local function SetIconScale(scale, source)
+	if issecretvalue(scale) or type(scale) ~= "number" or scale <= 0 then
+		if ns.dev.enabled then
+			local got = issecretvalue(scale) and "secret" or type(scale) .. " " .. tostring(scale)
+			ns.log("SCALE", "unusable icon scale from", source, got, "kept", iconScale)
+		end
+		return
+	end
+	iconScale = scale
+	ns.log("SCALE", "icon scale", scale, "from", source)
+end
+
+-- Before the first call, Edit Mode's minimap setting may already hold the scale (as the percent
+-- its slider shows; it reads 0 until Edit Mode has set the minimap up). An unusable value is
+-- passed on as it is, so SetIconScale logs and drops it.
+if MinimapCluster and MinimapCluster.GetSettingValue and Enum.EditModeMinimapSetting then
+	local percent = MinimapCluster:GetSettingValue(Enum.EditModeMinimapSetting.IconScale)
+	local usable = not issecretvalue(percent) and type(percent) == "number" and percent > 0
+	SetIconScale(usable and percent / 100 or percent, "edit mode")
+end
+
+hooksecurefunc(Minimap, "SetIconScale", function(_, scale)
+	SetIconScale(scale, "SetIconScale")
+end)
+
 local container = CreateFrame("Frame", nil, Minimap)
 container:SetAllPoints()
 
@@ -89,7 +125,7 @@ local function Draw()
 		return
 	end
 	local view = ns.Scanner.CurrentView()
-	local size = ns.Options.Get("nodeIconSize")
+	local size = math.max(1, Round(BASE_SIZE * iconScale))
 	-- Whole icons only: one past the minimap's round edge isn't drawn.
 	local maxDistance = width / 2 - 0.75 * size - EDGE_MARGIN
 	local shown = 0

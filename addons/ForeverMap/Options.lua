@@ -9,7 +9,6 @@ ns.Options.DIRECTION = { DOWN = 1, UP = 2, LEFT = 3, RIGHT = 4 }
 
 ns.Options.DEFAULTS = {
 	showNodeIcons = true,
-	nodeIconSize = 9, -- an estimate until launch: small enough to leave the up/down arrows visible
 	showButtonBag = true,
 	buttonBagDirection = ns.Options.DIRECTION.DOWN,
 }
@@ -50,19 +49,9 @@ ns.OnInitialize(function()
 		return setting
 	end
 
+	-- No size option: the icons follow Edit Mode's minimap icon scale (UI/NodeIcons.lua).
 	local show = Register("showNodeIcons", Settings.VarType.Boolean, L.SHOW_NODE_ICONS)
-	local showInitializer = Settings.CreateCheckbox(category, show, L.SHOW_NODE_ICONS_TOOLTIP)
-
-	local size = Register("nodeIconSize", Settings.VarType.Number, L.NODE_ICON_SIZE)
-	local options = Settings.CreateSliderOptions(6, 16, 1)
-	options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
-		return tostring(value)
-	end)
-	local sizeInitializer = Settings.CreateSlider(category, size, options, L.NODE_ICON_SIZE_TOOLTIP)
-	-- The size only matters while the icons are shown (Blizzard's pattern, Graphics settings).
-	sizeInitializer:SetParentInitializer(showInitializer, function()
-		return show:GetValue()
-	end)
+	Settings.CreateCheckbox(category, show, L.SHOW_NODE_ICONS_TOOLTIP)
 
 	local bag = Register("showButtonBag", Settings.VarType.Boolean, L.SHOW_BUTTON_BAG)
 	local bagInitializer = Settings.CreateCheckbox(category, bag, L.SHOW_BUTTON_BAG_TOOLTIP)

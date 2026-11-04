@@ -2,8 +2,9 @@ local ADDON_NAME, ns = ...
 
 -- ForeverMapDB layout (account-wide):
 --   version   = schema version, see migrations below
---   settings  = { showNodeIcons = boolean, nodeIconSize = number, showButtonBag = boolean,
---                 buttonBagDirection = number (ns.Options.DIRECTION) }, owned by Options.lua
+--   settings  = { showNodeIcons = boolean, showButtonBag = boolean,
+--                 buttonBagDirection = number (ns.Options.DIRECTION) }, owned by Options.lua.
+--                 (A nodeIconSize key from development builds before the first release is ignored.)
 --   buttonBag = { angle = number|nil, ignored = { [key] = true } }
 --     angle   = where the bag button sits on the minimap edge, in degrees counter-clockwise from east
 --               (0 = east, 90 = north, LibDBIcon's minimapPos convention); nil means the default

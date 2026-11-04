@@ -112,9 +112,21 @@ function Minimap:UpdateMouseoverAtPoint(pointX, pointY) end
 ---@param usingSoftCursor boolean
 function Minimap:SetUsingSoftCursor(usingSoftCursor) end
 
--- Blizzard_Minimap/Mainline/Minimap.xml; the minimap's parent and the frame its buttons sit in.
----@type Frame
+---@param scale number
+function Minimap:SetIconScale(scale) end
+
+-- Blizzard_Minimap/Mainline/Minimap.xml: the minimap's parent and the frame its buttons sit in, and
+-- the Edit Mode minimap system (EditModeMinimapSystemMixin,
+-- Blizzard_EditMode/Shared/EditModeSystemTemplates.lua). Only the members our addons use.
+
+---@class MinimapCluster : Frame
+---@field GetSettingValue fun(self: MinimapCluster, setting: number, useRawValue: boolean?): number
 MinimapCluster = {}
+
+-- Blizzard_APIDocumentationGenerated/EditModeManagerConstantsDocumentation.lua. Ketho's
+-- annotations stop at Size.
+---@diagnostic disable-next-line: inject-field
+Enum.EditModeMinimapSetting.IconScale = 3
 
 -- Not Blizzard's: an addon convention. An addon that reshapes the minimap defines it to return the
 -- shape ("ROUND", "SQUARE", "CORNER-TOPLEFT", ...); nil when no addon does.

@@ -7,6 +7,8 @@
   nodes as you move and turn.
 - A node's icon disappears once you've looted it.
 - Nodes in caves get a dimmed icon.
+- The icons grow and shrink with the minimap's Icon Scale in Edit Mode, like the game's own
+  minimap icons. Turn them on or off under Options → AddOns → ForeverMap.
 - Other addons' minimap buttons are gathered behind one button on the minimap's edge. Click it
   to fold the buttons out, click again to fold them away.
 - Drag the button around the minimap's edge to put it where you like, and choose which way
@@ -15,4 +17,3 @@
   should stay on the minimap instead.
 - Turn the button off under Options → AddOns → ForeverMap and every button goes back where
   it was.
-- Turn the icons on or off and change their size under Options → AddOns → ForeverMap.

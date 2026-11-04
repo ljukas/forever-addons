@@ -16,3 +16,4 @@ Core.lua
 Database.lua
 Logic/LevelLine.lua
 Options.lua
+Colors.lua

@@ -46,6 +46,10 @@ TRAINER_REQ_SKILL_RANK = ""
 ---@type string
 INT_SPELL_DURATION_SEC = ""
 
+-- "Level %d"; Blizzard_StableUI/Camelot/Blizzard_StableUI formats it with a pet's level.
+---@type string
+UNIT_LEVEL_TEMPLATE = ""
+
 -- Frames created by Blizzard XML.
 
 -- Blizzard_WorldMap/Blizzard_WorldMap.xml, a MapCanvasFrameTemplate.

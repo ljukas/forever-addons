@@ -7,14 +7,19 @@
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
-[[ -d "$WOW_DIR" ]] || die "WoW Forever not found at $WOW_DIR (set WOW_DIR in .env.local)"
-target_dir="$WOW_DIR/Interface/AddOns"
-mkdir -p "$target_dir"
-
 unlink=false
 if [[ "${1:-}" == "--unlink" ]]; then
 	unlink=true
 	shift
+fi
+
+target_dir="$WOW_DIR/Interface/AddOns"
+if $unlink; then
+	# Unlinking also cleans up after an uninstall, so it only needs the folder.
+	[[ -d "$WOW_DIR" ]] || die "WoW Forever not found at $WOW_DIR (set WOW_DIR in .env.local)"
+else
+	require_game
+	mkdir -p "$target_dir"
 fi
 
 names=("$@")
@@ -47,6 +52,6 @@ for name in "${names[@]}"; do
 		echo "skipped $name: $link is a real folder (move it away to link the repo copy)" >&2
 		continue
 	fi
-	ln -sfn "$source_dir" "$link"
+	link_path "$source_dir" "$link"
 	echo "linked $name -> $link"
 done

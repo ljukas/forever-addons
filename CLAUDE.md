@@ -59,10 +59,10 @@ grep -rn 'function EventUtil\.' .cache/wow-ui-source/Interface/AddOns/Blizzard_S
 ## Commands
 
 ```sh
-scripts/new-addon.sh MyAddon        # scaffold addons/MyAddon from the template and symlink it into the game
+scripts/new-addon.sh MyAddon        # scaffold addons/MyAddon from the template and link it into the game
 scripts/lint.sh                     # StyLua check + LuaLS diagnostics + TOC checks. Run after every change.
 stylua addons template types        # auto-format
-scripts/link.sh                     # (re)symlink every addon into _forever_/Interface/AddOns
+scripts/link.sh                     # (re)link every addon into _forever_/Interface/AddOns
 scripts/devlog.sh [--errors] [--all] [--addon NAME] [--tag TAG]  # print what ForeverDev captured in game (errors, taint, logs)
 scripts/observed.sh [Addon] [filter] # print the evidence addons keep through ForeverDev (e.g. ForeverProfessions' gathers)
 scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about DoTs/HoTs (IDs, ticks, intervals, misses)
@@ -72,11 +72,14 @@ scripts/setup.sh                    # refresh .cache/ (run after a game patch)
 scripts/worktree.sh <command>       # setup, game, restore or status: share .cache/ with a worktree, move the game's addon links to it and back
 ```
 
-`WOW_DIR` defaults to `/Applications/World of Warcraft/_forever_`. Override it in `.env.local`.
+`WOW_DIR` defaults to `/Applications/World of Warcraft/_forever_` (macOS) or
+`/c/Program Files (x86)/World of Warcraft/_forever_` (Windows). Override it in `.env.local`. On
+Windows the scripts run in Git Bash, where `ln -s` silently copies: link with `link_path` from
+`scripts/lib.sh` (an NTFS junction; folders only), never `ln -s`.
 
 ## Feedback loop with the game
 
-Addons are symlinked into the game, so there is no copy or build step:
+Addons are linked into the game, so there is no copy or build step:
 
 1. Claude edits the code and runs `scripts/lint.sh` until it's clean.
 2. The user types `/rl` (or uses the ForeverDev keybind or addon compartment entry) in game.

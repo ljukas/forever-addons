@@ -4,8 +4,9 @@ local ADDON_NAME, ns = ...
 -- that runs before the options panel registers its settings never sees nil.
 ns.Options = {}
 
--- Which way a cursor-following tooltip grows from the pointer (Logic/CursorAnchor.lua).
-ns.Options.DIRECTION = { DOWN_RIGHT = 1, DOWN_LEFT = 2, UP_RIGHT = 3, UP_LEFT = 4 }
+-- Which way a cursor-following tooltip grows from the pointer. Defined (and stored values fixed) in
+-- Logic/CursorAnchor.lua.
+ns.Options.DIRECTION = ns.CursorAnchor.DIRECTION
 
 ns.Options.DEFAULTS = {
 	cursorAnchor = false,
@@ -23,6 +24,7 @@ end
 
 local L = ns.L
 
+-- Settings variable names are player-facing; renaming a DB key renames its variable too.
 local function GetVariable(key)
 	return "FOREVERTOOLTIP_" .. key:upper()
 end

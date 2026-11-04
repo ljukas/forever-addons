@@ -14,22 +14,37 @@ local _, ns = ...
 -- the addon's own driver frame pins a corner of the tooltip to the cursor every frame (smooth: it
 -- runs once per rendered frame). It never calls SetOwner (which clears the tooltip and runs
 -- GameTooltip's OnTooltipCleared script under this hook's taint) and hooks no GameTooltip script;
--- ClearAllPoints and SetPoint have no Lua side effects. It stops as soon as the tooltip hides or
--- anything re-anchors it (another owner, or an anchor type other than Blizzard's ANCHOR_NONE).
+-- ClearAllPoints and SetPoint have no Lua side effects. Any SetOwner call on GameTooltip stops it
+-- (Blizzard's default anchor calls SetOwner before the hook below restarts it), so tooltips that
+-- other code positions (nameplate-anchored world tooltips, basic tooltips) are never dragged along.
+-- It also stops when the tooltip hides or the option is turned off.
 
 local driver = CreateFrame("Frame")
 driver:Hide()
 
+hooksecurefunc(GameTooltip, "SetOwner", function()
+	driver:Hide()
+end)
+
 local function PinToCursor()
-	local point, offsetX, offsetY = ns.CursorAnchor.Point(ns.Options.Get("cursorDirection"))
 	local scale = GameTooltip:GetEffectiveScale()
-	local x, y = GetCursorPosition()
+	local cursorX, cursorY = GetCursorPosition()
+	local screenScale = UIParent:GetEffectiveScale() / scale
+	local point, x, y = ns.CursorAnchor.Place(
+		ns.Options.Get("cursorDirection"),
+		cursorX / scale,
+		cursorY / scale,
+		GameTooltip:GetWidth(),
+		GameTooltip:GetHeight(),
+		UIParent:GetWidth() * screenScale,
+		UIParent:GetHeight() * screenScale
+	)
 	GameTooltip:ClearAllPoints()
-	GameTooltip:SetPoint(point, UIParent, "BOTTOMLEFT", x / scale + offsetX, y / scale + offsetY)
+	GameTooltip:SetPoint(point, UIParent, "BOTTOMLEFT", x, y)
 end
 
 local function StillOurs()
-	return GameTooltip:IsShown() and GameTooltip:GetOwner() == UIParent and GameTooltip:GetAnchorType() == "ANCHOR_NONE"
+	return GameTooltip:IsShown() and ns.Options.Get("cursorAnchor")
 end
 
 driver:SetScript("OnUpdate", function(self)

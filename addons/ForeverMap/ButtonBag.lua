@@ -292,7 +292,11 @@ function Release(frame)
 		if saved.alpha then
 			frame:SetAlpha(saved.alpha)
 		end
-		lib:Refresh(saved.object, nil) -- no new db: it keeps the one the addon registered
+		-- Handing back the db the addon registered changes nothing; the annotation wants one.
+		local button = lib:GetMinimapButton(saved.object)
+		if button then
+			lib:Refresh(saved.object, button.db)
+		end
 	else
 		frame:ClearAllPoints()
 		for _, point in ipairs(saved.points) do

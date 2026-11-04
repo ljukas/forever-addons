@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Listed under "Forever Enhanced Addons" in the AddOns list, together with our other addons.
 - Initial version.
 - **DoT meter:** your damage over time spells mark the damage they still have to deal on your
   target's and focus's health bar, one segment per spell. When they cover all of the remaining

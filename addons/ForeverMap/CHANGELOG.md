@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Listed under "Forever Enhanced Addons" in the AddOns list, together with our other addons.
 - Herbs and ore that Find Herbs and Find Minerals show on the minimap get their tracking
   icon in the minimap's gold ring, instead of a plain yellow dot. The icons stay on their
   nodes as you move and turn.

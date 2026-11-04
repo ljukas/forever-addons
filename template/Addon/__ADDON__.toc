@@ -4,6 +4,7 @@
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
+## Category: Forever Enhanced Addons
 ## SavedVariables: __ADDON__DB
 #@do-not-package@
 ## OptionalDeps: ForeverDev

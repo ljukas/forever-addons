@@ -1,0 +1,37 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\..\..\..\WoW\Data\Interface\AddOns\Blizzard_SharedXML\UI.xsd">
+	<Script file="BagButton.lua"/>
+
+	<!-- The button on the minimap ring that opens the button bag, drawn with the plain round art of
+	     Blizzard's addon compartment button (Blizzard_Minimap/Mainline/AddonCompartment.xml), from
+	     the same HUD minimap family as the zoom buttons. The highlight is that art again, added
+	     faintly on top, like Camelot's compartment (Camelot/AddonCompartment.lua). It is created in
+	     BagButton.lua with Minimap as its parent, and its icon is picked there. -->
+	<Button name="ForeverMinimapBagButtonTemplate" mixin="ForeverMinimapBagButtonMixin" virtual="true">
+		<Size x="17" y="17"/>
+		<Layers>
+			<Layer level="OVERLAY">
+				<Texture parentKey="Icon">
+					<Size x="11" y="11"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnClick method="OnClick"/>
+			<OnEnter method="OnEnter"/>
+			<OnLeave method="OnLeave"/>
+			<OnDragStart method="OnDragStart"/>
+			<OnDragStop method="OnDragStop"/>
+			<OnMouseDown method="OnMouseDown"/>
+			<OnMouseUp method="OnMouseUp"/>
+			<OnShow method="OnShow"/>
+			<OnHide method="OnHide"/>
+		</Scripts>
+		<NormalTexture atlas="ui-hud-minimap-button"/>
+		<PushedTexture atlas="ui-hud-minimap-button-down"/>
+		<HighlightTexture atlas="ui-hud-minimap-button" alphaMode="ADD" alpha="0.3"/>
+	</Button>
+</Ui>

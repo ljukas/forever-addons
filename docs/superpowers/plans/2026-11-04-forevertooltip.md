@@ -109,10 +109,13 @@
 
 ## Launch checks (become the `forevertooltip-launch-checks` memory in Phase 6)
 
+*Updated after the step review to match the code's log text.*
+
 | Check in game | Confirms | Evidence | If wrong, change |
 |---|---|---|---|
-| Hover a friendly and a hostile player in the world, out of combat | Name in class colour, level line green/red | look; `devlog --tag LEVEL` shows "level line at 2" or 3 | `Colors.lua`, `Logic/LevelLine.lua` |
-| Hover a guild member, a skull-level hostile and a non-English client if available | Level line found after the guild line, `??` handled | `LEVEL` has no "no level line" | `Logic/LevelLine.lua` |
-| Hover players in a dungeon, battleground and in combat | Secret handling: Blizzard look, no errors | `devlog --errors` empty; `COLOR` "class secret" lines show where | `Colors.lua` |
-| Tick the option; hover players, NPCs, herbs; then the minimap, XP bar and unit frames | World tooltips at the cursor, below-right, smooth; UI tooltips at the default spot | `ANCHOR` "anchored to cursor" and "kept default for Minimap…" | `Anchor.lua` (offsets, focus check) |
-| With the option on, hover NPCs and players in combat | Full tooltip lines (no taint "no lines") | look; `devlog --errors` has no blocked actions | `Anchor.lua`; fallback is removing the option |
+| Hover an ally, an enemy-faction player and an attackable (duel) player in the world, out of combat | Name in class colour; level line green / red / yellow | look; `devlog --tag LEVEL` shows "level line by type at N" (or "by text") | `Colors.lua` |
+| Hover a guild member and a skull-level hostile | Level line found after the guild line, `??` handled | `LEVEL` has "level line by type", no "no level line in"; if "no UnitLevel line type; line types …", read the list | `Colors.lua`, `Logic/LevelLine.lua` |
+| Hover players in a dungeon, battleground and in combat | Secret handling: Blizzard look, no errors | `devlog --errors` empty; `COLOR` "class unreadable" / `LEVEL` "reaction unreadable" or "secret line text" show where | `Colors.lua` |
+| Tick the option; hover players, NPCs, herbs | Follows the cursor smoothly; **which way it grows** (up-right or down-right) and whether it covers the unit's head or nameplate; whether the fade after leaving a unit trails badly | look; `ANCHOR` "world tooltip anchored to cursor" | `Anchor.lua` (offsets; fallback: top-left at the cursor each frame) |
+| With the option on, hover the minimap, XP bar, unit frames and action bars | UI tooltips stay at the default spot | `ANCHOR` "kept default anchor for Minimap…" | `Anchor.lua` (focus check) |
+| With the option on, hover quest NPCs, nodes and players in combat and in instances | Full tooltip lines, widgets and progress bars (no taint "no lines") | look; `devlog --errors` has no blocked actions | `Anchor.lua`; fallback is removing the option |

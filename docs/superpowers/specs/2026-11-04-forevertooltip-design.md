@@ -159,3 +159,28 @@ Researched against ElvUI, SmartTooltip, IncredibleTooltip and the Forever source
 The client launches today (2026-11-04); nothing here has run in game. The secret-value
 behaviour of `UnitClass` on hovered players, the position of the level line, and cursor
 anchoring all need the launch checks.
+
+## Amended after the step review
+
+Six reviewers read the finished step; these changes supersede the text above where they differ.
+
+- **Level-line colours.** Blizzard's `GameTooltip_UnitColor` gives ordinary (not PvP-flagged)
+  allies **white**, not green, which contradicts what the user agreed to ("green for friendly").
+  The addon now colours the level line itself with the same `FACTION_BAR_COLORS` entries Blizzard
+  uses for players: `[2]` red when the player can attack you, `[4]` yellow when you can attack them
+  but they aren't hostile, `[6]` green otherwise. This also drops the dependency on `UnitIsPVP`,
+  which can be secret.
+- **Finding the level line.** This build does have `Enum.TooltipDataLineType.UnitLevel` (47); the
+  "arrives as `None`" claim above came from a truncated search. The addon finds the line by that
+  type and its `lineData.lineIndex` (set by Blizzard's secure code), and only falls back to the
+  `UNIT_LEVEL_TEMPLATE` text match, now anchored at the line start and not followed by a digit.
+- **Re-anchoring uses `SetAnchorType`, not `SetOwner`.** `SetOwner` clears the tooltip and runs its
+  `OnTooltipCleared` script under the hook's taint, which writes `insertedFrames`, a field
+  Blizzard's secure build reads later.
+- **Placement is unverified.** Reviewers believe `ANCHOR_CURSOR_RIGHT` pins the tooltip's
+  *bottom*-left corner to the cursor, so it grows up and to the right, not below-right. The source
+  doesn't settle it. The first launch check decides; if it covers the hovered unit, the fallback is
+  positioning the tooltip's top-left corner at the cursor each frame.
+- **Fade trails the cursor.** With a cursor anchor, Blizzard's fade-out after leaving a unit keeps
+  following the pointer. Blizzard's own cursor mode hides instead of fading. Changing that would
+  mean writing Blizzard fields, so it stays a launch check.

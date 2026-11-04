@@ -53,3 +53,7 @@ files["addons/ForeverProfessions/**"].globals = {
 	"ForeverProfessionsWorldPinMixin",
 	"ForeverProfessionsWorldMapToggleMixin",
 }
+
+files["addons/ForeverTooltip/**"].globals = {
+	"ForeverTooltipDB",
+}

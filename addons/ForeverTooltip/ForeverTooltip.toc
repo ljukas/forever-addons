@@ -1,0 +1,17 @@
+## Interface: 16001
+## Title: ForeverTooltip
+## Notes: Colours hovered players' names by class and their level line by friend or foe, and can make tooltips follow the cursor.
+## Author: ljukas
+## X-License: MIT
+## Version: @project-version@
+## IconTexture: Interface\Icons\INV_Misc_Note_01
+## X-Category: Tooltip
+## Category: Forever Enhanced Addons
+## SavedVariables: ForeverTooltipDB
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua
+Database.lua
+Options.lua

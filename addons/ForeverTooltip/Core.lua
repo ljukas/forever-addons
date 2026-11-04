@@ -27,6 +27,12 @@ end
 ns.L = {
 	CURSOR_ANCHOR = "Tooltip follows the cursor",
 	CURSOR_ANCHOR_TOOLTIP = "Show tooltips for players, creatures and objects in the world next to the mouse cursor instead of at the tooltip position set in Edit Mode.",
+	CURSOR_DIRECTION = "Tooltip grows towards",
+	CURSOR_DIRECTION_TOOLTIP = "Which side of the mouse cursor the tooltip appears on.",
+	DIRECTION_DOWN_RIGHT = "Down and right",
+	DIRECTION_DOWN_LEFT = "Down and left",
+	DIRECTION_UP_RIGHT = "Up and right",
+	DIRECTION_UP_LEFT = "Up and left",
 }
 
 -- Modules register setup that needs ForeverTooltipDB. It runs in TOC order once the

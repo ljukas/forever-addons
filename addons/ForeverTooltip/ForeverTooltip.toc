@@ -15,6 +15,7 @@
 Core.lua
 Database.lua
 Logic/LevelLine.lua
+Logic/CursorAnchor.lua
 Options.lua
 Colors.lua
 Anchor.lua

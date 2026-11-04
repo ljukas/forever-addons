@@ -55,7 +55,9 @@ Researched against ElvUI, SmartTooltip, IncredibleTooltip and the Forever source
   `GameTooltip:SetWorldCursor(anchorType)`, which, for `Enum.WorldCursorAnchorType.Default`,
   calls `GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)`. Unit frames, buttons and other UI
   pass their own frame as the parent. So: only re-anchor `GameTooltip` when its parent is
-  `UIParent`; everything else keeps Blizzard's anchoring. (If the client already asks for
+  `UIParent`; everything else keeps Blizzard's anchoring. *Amended in the plan:* the minimap,
+  XP bar and chat hyperlinks also anchor to `UIParent`, so the addon also requires the mouse to
+  be over the world (`GetMouseFoci()` gives `WorldFrame`). (If the client already asks for
   `Cursor` or `Nameplate` anchoring, the addon does nothing.)
 - **Keep Blizzard's fade.** When the cursor leaves a world unit Blizzard fades the tooltip out;
   that stays as is.

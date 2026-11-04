@@ -1,6 +1,6 @@
 local ADDON_NAME, ns = ...
 
--- ForeverMapDB.settings and their defaults. A value not saved yet reads as its default, so code
+-- ForeverMinimapDB.settings and their defaults. A value not saved yet reads as its default, so code
 -- that runs before the options panel registers its settings never sees nil.
 ns.Options = {}
 
@@ -24,11 +24,11 @@ end
 local L = ns.L
 
 local function GetVariable(key)
-	return "FOREVERMAP_" .. key:upper()
+	return "FOREVERMINIMAP_" .. key:upper()
 end
 
--- Options > AddOns > ForeverMap. The registered settings write straight into
--- ForeverMapDB.settings (filling in a default where nothing is saved yet), and every change
+-- Options > AddOns > ForeverMinimap. The registered settings write straight into
+-- ForeverMinimapDB.settings (filling in a default where nothing is saved yet), and every change
 -- fires OptionChanged.
 ns.OnInitialize(function()
 	local category, layout = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)

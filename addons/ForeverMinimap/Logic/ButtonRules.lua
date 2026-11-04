@@ -55,7 +55,7 @@ local PIN_PREFIXES = {
 	"^TomTom",
 	"^HereBeDragons",
 	"^Questie",
-	"^ForeverMap",
+	"^ForeverMinimap",
 	"^ForeverProfessions",
 }
 

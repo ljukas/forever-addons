@@ -1,6 +1,6 @@
 local ADDON_NAME, ns = ...
 
--- ForeverMapDB layout (account-wide):
+-- ForeverMinimapDB layout (account-wide):
 --   version   = schema version, see migrations below
 --   settings  = { showNodeIcons = boolean, showButtonBag = boolean,
 --                 buttonBagDirection = number (ns.Options.DIRECTION) }, owned by Options.lua.

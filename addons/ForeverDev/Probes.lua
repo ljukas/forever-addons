@@ -99,16 +99,16 @@ end
 -- Atlases a feature wants to use. Those marked "source" appear in Forever's own UI source; the
 -- rest are guesses from Retail, and this probe is how we find out whether they exist.
 local CANDIDATE_ATLASES = {
-	-- ForeverMap's button bag: the minimap zoom buttons' art (source)
+	-- ForeverMinimap's button bag: the minimap zoom buttons' art (source)
 	"ui-hud-minimap-zoom-in",
 	"ui-hud-minimap-zoom-in-down",
 	"ui-hud-minimap-zoom-in-mouseover",
 	"ui-hud-minimap-zoom-out",
 	"ui-hud-minimap-addon-indicator",
-	-- ForeverMap's button bag: the addon compartment button's plain art (source)
+	-- ForeverMinimap's button bag: the addon compartment button's plain art (source)
 	"ui-hud-minimap-button",
 	"ui-hud-minimap-button-down",
-	-- ForeverMap's button bag: a "list / more" icon, ideally three horizontal lines
+	-- ForeverMinimap's button bag: a "list / more" icon, ideally three horizontal lines
 	"friends-icon-menu", -- source: Blizzard_SocialUI
 	"OptionsIcon-Brown", -- source: Blizzard_GroupFinder_VanillaStyle
 	"uitools-icon-hamburger",

@@ -1,4 +1,4 @@
-local _, ns = ...
+local ADDON_NAME, ns = ...
 
 -- With the "Tooltip follows the cursor" option on, tooltips for things hovered in the world
 -- (players, creatures, objects) follow the cursor instead of sitting at the Edit Mode tooltip
@@ -43,8 +43,13 @@ local function PinToCursor()
 	GameTooltip:SetPoint(point, UIParent, "BOTTOMLEFT", x, y)
 end
 
+-- Also stops when the tooltip was re-anchored without SetOwner (SetAnchorType, as the Encounter
+-- Journal does): Blizzard's default anchor leaves it owned by UIParent with ANCHOR_NONE.
 local function StillOurs()
-	return GameTooltip:IsShown() and ns.Options.Get("cursorAnchor")
+	return GameTooltip:IsShown()
+		and ns.Options.Get("cursorAnchor")
+		and GameTooltip:GetOwner() == UIParent
+		and GameTooltip:GetAnchorType() == "ANCHOR_NONE"
 end
 
 driver:SetScript("OnUpdate", function(self)
@@ -73,12 +78,14 @@ hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)
 		-- Position now, so the first frame the tooltip shows is already at the cursor.
 		PinToCursor()
 		driver:Show()
-		ns.dev:LogOnce(
-			"anchor",
-			"ANCHOR",
-			"world tooltip follows the cursor, direction",
-			ns.Options.Get("cursorDirection")
-		)
+		if ns.dev.enabled then
+			ns.dev:LogOnce(
+				"anchor",
+				"ANCHOR",
+				"world tooltip follows the cursor, direction",
+				ns.Options.Get("cursorDirection")
+			)
+		end
 	else
 		driver:Hide()
 		if ns.dev.enabled then

@@ -11,7 +11,11 @@ ns.Options.DEFAULTS = {
 	showNodeIcons = true,
 	showButtonBag = true,
 	buttonBagDirection = ns.Options.DIRECTION.DOWN,
+	buttonBagScale = 1,
 }
+
+-- The range of the gathered buttons' size, as a fraction of their usual size.
+ns.Options.SCALE_MIN, ns.Options.SCALE_MAX, ns.Options.SCALE_STEP = 0.5, 1.5, 0.05
 
 function ns.Options.Get(key)
 	local value = ns.db and ns.db.settings[key]
@@ -68,6 +72,14 @@ ns.OnInitialize(function()
 	local directionInitializer = Settings.CreateDropdown(category, direction, GetDirections)
 	-- The direction only matters while the bag is on.
 	directionInitializer:SetParentInitializer(bagInitializer, function()
+		return bag:GetValue()
+	end)
+
+	local scale = Register("buttonBagScale", Settings.VarType.Number, L.BUTTON_BAG_SCALE)
+	local scaleOptions = Settings.CreateSliderOptions(ns.Options.SCALE_MIN, ns.Options.SCALE_MAX, ns.Options.SCALE_STEP)
+	scaleOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, FormatPercentage)
+	local scaleInitializer = Settings.CreateSlider(category, scale, scaleOptions, L.BUTTON_BAG_SCALE_TOOLTIP)
+	scaleInitializer:SetParentInitializer(bagInitializer, function()
 		return bag:GetValue()
 	end)
 

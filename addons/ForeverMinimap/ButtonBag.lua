@@ -15,7 +15,8 @@ local ADDON_NAME, ns = ...
 -- the bag is turned off.
 ns.ButtonBag = {}
 
-local SIZE, GAP = 24, 2
+-- A gathered button's size in pixels at 100% (LibDBIcon's and Cinematic's own), and the gap between.
+local SIZE, GAP = 31, 2
 
 -- Blizzard frames whose named children are looked at.
 local PARENTS = { "Minimap", "MinimapBackdrop", "MinimapCluster" }
@@ -43,6 +44,15 @@ end
 
 local function Enabled()
 	return ns.Options.Get("showButtonBag")
+end
+
+-- The size setting, kept in the slider's range; a hand-edited one that isn't a number reads as 1.
+local function Scale()
+	local scale = ns.Options.Get("buttonBagScale")
+	if type(scale) ~= "number" then
+		return 1
+	end
+	return math.min(math.max(scale, ns.Options.SCALE_MIN), ns.Options.SCALE_MAX)
 end
 
 -- Why a named, non-forbidden minimap child isn't a candidate, or nil when it is one, then its
@@ -87,8 +97,10 @@ local function Reject(frame, name)
 	return nil, ring
 end
 
--- Lays the shown collected buttons out along the strip, sorted by label, each SIZE pixels across.
+-- Lays the shown collected buttons out along the strip, sorted by label, each SIZE pixels across
+-- times the size setting.
 local function Layout()
+	local size = SIZE * Scale()
 	local shown = {}
 	layingOut = true
 	for frame, saved in pairs(collected) do
@@ -108,9 +120,9 @@ local function Layout()
 		local frame = entry.frame
 		-- Scaled rather than resized, so its own art and children keep their layout.
 		local width = frame:GetWidth()
-		local scale = (not IsSecret(width) and width > 0) and SIZE / width or 1
+		local scale = (not IsSecret(width) and width > 0) and size / width or 1
 		frame:SetScale(scale)
-		local x, y = ns.Strip.Offset(i, direction, ns.Strip.PER_LINE, SIZE, GAP)
+		local x, y = ns.Strip.Offset(i, direction, ns.Strip.PER_LINE, size, GAP)
 		frame:ClearAllPoints()
 		-- Offsets are in the frame's own (scaled) units.
 		frame:SetPoint("CENTER", container, "CENTER", x / scale, y / scale)
@@ -505,16 +517,16 @@ local function Refresh()
 	end
 end
 
--- OptionChanged fires for every setting; only the bag's two matter here.
-local lastEnabled, lastDirection
+-- OptionChanged fires for every setting; only the bag's three matter here.
+local lastEnabled, lastDirection, lastScale
 
 local function OnOptionChanged()
-	local enabled, direction = Enabled(), Direction()
+	local enabled, direction, scale = Enabled(), Direction(), Scale()
 	if enabled ~= lastEnabled then
-		lastEnabled, lastDirection = enabled, direction
+		lastEnabled, lastDirection, lastScale = enabled, direction, scale
 		Refresh()
-	elseif direction ~= lastDirection then
-		lastDirection = direction
+	elseif direction ~= lastDirection or scale ~= lastScale then
+		lastDirection, lastScale = direction, scale
 		Layout()
 	end
 end
@@ -530,7 +542,7 @@ ns.OnInitialize(function()
 	ns.callbacks:RegisterCallback("BagToggled", function(_, open)
 		container:SetShown(open)
 	end, ns.ButtonBag)
-	lastEnabled, lastDirection = Enabled(), Direction()
+	lastEnabled, lastDirection, lastScale = Enabled(), Direction(), Scale()
 	ns.callbacks:RegisterCallback("OptionChanged", OnOptionChanged, ns.ButtonBag)
 
 	local events = CreateFrame("Frame")

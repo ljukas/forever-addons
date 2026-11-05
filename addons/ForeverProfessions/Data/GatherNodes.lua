@@ -5,6 +5,7 @@ local ADDON_NAME, ns = ...
 ns.GatherNodes = {
 	-- Mining
 	["Copper Vein"] = { profession = "mining", skill = 1 },
+	["Poor Copper Vein"] = { profession = "mining", skill = 1 }, -- Forever-only; skill assumed from Copper Vein
 	["Tin Vein"] = { profession = "mining", skill = 65 },
 	["Incendicite Mineral Vein"] = { profession = "mining", skill = 65 },
 	["Silver Vein"] = { profession = "mining", skill = 75 },

@@ -6,6 +6,7 @@
 - Remembers every herb and mineral node you gather, shared across your characters, and
   counts how many times each one has been gathered.
 - Shows known nodes on the world map and the minimap with Blizzard's tracking icons.
+- Remembers Poor Copper Veins too.
 - Nodes your current character can't gather yet get a red ring. Hovering a node shows the
   skill it requires, your current skill and how often it has been gathered.
 - Hovering a tracked herb or mineral on the minimap also shows the required skill.

@@ -7,6 +7,7 @@ local ADDON_NAME, ns = ...
 ns.Nodes = {
 	-- Mining
 	["Copper Vein"] = "ore",
+	["Poor Copper Vein"] = "ore", -- Forever-only (seen in game 2026-11-05)
 	["Tin Vein"] = "ore",
 	["Incendicite Mineral Vein"] = "ore",
 	["Silver Vein"] = "ore",

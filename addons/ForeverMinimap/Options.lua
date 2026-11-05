@@ -14,7 +14,7 @@ ns.Options.DEFAULTS = {
 	buttonBagScale = 1,
 }
 
--- The range of the gathered buttons' size, as a fraction of their usual size.
+-- The range of the gathered buttons' size, as a fraction of a standard minimap button's (31 px).
 ns.Options.SCALE_MIN, ns.Options.SCALE_MAX, ns.Options.SCALE_STEP = 0.5, 1.5, 0.05
 
 function ns.Options.Get(key)

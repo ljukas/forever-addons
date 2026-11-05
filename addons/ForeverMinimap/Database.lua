@@ -4,7 +4,7 @@ local ADDON_NAME, ns = ...
 --   version   = schema version, see migrations below
 --   settings  = { showNodeIcons = boolean, showButtonBag = boolean,
 --                 buttonBagDirection = number (ns.Options.DIRECTION),
---                 buttonBagScale = number (gathered buttons' size, 1 = their usual size) },
+--                 buttonBagScale = number (gathered buttons' size, 1 = 31 px, a standard minimap button) },
 --                 owned by Options.lua.
 --                 (A nodeIconSize key from development builds before the first release is ignored.)
 --   buttonBag = { angle = number|nil, ignored = { [key] = true } }

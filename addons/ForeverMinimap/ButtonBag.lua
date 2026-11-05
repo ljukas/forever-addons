@@ -15,7 +15,8 @@ local ADDON_NAME, ns = ...
 -- the bag is turned off.
 ns.ButtonBag = {}
 
--- A gathered button's size in pixels at 100% (LibDBIcon's and Cinematic's own), and the gap between.
+-- A gathered button's size in pixels at 100%, whatever its own (31 is LibDBIcon's and Cinematic's),
+-- and the gap between.
 local SIZE, GAP = 31, 2
 
 -- Blizzard frames whose named children are looked at.

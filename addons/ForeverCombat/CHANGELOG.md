@@ -9,7 +9,9 @@
 - **HoT meter:** your heal over time spells extend a friendly target's or focus's health bar by
   the healing they still have to do. When they reach the end of the bar, it glows: they'll heal
   it to full.
-- Hover the target or focus frame to see each spell's amount and time left.
+- The HoT meter also shows your heal over time spells on yourself on your own unit frame, no need
+  to target yourself. Turn it off with **Show on Your Own Frame** under the HoT Meter option.
+- Hover the target, focus or your own frame to see each spell's amount and time left.
 - Tracks the base class spells and talents of every class. Each segment shrinks as your ticks
   land. The game keeps tick sizes hidden, so amounts are the spell tooltip's, without your spell
   or attack power.

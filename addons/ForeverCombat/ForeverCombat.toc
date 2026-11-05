@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: ForeverCombat
-## Notes: Shows how much your damage and healing over time spells still have to do, right on the target and focus health bars.
+## Notes: Shows how much your damage and healing over time spells still have to do, right on the target, focus and player health bars.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@

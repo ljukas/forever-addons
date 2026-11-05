@@ -51,5 +51,13 @@ Core reviewers, plus `savedvariables-guard` (new settings key) and a UI reviewer
 - `/rl`: `scripts/devlog.sh --tag HOST` shows `HOST player bar width ...` with a non-secret width.
 - Cast Rejuvenation on yourself with no target: `DISPLAY player <guid> hot=1 from fill (...)`, and
   the segment sits right of the green on the player frame, inside its rounded mask.
-- Untick "Show on Your Own Frame": the segment hides; tick it again: it returns.
+- Untick "Show on Your Own Frame": the segment hides and `DISPLAY player none (off)` is logged;
+  tick it again: it returns. A hidden frame logs `none (hidden)`, a vehicle `none (shows vehicle)`.
 - Hover the player frame with a HoT running: the tooltip lists it.
+- The segment's shading matches Blizzard's incoming heal segment beside it (the host passes the
+  player frame's own `fillAtlas`).
+- At full health with a HoT running, the bar's right end glows (`UnitHealthMissing` is 0). Decide
+  in game whether that is too noisy on your own frame.
+
+Review follow-ups, out of scope: HoTs the tracker keeps through a death and resurrection
+(`Engine/Tracker.lua`, being changed on another branch).

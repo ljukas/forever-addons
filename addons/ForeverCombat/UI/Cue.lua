@@ -21,6 +21,10 @@ local GLOW_WIDTH = 16
 local GLOW_INSET = 7
 -- The target frame portrait's size in TargetFrameTemplate (Blizzard_UnitFrame/Mainline/TargetFrame.xml).
 local PORTRAIT_SIZE = 58
+-- How far inside the portrait's edge the red stops, clear of the gold ring (tune in game).
+local PORTRAIT_MASK_INSET = 3
+-- The plain red laid over the multiplied one (tune in game).
+local PORTRAIT_OVERLAY_ALPHA = 0.35
 
 ---@class ForeverCombatCue
 ---@field window Frame
@@ -38,15 +42,14 @@ function CueMixin:Hide()
 	self.window:Hide()
 end
 
--- The clipping window (riderWidth wide, anchored by the caller) and the long bar inside it.
--- The caller anchors a rider texture with AttachRider.
+-- The clipping window (sized and anchored by the caller) and the long bar inside it. The
+-- caller anchors its rider textures, riderWidth wide, with AttachRider.
 local function NewCue(parent, riderWidth)
 	local cue = CreateFromMixins(CueMixin)
 
 	local window = CreateFrame("Frame", nil, parent)
 	window:SetUsingParentLevel(true)
 	window:SetClipsChildren(true)
-	window:SetWidth(riderWidth)
 	window:Hide()
 	cue.window = window
 
@@ -82,6 +85,7 @@ function ns.Cue.CreateBarEnd(healthBar, mask, side, glowTemplate)
 	glow:AddMaskTexture(mask)
 
 	local window = cue.window
+	window:SetWidth(GLOW_WIDTH)
 	if side == "LEFT" then
 		window:SetPoint("TOPRIGHT", healthBar, "TOPLEFT", GLOW_INSET, 0)
 		window:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMLEFT", GLOW_INSET, 0)
@@ -93,13 +97,15 @@ function ns.Cue.CreateBarEnd(healthBar, mask, side, glowTemplate)
 	return cue
 end
 
--- container: a unit frame's TargetFrameContainer. Washes its round portrait red: a texture in
--- Blizzard's red, multiplied over the portrait (MOD blend) so the face stays readable, cut to
--- the portrait's circle by the frame's own PortraitMask. The rider is as wide as the portrait
--- and wipes in over the same last 0.16% as the glow.
+-- container: a unit frame's TargetFrameContainer. Washes its round portrait red, the way
+-- Blizzard reddens a low-health player's portrait (TargetFrame.lua: SetVertexColor(1, 0, 0)):
+-- Blizzard's red multiplied over the portrait (MOD) keeps the face readable, and the same red
+-- at PORTRAIT_OVERLAY_ALPHA on top keeps dark portraits from just going darker. Both ride the
+-- fill as wide as the portrait, so they wipe in over the same last 0.16% as the glow.
 --
--- It draws over the gold ring wherever the mask lets it through (1px): the ring is the next
--- BACKGROUND sublevel above the portrait, so no texture of ours can sit between them.
+-- The ring is the next BACKGROUND sublevel above the portrait, so nothing of ours can sit
+-- between them, and the frame's own PortraitMask is only 1px inside the ring. The red gets
+-- its own circle, PORTRAIT_MASK_INSET further in, to keep it off the ring's inner edge.
 function ns.Cue.CreatePortrait(container)
 	local portrait = container.Portrait
 	-- The template sizes it explicitly, so this is valid before the first layout.
@@ -110,11 +116,21 @@ function ns.Cue.CreatePortrait(container)
 	local cue = NewCue(container, width)
 	cue.window:SetAllPoints(portrait)
 
-	local tint = cue.bar:CreateTexture(nil, "ARTWORK")
-	tint:SetColorTexture(RED_FONT_COLOR:GetRGB())
+	local mask = cue.window:CreateMaskTexture()
+	mask:SetAtlas("CircleMask", false, nil, nil, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	mask:SetPoint("TOPLEFT", portrait, "TOPLEFT", PORTRAIT_MASK_INSET, -PORTRAIT_MASK_INSET)
+	mask:SetPoint("BOTTOMRIGHT", portrait, "BOTTOMRIGHT", -PORTRAIT_MASK_INSET, PORTRAIT_MASK_INSET)
+
+	local red = RED_FONT_COLOR
+	local tint = cue.bar:CreateTexture(nil, "ARTWORK", nil, 1)
+	tint:SetColorTexture(red:GetRGB())
 	tint:SetBlendMode("MOD")
-	AttachRider(cue, tint, width)
-	tint:AddMaskTexture(container.PortraitMask)
+	local overlay = cue.bar:CreateTexture(nil, "ARTWORK", nil, 2)
+	overlay:SetColorTexture(red.r, red.g, red.b, PORTRAIT_OVERLAY_ALPHA)
+	for _, texture in ipairs({ tint, overlay }) do
+		AttachRider(cue, texture, width)
+		texture:AddMaskTexture(mask)
+	end
 
 	return cue
 end

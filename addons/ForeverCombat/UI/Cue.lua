@@ -9,6 +9,7 @@ local ADDON_NAME, ns = ...
 -- Shapes:
 --   CreateBarEnd  one of Blizzard's over-absorb glows at an end of the health bar, placed where
 --                 Blizzard places it (UnitFrame_Initialize: 7px inside the bar's end)
+--   CreatePortrait  the unit frame's round portrait washed red
 ns.Cue = {}
 
 -- At this length a rider w px wide starts to show once the total is within w/LONG_BAR_WIDTH of
@@ -85,6 +86,25 @@ function ns.Cue.CreateBarEnd(healthBar, mask, side, glowTemplate)
 		window:SetPoint("TOPLEFT", healthBar, "TOPRIGHT", -GLOW_INSET, 0)
 		window:SetPoint("BOTTOMLEFT", healthBar, "BOTTOMRIGHT", -GLOW_INSET, 0)
 	end
+
+	return cue
+end
+
+-- container: a unit frame's TargetFrameContainer. Washes its round portrait red: a texture in
+-- Blizzard's red, multiplied over the portrait (MOD blend) so the face stays readable, cut to
+-- the portrait's circle by the frame's own PortraitMask. The rider is as wide as the portrait,
+-- so it wipes in over the last 0.6% before the total reaches the health.
+function ns.Cue.CreatePortrait(container)
+	local portrait = container.Portrait
+	local width = portrait:GetWidth()
+	local cue = NewCue(container, width)
+	cue.window:SetAllPoints(portrait)
+
+	local tint = cue.bar:CreateTexture(nil, "ARTWORK")
+	tint:SetColorTexture(RED_FONT_COLOR:GetRGB())
+	tint:SetBlendMode("MOD")
+	AttachRider(cue, tint, width)
+	tint:AddMaskTexture(container.PortraitMask)
 
 	return cue
 end

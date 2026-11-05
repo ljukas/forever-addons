@@ -44,6 +44,9 @@ function HostMixin:Init(frame, unit)
 			meter.segments[index] = segment
 		end
 		meter.cue = ns.Cue.CreateBarEnd(self.healthBar, self.mask, module.cue.side, module.cue.glowTemplate)
+		if module.portraitCue then
+			meter.portraitCue = ns.Cue.CreatePortrait(frame.TargetFrameContainer)
+		end
 		self.meters[module] = meter
 	end
 	self:UpdateWidth()
@@ -89,6 +92,9 @@ local function HideMeter(meter)
 		segment:Hide()
 	end
 	meter.cue:Hide()
+	if meter.portraitCue then
+		meter.portraitCue:Hide()
+	end
 end
 
 -- Draws one module's effects. Returns their remaining total and where the segments start.
@@ -117,7 +123,15 @@ function HostMixin:Render(module, meter, effects, now)
 			segment:Hide()
 		end
 	end
-	meter.cue:Set(module.cue.GetMax(self.unit), total)
+	local maxValue = module.cue.GetMax(self.unit)
+	meter.cue:Set(maxValue, total)
+	if meter.portraitCue then
+		if ns.Options.Get(module.portraitCue.setting) then
+			meter.portraitCue:Set(maxValue, total)
+		else
+			meter.portraitCue:Hide()
+		end
+	end
 	return total, anchorName
 end
 

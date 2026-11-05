@@ -12,12 +12,15 @@ local ADDON_NAME, ns = ...
 --   CreatePortrait  the unit frame's round portrait washed red
 ns.Cue = {}
 
--- At this length a rider w px wide starts to show once the total is within w/LONG_BAR_WIDTH of
--- the health (0.16% for the 16px glow).
-local LONG_BAR_WIDTH = 10000
+-- A rider starts to show once the total is within this fraction of the health: each cue's bar
+-- is its rider's width divided by it (10000px for the 16px glow), so every cue starts at the
+-- same total and the portrait never shows before the glow.
+local WIPE_FRACTION = 0.0016
 -- The glow templates' size, and how far into the bar Blizzard puts them.
 local GLOW_WIDTH = 16
 local GLOW_INSET = 7
+-- The target frame portrait's size in TargetFrameTemplate (Blizzard_UnitFrame/Mainline/TargetFrame.xml).
+local PORTRAIT_SIZE = 58
 
 ---@class ForeverCombatCue
 ---@field window Frame
@@ -52,7 +55,7 @@ local function NewCue(parent, riderWidth)
 	bar:SetUsingParentLevel(true)
 	bar:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
 	bar:SetStatusBarColor(0, 0, 0, 0)
-	bar:SetWidth(LONG_BAR_WIDTH)
+	bar:SetWidth(riderWidth / WIPE_FRACTION)
 	bar:SetPoint("TOPRIGHT", window, "TOPRIGHT")
 	bar:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT")
 	cue.bar = bar
@@ -92,11 +95,18 @@ end
 
 -- container: a unit frame's TargetFrameContainer. Washes its round portrait red: a texture in
 -- Blizzard's red, multiplied over the portrait (MOD blend) so the face stays readable, cut to
--- the portrait's circle by the frame's own PortraitMask. The rider is as wide as the portrait,
--- so it wipes in over the last 0.6% before the total reaches the health.
+-- the portrait's circle by the frame's own PortraitMask. The rider is as wide as the portrait
+-- and wipes in over the same last 0.16% as the glow.
+--
+-- It draws over the gold ring wherever the mask lets it through (1px): the ring is the next
+-- BACKGROUND sublevel above the portrait, so no texture of ours can sit between them.
 function ns.Cue.CreatePortrait(container)
 	local portrait = container.Portrait
+	-- The template sizes it explicitly, so this is valid before the first layout.
 	local width = portrait:GetWidth()
+	if width <= 0 then
+		width = PORTRAIT_SIZE
+	end
 	local cue = NewCue(container, width)
 	cue.window:SetAllPoints(portrait)
 

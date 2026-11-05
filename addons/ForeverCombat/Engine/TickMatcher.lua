@@ -43,9 +43,9 @@ local function Reject(effect, index, onTime, amount)
 	elseif index <= effect.lastTickIndex then
 		return "seen"
 	end
-	-- amount 0 is a tick fully absorbed by a shield: it keeps the rhythm but says nothing
-	-- about size.
-	if amount > 0 then
+	-- amount 0 is a tick fully absorbed by a shield, and nil one whose amount is secret (always,
+	-- on Forever): it keeps the rhythm but says nothing about size.
+	if amount and amount > 0 then
 		local ratio = amount / ns.TickMatcher.Expected(effect, index)
 		local maxRatio = effect.tickSource == "learned" and MAX_RATIO or MAX_RATIO_UNLEARNED
 		if ratio < MIN_RATIO or ratio > maxRatio then

@@ -9,7 +9,8 @@ local ADDON_NAME, ns = ...
 --     spells[spellName][spellID] = {
 --       rank, kind, description, parsed  the latest cast's, parsed = "438 over 18s: 6 x 73"
 --       casts, lastSeen                  lastSeen is a time() stamp
---       ticks = { count, crits, absorbed, min, max, sum }
+--       ticks = { count, crits, absorbed, min, max, sum, unsized }
+--                                        unsized: ticks whose amount was secret, outside count
 --       intervals, firstTick             histograms { ["3.0"] = count }: seconds between ticks,
 --                                        and from the cast to the first tick
 --       ticksPerEffect                   histogram { ["5/6"] = count }: ticks seen of expected,
@@ -114,7 +115,9 @@ end
 function ns.Knowledge.Tick(effect, index, amount, flags, offset, now)
 	local stats = Stats(effect.name, effect.spellID)
 	local ticks = stats.ticks
-	if amount == 0 then
+	if amount == nil then
+		ticks.unsized = (ticks.unsized or 0) + 1
+	elseif amount == 0 then
 		ticks.absorbed = ticks.absorbed + 1
 	else
 		ticks.count = ticks.count + 1
@@ -152,7 +155,11 @@ end
 function ns.Knowledge.Miss(miss, amount)
 	local stats = Stats(miss.effect.name, miss.effect.spellID)
 	ForeverDev.Count(stats.misses, miss.reason)
-	ForeverDev.Sample(stats.missSamples, string.format("%s: %d, %s", miss.reason, amount, miss.detail), MAX_SAMPLES)
+	ForeverDev.Sample(
+		stats.missSamples,
+		string.format("%s: %s, %s", miss.reason, tostring(amount), miss.detail),
+		MAX_SAMPLES
+	)
 	ns.log("MISS", miss.effect.name, "on", miss.effect.mobKey, "amount", amount, "why", miss.reason, miss.detail)
 end
 

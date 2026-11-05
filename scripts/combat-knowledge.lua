@@ -71,6 +71,9 @@ for _, name in ipairs(SortedKeys(spells)) do
 						ticks.absorbed
 					))
 				end
+				if ticks and (ticks.unsized or 0) > 0 then
+					print(string.format("  unsized:     %d ticks (amount secret)", ticks.unsized))
+				end
 				if stats.powerRatio then
 					print(string.format(
 						"  vs tooltip:  x%.2f .. x%.2f",

@@ -349,7 +349,7 @@ local function TryTick(key, mob, event, flags, amount, school, now)
 	effect.lastTickIndex = index
 	effect.lastTickTime = now
 	effect.start = now - index * effect.interval
-	if amount > 0 and flags ~= "CRITICAL" then
+	if amount and amount > 0 and flags ~= "CRITICAL" then
 		effect.tick = ns.DB.LearnTick(effect.tickKey, amount / (effect.weights[index] * effect.stacks))
 		effect.tickSource = "learned"
 	end
@@ -367,7 +367,7 @@ local function IsDuplicate(key, unit, event, amount, school, now)
 		dedupeTime = now
 		wipe(dedupe)
 	end
-	local signature = key .. "|" .. event .. "|" .. amount .. "|" .. school
+	local signature = key .. "|" .. event .. "|" .. (amount or "?") .. "|" .. school
 	local byUnit = dedupe[signature]
 	if not byUnit then
 		byUnit = {}
@@ -446,17 +446,13 @@ function handlers.UNIT_SPELLCAST_FAILED(_, castGUID)
 end
 handlers.UNIT_SPELLCAST_INTERRUPTED = handlers.UNIT_SPELLCAST_FAILED
 
+-- The amount is secret on Forever (in and out of combat), so it arrives as nil: a tick is then
+-- matched on its school and timing alone, and its size isn't learned.
 function handlers.UNIT_COMBAT(unit, event, flags, amount, school)
-	if
-		issecretvalue(unit)
-		or issecretvalue(event)
-		or issecretvalue(flags)
-		or issecretvalue(amount)
-		or issecretvalue(school)
-	then
-		if ns.dev.enabled then
-			local secret =
-				ForeverDev.SecretNames("unit", unit, "event", event, "flags", flags, "amount", amount, "school", school)
+	if ns.dev.enabled then
+		local secret =
+			ForeverDev.SecretNames("unit", unit, "event", event, "flags", flags, "amount", amount, "school", school)
+		if secret ~= "none" then
 			local situation = ForeverDev.Situation()
 			ns.dev:LogOnce(
 				"secret " .. secret .. " " .. situation,
@@ -468,7 +464,12 @@ function handlers.UNIT_COMBAT(unit, event, flags, amount, school)
 				next(effects) ~= nil
 			)
 		end
+	end
+	if issecretvalue(unit) or issecretvalue(event) or issecretvalue(flags) or issecretvalue(school) then
 		return
+	end
+	if issecretvalue(amount) then
+		amount = nil
 	end
 	if ns.dev.enabled then
 		ns.dev:LogOnce("heard " .. unit .. " " .. event, "HEARD", unit, event, flags, "school", school)

@@ -21,7 +21,7 @@
 			</Layer>
 			<Layer level="ARTWORK">
 				<Texture parentKey="Icon">
-					<Size x="16" y="16"/>
+					<Size x="12" y="12"/>
 					<Anchors>
 						<Anchor point="CENTER"/>
 					</Anchors>

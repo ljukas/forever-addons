@@ -18,3 +18,8 @@
   should stay on the minimap instead.
 - Turn the button off under Options → AddOns → ForeverMinimap and every button goes back where
   it was.
+- The button has the same gold ring as other addons' minimap buttons, and buttons that sit on
+  the minimap's edge without belonging to it, such as Cinematic's, are gathered too.
+- The gathered buttons now show above the quest tracker and other frames near the minimap.
+- Choose how big the gathered buttons are with the "Button size" slider in the options. By
+  default they now open at the size of a standard minimap button, a little bigger than before.

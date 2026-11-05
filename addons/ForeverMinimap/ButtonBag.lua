@@ -15,10 +15,15 @@ local ADDON_NAME, ns = ...
 -- the bag is turned off.
 ns.ButtonBag = {}
 
-local SIZE, GAP = 24, 2
+-- A gathered button's size in pixels at 100%, whatever its own (31 is LibDBIcon's and Cinematic's),
+-- and the gap between.
+local SIZE, GAP = 31, 2
 
 -- Blizzard frames whose named children are looked at.
 local PARENTS = { "Minimap", "MinimapBackdrop", "MinimapCluster" }
+-- UIParent's children are looked at too, but only those on the minimap's ring: some addons
+-- (Cinematic) keep their button there so it isn't shrunk or faded with the minimap.
+local RING_PARENTS = { "UIParent" }
 
 local H = ns.ButtonBagHelpers -- Logic/ButtonBagHelpers.lua
 local IsSecret, Direction, HasHandler, ByLabel = H.IsSecret, H.Direction, H.HasHandler, H.ByLabel
@@ -40,6 +45,15 @@ end
 
 local function Enabled()
 	return ns.Options.Get("showButtonBag")
+end
+
+-- The size setting, kept in the slider's range; a hand-edited one that isn't a number reads as 1.
+local function Scale()
+	local scale = ns.Options.Get("buttonBagScale")
+	if type(scale) ~= "number" then
+		return 1
+	end
+	return math.min(math.max(scale, ns.Options.SCALE_MIN), ns.Options.SCALE_MAX)
 end
 
 -- Why a named, non-forbidden minimap child isn't a candidate, or nil when it is one, then its
@@ -84,8 +98,10 @@ local function Reject(frame, name)
 	return nil, ring
 end
 
--- Lays the shown collected buttons out along the strip, sorted by label, each SIZE pixels across.
+-- Lays the shown collected buttons out along the strip, sorted by label, each SIZE pixels across
+-- times the size setting.
 local function Layout()
+	local size = SIZE * Scale()
 	local shown = {}
 	layingOut = true
 	for frame, saved in pairs(collected) do
@@ -105,9 +121,9 @@ local function Layout()
 		local frame = entry.frame
 		-- Scaled rather than resized, so its own art and children keep their layout.
 		local width = frame:GetWidth()
-		local scale = (not IsSecret(width) and width > 0) and SIZE / width or 1
+		local scale = (not IsSecret(width) and width > 0) and size / width or 1
 		frame:SetScale(scale)
-		local x, y = ns.Strip.Offset(i, direction, ns.Strip.PER_LINE, SIZE, GAP)
+		local x, y = ns.Strip.Offset(i, direction, ns.Strip.PER_LINE, size, GAP)
 		frame:ClearAllPoints()
 		-- Offsets are in the frame's own (scaled) units.
 		frame:SetPoint("CENTER", container, "CENTER", x / scale, y / scale)
@@ -155,10 +171,17 @@ local function OnForeignMove(frame)
 end
 
 -- The addon placing its own button while it is in the bag: remembered, so Release puts it where
--- the addon last wanted it rather than where it was when collected.
+-- the addon last wanted it rather than where it was when collected. Not for a button found off the
+-- minimap: its addon places it on UIParent by its own (in the bag, much smaller) scale, so those
+-- anchors would be wrong once Release gives its scale back, and the ones from before it was
+-- collected are kept instead.
+local function Remembers(saved)
+	return saved and not saved.offMinimap and not layingOut
+end
+
 local function OnForeignSetPoint(frame, ...)
 	local saved = collected[frame]
-	if saved and not layingOut then
+	if Remembers(saved) then
 		table.insert(saved.points, { n = select("#", ...), ... })
 	end
 	OnForeignMove(frame)
@@ -166,8 +189,10 @@ end
 
 local function OnForeignClearAllPoints(frame)
 	local saved = collected[frame]
-	if saved and not layingOut then
+	if Remembers(saved) then
 		wipe(saved.points)
+	end
+	if saved and not layingOut then
 		LayoutSoon()
 	end
 end
@@ -212,6 +237,18 @@ local function Hook(frame)
 	hooksecurefunc(frame, "RegisterForDrag", OnForeignRegisterForDrag)
 end
 
+-- Sets a frame's strata and level, then fixes each again if `fixedStrata` / `fixedLevel` say so.
+-- A fixed strata or level ignores SetFrameStrata / SetFrameLevel, and LibDBIcon fixes its buttons at
+-- MEDIUM 8, under the open strip and the frames round the minimap; so the fix is lifted for the set.
+local function SetLayer(frame, strata, level, fixedStrata, fixedLevel)
+	frame:SetFixedFrameStrata(false)
+	frame:SetFixedFrameLevel(false)
+	frame:SetFrameStrata(strata)
+	frame:SetFrameLevel(level)
+	frame:SetFixedFrameStrata(fixedStrata)
+	frame:SetFixedFrameLevel(fixedLevel)
+end
+
 local function Collect(frame, entry)
 	if collected[frame] or entry.fighting then
 		return
@@ -232,7 +269,8 @@ local function Collect(frame, entry)
 	-- Nor a parent, strata, level or scale we can't read.
 	local parent, scale = frame:GetParent(), frame:GetScale()
 	local strata, level = frame:GetFrameStrata(), frame:GetFrameLevel()
-	if IsSecret(parent, strata, level, scale) then
+	local fixedStrata, fixedLevel = frame:HasFixedFrameStrata(), frame:HasFixedFrameLevel()
+	if IsSecret(parent, strata, level, scale, fixedStrata, fixedLevel) then
 		if ns.dev.enabled then
 			ns.dev:LogOnce("secret:" .. entry.key, "BAG", "secret", "frame values", entry.key)
 		end
@@ -244,17 +282,18 @@ local function Collect(frame, entry)
 		points = points,
 		strata = strata,
 		level = level,
+		fixedStrata = fixedStrata,
+		fixedLevel = fixedLevel,
 		scale = scale,
 		key = entry.key,
 		label = entry.label,
+		offMinimap = entry.offMinimap,
 		libDBIcon = libDBIcon,
 		object = libDBIcon and entry.key:match(LIBDBICON_PREFIX .. "(.+)") or nil,
 	}
 	layingOut = true
 	frame:SetParent(container)
-	-- LibDBIcon buttons have a fixed strata and level and keep theirs, which is fine.
-	frame:SetFrameStrata(container:GetFrameStrata())
-	frame:SetFrameLevel(container:GetFrameLevel() + 2)
+	SetLayer(frame, container:GetFrameStrata(), container:GetFrameLevel() + 2, fixedStrata, fixedLevel)
 	layingOut = false
 	-- LibDBIcon's showOnMouseover fades a button out; in the bag it is always visible. Release's
 	-- Refresh hands the alpha back to LibDBIcon, and the saved one is put back first in case it doesn't.
@@ -281,8 +320,7 @@ function Release(frame)
 	layingOut = true
 	frame:SetParent(saved.parent)
 	frame:SetScale(saved.scale)
-	frame:SetFrameStrata(saved.strata)
-	frame:SetFrameLevel(saved.level)
+	SetLayer(frame, saved.strata, saved.level, saved.fixedStrata, saved.fixedLevel)
 	local lib = saved.libDBIcon and LibDBIcon()
 	if lib then
 		-- LibDBIcon locks a button by clearing its drag scripts, not its drag registration, so the
@@ -319,10 +357,10 @@ function Release(frame)
 	layingOut = false
 end
 
-local function Consider(frame, name)
+local function Consider(frame, name, offMinimap)
 	local entry = found[name]
 	if not entry then
-		entry = { key = name, label = H.Label(name), frame = frame }
+		entry = { key = name, label = H.Label(name), frame = frame, offMinimap = offMinimap or nil }
 		found[name] = entry
 	end
 	if Enabled() and not ns.db.buttonBag.ignored[name] then
@@ -341,6 +379,70 @@ local function ScanSoon()
 		scanPending = false
 		Scan()
 	end)
+end
+
+-- Off the minimap, only a frame about the size of a minimap button counts (LibDBIcon's and
+-- Cinematic's are 31 pixels): toolbars and panels near the minimap are left alone.
+local MAX_RING_SIZE = 40
+
+-- [frame] = true while a UIParent button that had no place at scan time waits for its first
+-- SetPoint (Cinematic places its button only while the minimap is shown), false after.
+local waiting = {}
+
+local function WaitForPlacement(frame)
+	if waiting[frame] ~= nil then
+		return
+	end
+	waiting[frame] = true
+	hooksecurefunc(frame, "SetPoint", function()
+		if waiting[frame] then
+			waiting[frame] = false
+			ScanSoon()
+		end
+	end)
+end
+
+-- Whether a UIParent child could be a minimap button: a clickable button of a button's size whose
+-- center is in the band round the minimap's edge. One not placed yet is looked at again once it is.
+local function OnRing(frame)
+	local isButton = frame:IsObjectType("Button")
+	if IsSecret(isButton) or not isButton or not HasHandler(frame, "OnClick") then
+		return false
+	end
+	local width, height = frame:GetSize()
+	if IsSecret(width, height) or width > MAX_RING_SIZE or height > MAX_RING_SIZE then
+		return false
+	end
+	local distance, why = H.RingDistance(frame)
+	if why == "not placed yet" then
+		WaitForPlacement(frame)
+	end
+	return distance ~= nil and ns.ButtonRules.NearRing(distance)
+end
+
+-- Considers the parent's named children. With ringOnly, children that can't be a button on the
+-- minimap's ring are passed over unlogged: UIParent has hundreds of them.
+local function ScanChildren(parent, ringOnly)
+	for _, frame in ipairs(parent and { parent:GetChildren() } or {}) do
+		-- GetChildren may return secret frames (its Hierarchy aspect); those are left alone. A
+		-- forbidden frame refuses every other method call, so that check comes next.
+		local forbidden = not IsSecret(frame) and frame:IsForbidden()
+		local name = forbidden == false and H.Name(frame)
+		if name and (found[name] or not ringOnly or OnRing(frame)) then
+			local reason, ring
+			if not found[name] then
+				reason, ring = Reject(frame, name)
+			end
+			if reason then
+				if ns.dev.enabled then
+					ring = type(ring) == "number" and string.format("%.2f", ring) or ring
+					ns.dev:LogOnce("skip:" .. name .. reason, "BAG", "skip", reason, name, "ring", ring)
+				end
+			else
+				Consider(frame, name, ringOnly)
+			end
+		end
+	end
 end
 
 -- Finds the candidates (always: it only reads) and collects them (only while the bag is on).
@@ -367,26 +469,10 @@ function Scan()
 		end
 	end
 	for _, parentName in ipairs(PARENTS) do
-		local parent = _G[parentName]
-		for _, frame in ipairs(parent and { parent:GetChildren() } or {}) do
-			-- A forbidden frame refuses every other method call, so this comes first.
-			local forbidden = frame:IsForbidden()
-			local name = not IsSecret(forbidden) and not forbidden and H.Name(frame)
-			if name then
-				local reason, ring
-				if not found[name] then
-					reason, ring = Reject(frame, name)
-				end
-				if reason then
-					if ns.dev.enabled then
-						ring = type(ring) == "number" and string.format("%.2f", ring) or ring
-						ns.dev:LogOnce("skip:" .. name .. reason, "BAG", "skip", reason, name, "ring", ring)
-					end
-				else
-					Consider(frame, name)
-				end
-			end
-		end
+		ScanChildren(_G[parentName], false)
+	end
+	for _, parentName in ipairs(RING_PARENTS) do
+		ScanChildren(_G[parentName], true)
 	end
 	Layout()
 end
@@ -432,16 +518,16 @@ local function Refresh()
 	end
 end
 
--- OptionChanged fires for every setting; only the bag's two matter here.
-local lastEnabled, lastDirection
+-- OptionChanged fires for every setting; only the bag's three matter here.
+local lastEnabled, lastDirection, lastScale
 
 local function OnOptionChanged()
-	local enabled, direction = Enabled(), Direction()
+	local enabled, direction, scale = Enabled(), Direction(), Scale()
 	if enabled ~= lastEnabled then
-		lastEnabled, lastDirection = enabled, direction
+		lastEnabled, lastDirection, lastScale = enabled, direction, scale
 		Refresh()
-	elseif direction ~= lastDirection then
-		lastDirection = direction
+	elseif direction ~= lastDirection or scale ~= lastScale then
+		lastDirection, lastScale = direction, scale
 		Layout()
 	end
 end
@@ -457,7 +543,7 @@ ns.OnInitialize(function()
 	ns.callbacks:RegisterCallback("BagToggled", function(_, open)
 		container:SetShown(open)
 	end, ns.ButtonBag)
-	lastEnabled, lastDirection = Enabled(), Direction()
+	lastEnabled, lastDirection, lastScale = Enabled(), Direction(), Scale()
 	ns.callbacks:RegisterCallback("OptionChanged", OnOptionChanged, ns.ButtonBag)
 
 	local events = CreateFrame("Frame")

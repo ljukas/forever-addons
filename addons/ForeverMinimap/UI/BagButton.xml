@@ -2,19 +2,36 @@
 ..\..\..\..\..\WoW\Data\Interface\AddOns\Blizzard_SharedXML\UI.xsd">
 	<Script file="BagButton.lua"/>
 
-	<!-- The button on the minimap ring that opens the button bag, drawn with the plain round art of
-	     Blizzard's addon compartment button (Blizzard_Minimap/Mainline/AddonCompartment.xml), from
-	     the same HUD minimap family as the zoom buttons. The highlight is that art again, added
-	     faintly on top, like Camelot's compartment (Camelot/AddonCompartment.lua). It is created in
-	     BagButton.lua with Minimap as its parent, and its icon is picked there. -->
+	<!-- The button on the minimap ring that opens the button bag, drawn like every other addon's
+	     minimap button (LibDBIcon's, Cinematic's): the minimap's dark round background, the gold
+	     tracking-button ring and the zoom buttons' highlight. Forever's own minimap buttons use the
+	     Camelot ui-hud-minimap-* art, which has no plain round button. The ring texture's circle
+	     fills its top-left, so at 50 pixels anchored TOPLEFT it centres on the 31-pixel button.
+	     It is created in BagButton.lua with Minimap as its parent, and its icon is picked there. -->
 	<Button name="ForeverMinimapBagButtonTemplate" mixin="ForeverMinimapBagButtonMixin" virtual="true">
-		<Size x="17" y="17"/>
+		<Size x="31" y="31"/>
 		<Layers>
-			<Layer level="OVERLAY">
-				<Texture parentKey="Icon">
-					<Size x="11" y="11"/>
+			<Layer level="BACKGROUND">
+				<Texture file="Interface\Minimap\UI-Minimap-Background">
+					<Size x="24" y="24"/>
 					<Anchors>
 						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<Texture parentKey="Icon">
+					<Size x="12" y="12"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture file="Interface\Minimap\MiniMap-TrackingBorder">
+					<Size x="50" y="50"/>
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
 					</Anchors>
 				</Texture>
 			</Layer>
@@ -30,8 +47,6 @@
 			<OnShow method="OnShow"/>
 			<OnHide method="OnHide"/>
 		</Scripts>
-		<NormalTexture atlas="ui-hud-minimap-button"/>
-		<PushedTexture atlas="ui-hud-minimap-button-down"/>
-		<HighlightTexture atlas="ui-hud-minimap-button" alphaMode="ADD" alpha="0.3"/>
+		<HighlightTexture file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight" alphaMode="ADD"/>
 	</Button>
 </Ui>

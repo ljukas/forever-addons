@@ -331,6 +331,20 @@ local function TryTick(key, mob, event, flags, amount, school, now)
 	if school == 0 then
 		ns.dev:LogOnce("school0 " .. event, "SCHOOL0", event, "reports school 0; ticks match on timing and size only")
 	end
+	-- Forever reports heals as school 1 (Physical) whatever the spell's school (Rejuvenation's
+	-- ticks did), so a HoT tick matches on timing alone.
+	if kind == "hot" then
+		if ns.dev.enabled then
+			ns.dev:LogOnce(
+				"heal school " .. school,
+				"SCHOOL0",
+				"HEAL reports school",
+				school,
+				"; matched as any school"
+			)
+		end
+		school = 0
+	end
 
 	local match, miss = ns.TickMatcher.Match(mob, kind, amount, school, now)
 	if not match then

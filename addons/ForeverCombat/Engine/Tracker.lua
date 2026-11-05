@@ -334,6 +334,9 @@ local function TryTick(key, mob, event, flags, amount, school, now)
 
 	local match, miss = ns.TickMatcher.Match(mob, kind, amount, school, now)
 	if not match then
+		if ns.dev.enabled then
+			ns.dev:LogOnce("unmatched " .. event, "HEARD", "no effect matched", event, amount, "school", school)
+		end
 		if miss then
 			ns.Knowledge.Miss(miss, amount)
 		end
@@ -451,19 +454,52 @@ function handlers.UNIT_COMBAT(unit, event, flags, amount, school)
 		or issecretvalue(amount)
 		or issecretvalue(school)
 	then
-		ns.dev:LogOnce("secret combat", "SECRET", "UNIT_COMBAT payload is secret; ticks can't be read")
+		if ns.dev.enabled then
+			local secret =
+				ForeverDev.SecretNames("unit", unit, "event", event, "flags", flags, "amount", amount, "school", school)
+			local situation = ForeverDev.Situation()
+			ns.dev:LogOnce(
+				"secret " .. secret .. " " .. situation,
+				"SECRET",
+				"UNIT_COMBAT secret:",
+				secret,
+				situation,
+				"tracking",
+				next(effects) ~= nil
+			)
+		end
 		return
+	end
+	if ns.dev.enabled then
+		ns.dev:LogOnce("heard " .. unit .. " " .. event, "HEARD", unit, event, flags, "school", school)
 	end
 	if not next(effects) and not next(lastCasts) then
 		return
 	end
 	local key = ns.Units.Key(unit)
 	if not key or not (effects[key] or lastCasts[key]) then
+		if ns.dev.enabled then
+			ns.dev:LogOnce("untracked " .. unit, "HEARD", "dropped untracked unit", unit, "key", key)
+		end
 		return
 	end
 	local now = GetTime()
 	if IsDuplicate(key, unit, event, amount, school, now) then
+		if ns.dev.enabled then
+			ns.dev:LogOnce("duplicate " .. unit, "HEARD", "dropped duplicate from", unit, event)
+		end
 		return
+	end
+	if ns.dev.enabled then
+		ns.dev:LogOnce(
+			"passed " .. unit .. " " .. event,
+			"HEARD",
+			"passed",
+			unit,
+			event,
+			"tracked",
+			effects[key] ~= nil
+		)
 	end
 	heard[key] = now
 

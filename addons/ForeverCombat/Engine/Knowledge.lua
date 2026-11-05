@@ -3,7 +3,8 @@ local ADDON_NAME, ns = ...
 -- What the tracker learns about the player's DoTs and HoTs in game, kept so the spell data
 -- (Data/Spells.lua) and the matcher's tolerances can be corrected from evidence. Two layers:
 --   * a trace line per decision through ns.log (ForeverDev's devlog, scripts/devlog.sh): SEEN,
---     TRACK, TICK, MISS, AVOID, END, UNLISTED, NOTREAD. It scrolls, ForeverDev keeps 500 lines.
+--     TRACK, TICK, MISS, AVOID, END, UNLISTED, NOTREAD, SECRET. It scrolls, ForeverDev keeps
+--     500 lines.
 --   * aggregates kept across sessions in ForeverDevDB.observed.ForeverCombat.spells
 --     (scripts/combat-knowledge.sh), small enough to keep until /fdev forget ForeverCombat:
 --     spells[spellName][spellID] = {
@@ -161,6 +162,24 @@ function ns.Knowledge.Miss(miss, amount)
 		MAX_SAMPLES
 	)
 	ns.log("MISS", miss.effect.name, "on", miss.effect.mobKey, "amount", amount, "why", miss.reason, miss.detail)
+end
+
+-- Which of a UNIT_COMBAT payload's fields are secret, once per combination and situation.
+function ns.Knowledge.CombatSecrets(unit, event, flags, amount, school, tracking)
+	local secret =
+		ForeverDev.SecretNames("unit", unit, "event", event, "flags", flags, "amount", amount, "school", school)
+	if secret ~= "none" then
+		local situation = ForeverDev.Situation()
+		ns.dev:LogOnce(
+			"secret " .. secret .. " " .. situation,
+			"SECRET",
+			"UNIT_COMBAT secret:",
+			secret,
+			situation,
+			"tracking",
+			tracking
+		)
+	end
 end
 
 function ns.Knowledge.Avoid(effect, event)

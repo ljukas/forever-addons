@@ -6,8 +6,10 @@ local ADDON_NAME, ns = ...
 --   UNIT_SPELLCAST_SUCCEEDED  a listed spell starts or refreshes an effect; its description
 --                             gives the amount and duration
 --   UNIT_COMBAT               a dodge, miss or resist right after a DoT's cast drops it again;
---                             later hits that fit its rhythm are its ticks, and teach the real
---                             tick size (descriptions leave out spell and attack power)
+--                             later hits that fit its rhythm (and, for DoTs, its school) are
+--                             its ticks. A readable amount teaches the real tick size
+--                             (descriptions leave out spell and attack power); on Forever the
+--                             amount is always secret, so the size stays the description's.
 -- Remaining amounts are the ticks still due times the tick size. All numbers here are plain;
 -- the display compares them with the (secret) health only inside StatusBar widgets.
 --
@@ -321,32 +323,28 @@ local function TryAvoid(key, event, flags, amount, school, now)
 end
 
 -- Matches a hit to one of the player's effects on the mob and moves that effect onto it,
--- learning the tick size.
+-- learning the tick size when the amount is readable (nil: secret, as always on Forever).
 local function TryTick(key, mob, event, flags, amount, school, now)
 	local kind = TICK_KINDS[event]
-	-- A WOUND of 0 is a miss, unless a shield absorbed the whole tick.
+	-- A WOUND of 0 is a miss, unless a shield absorbed the whole tick. With the amount secret,
+	-- a miss reported as a WOUND can't be told from a hit.
 	if not kind or (amount == 0 and flags ~= "ABSORB") then
 		return
 	end
-	if school == 0 then
-		ns.dev:LogOnce("school0 " .. event, "SCHOOL0", event, "reports school 0; ticks match on timing and size only")
+	if school == 0 and ns.dev.enabled then
+		ns.dev:LogOnce("school0 " .. event, "SCHOOL0", event, "reports school 0; ticks match on timing (and size) only")
 	end
 	-- Forever reports heals as school 1 (Physical) whatever the spell's school (Rejuvenation's
 	-- ticks did), so a HoT tick matches on timing alone.
+	local matchSchool = school
 	if kind == "hot" then
 		if ns.dev.enabled then
-			ns.dev:LogOnce(
-				"heal school " .. school,
-				"SCHOOL0",
-				"HEAL reports school",
-				school,
-				"; matched as any school"
-			)
+			ns.dev:LogOnce("heal school " .. school, "SCHOOL", "HEAL reports school", school, "; matched as any school")
 		end
-		school = 0
+		matchSchool = 0
 	end
 
-	local match, miss = ns.TickMatcher.Match(mob, kind, amount, school, now)
+	local match, miss = ns.TickMatcher.Match(mob, kind, amount, matchSchool, now)
 	if not match then
 		if ns.dev.enabled then
 			ns.dev:LogOnce("unmatched " .. event, "HEARD", "no effect matched", event, amount, "school", school)
@@ -371,7 +369,8 @@ local function TryTick(key, mob, event, flags, amount, school, now)
 end
 
 -- The same hit arrives once per unit token that shows the mob (target, focus, its
--- nameplate). Two effects ticking the same amount at once arrive twice from each token, so
+-- nameplate). Two effects ticking the same amount (or two secret amounts) at once arrive
+-- twice from each token, so
 -- a hit is new only while its token has sent it more often than any other token has.
 local dedupeTime
 local dedupe = {}
@@ -463,22 +462,7 @@ handlers.UNIT_SPELLCAST_INTERRUPTED = handlers.UNIT_SPELLCAST_FAILED
 -- The amount is secret on Forever (in and out of combat), so it arrives as nil: a tick is then
 -- matched on its school and timing alone, and its size isn't learned.
 function handlers.UNIT_COMBAT(unit, event, flags, amount, school)
-	if ns.dev.enabled then
-		local secret =
-			ForeverDev.SecretNames("unit", unit, "event", event, "flags", flags, "amount", amount, "school", school)
-		if secret ~= "none" then
-			local situation = ForeverDev.Situation()
-			ns.dev:LogOnce(
-				"secret " .. secret .. " " .. situation,
-				"SECRET",
-				"UNIT_COMBAT secret:",
-				secret,
-				situation,
-				"tracking",
-				next(effects) ~= nil
-			)
-		end
-	end
+	ns.Knowledge.CombatSecrets(unit, event, flags, amount, school, next(effects) ~= nil)
 	if issecretvalue(unit) or issecretvalue(event) or issecretvalue(flags) or issecretvalue(school) then
 		return
 	end

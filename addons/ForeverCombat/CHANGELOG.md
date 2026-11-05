@@ -10,5 +10,6 @@
   the healing they still have to do. When they reach the end of the bar, it glows: they'll heal
   it to full.
 - Hover the target or focus frame to see each spell's amount and time left.
-- Tracks the base class spells and talents of every class. Amounts start from the spell's
-  tooltip and learn your real tick sizes as they land.
+- Tracks the base class spells and talents of every class. Each segment shrinks as your ticks
+  land. The game keeps tick sizes hidden, so amounts are the spell tooltip's, without your spell
+  or attack power.

@@ -8,7 +8,7 @@ local ADDON_NAME, ns = ...
 -- which for Enum.WorldCursorAnchorType.Default calls GameTooltip_SetDefaultAnchor(GameTooltip,
 -- UIParent) before filling the tooltip. Taking over the position here, before it is shown, means
 -- it never appears at the default spot first. The minimap, XP bar and chat hyperlinks also anchor
--- to UIParent, so the mouse must also be over the world.
+-- to UIParent, so the mouse must also be over the world: no mouse-enabled frame under the cursor.
 --
 -- How it moves: the client's own cursor anchors can only grow upward, so for all four directions
 -- the addon's own driver frame pins a corner of the tooltip to the cursor every frame (smooth: it
@@ -60,9 +60,11 @@ driver:SetScript("OnUpdate", function(self)
 	PinToCursor()
 end)
 
+-- GetMouseFoci lists only mouse-enabled regions, and WorldFrame is not one: over the world the
+-- list is empty (seen in game: the ANCHOR log said "kept default anchor for nothing" on players).
 local function IsMouseOverWorld()
 	local focus = GetMouseFoci()[1]
-	return focus == WorldFrame, focus
+	return focus == nil or focus == WorldFrame, focus
 end
 
 hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tooltip, parent)

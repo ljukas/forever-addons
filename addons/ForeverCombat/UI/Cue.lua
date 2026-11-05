@@ -1,15 +1,18 @@
 local ADDON_NAME, ns = ...
 
--- The glow at the end of a health bar that says the effects will finish the job: the DoTs
--- kill, or the HoTs heal to full. That's "total >= health", and health is secret, so addon
--- code can't compare them. A StatusBar can: a very long bar with max = health and value =
--- total only fills to its end once total >= health. The glow rides the end of that fill
--- inside a clipping window as wide as the glow, so it's only on screen at 100% (DoesItDie's
--- kill icon trick). The glow is one of Blizzard's over-absorb glows, placed where Blizzard
--- places it (UnitFrame_Initialize: 7px inside the bar's end).
+-- A cue says the effects will finish the job: the DoTs kill, or the HoTs heal to full. That's
+-- "total >= health", and health is secret, so addon code can't compare them. A StatusBar can:
+-- a very long bar with max = health and value = total only fills to its end once
+-- total >= health. A texture (the "rider") rides the end of that fill inside a clipping window
+-- as wide as the rider, so it's only on screen at 100% (DoesItDie's kill icon trick).
+--
+-- Shapes:
+--   CreateBarEnd  one of Blizzard's over-absorb glows at an end of the health bar, placed where
+--                 Blizzard places it (UnitFrame_Initialize: 7px inside the bar's end)
 ns.Cue = {}
 
--- At this length the glow starts to show once the total is within 0.16% of the health.
+-- At this length a rider w px wide starts to show once the total is within w/LONG_BAR_WIDTH of
+-- the health (0.16% for the 16px glow).
 local LONG_BAR_WIDTH = 10000
 -- The glow templates' size, and how far into the bar Blizzard puts them.
 local GLOW_WIDTH = 16
@@ -31,14 +34,15 @@ function CueMixin:Hide()
 	self.window:Hide()
 end
 
--- side: "LEFT" or "RIGHT" end of the bar; glowTemplate: Blizzard's OverAbsorbGlowTemplate or
--- OverHealAbsorbGlowTemplate (Blizzard_UnitFrame/Shared/UnitFrame.xml).
-function ns.Cue.Create(healthBar, mask, side, glowTemplate)
+-- The clipping window (riderWidth wide, anchored by the caller) and the long bar inside it.
+-- The caller anchors a rider texture with AttachRider.
+local function NewCue(parent, riderWidth)
 	local cue = CreateFromMixins(CueMixin)
 
-	local window = CreateFrame("Frame", nil, healthBar)
+	local window = CreateFrame("Frame", nil, parent)
 	window:SetUsingParentLevel(true)
 	window:SetClipsChildren(true)
+	window:SetWidth(riderWidth)
 	window:Hide()
 	cue.window = window
 
@@ -52,14 +56,28 @@ function ns.Cue.Create(healthBar, mask, side, glowTemplate)
 	bar:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT")
 	cue.bar = bar
 
-	local glow = bar:CreateTexture(nil, "ARTWORK", glowTemplate)
-	glow:ClearAllPoints()
-	glow:SetPoint("TOPRIGHT", bar:GetStatusBarTexture(), "TOPRIGHT")
-	glow:SetPoint("BOTTOMRIGHT", bar:GetStatusBarTexture(), "BOTTOMRIGHT")
-	glow:SetWidth(GLOW_WIDTH)
+	return cue
+end
+
+-- Rides texture on the end of the cue's fill.
+local function AttachRider(cue, texture, width)
+	local fill = cue.bar:GetStatusBarTexture()
+	texture:ClearAllPoints()
+	texture:SetPoint("TOPRIGHT", fill, "TOPRIGHT")
+	texture:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT")
+	texture:SetWidth(width)
+end
+
+-- side: "LEFT" or "RIGHT" end of the bar; glowTemplate: Blizzard's OverAbsorbGlowTemplate or
+-- OverHealAbsorbGlowTemplate (Blizzard_UnitFrame/Shared/UnitFrame.xml).
+function ns.Cue.CreateBarEnd(healthBar, mask, side, glowTemplate)
+	local cue = NewCue(healthBar, GLOW_WIDTH)
+
+	local glow = cue.bar:CreateTexture(nil, "ARTWORK", glowTemplate)
+	AttachRider(cue, glow, GLOW_WIDTH)
 	glow:AddMaskTexture(mask)
 
-	window:SetWidth(GLOW_WIDTH)
+	local window = cue.window
 	if side == "LEFT" then
 		window:SetPoint("TOPRIGHT", healthBar, "TOPLEFT", GLOW_INSET, 0)
 		window:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMLEFT", GLOW_INSET, 0)

@@ -43,7 +43,7 @@ function HostMixin:Init(frame, unit)
 			segment:Init(self.healthBar, self.mask, module.color, module.reverse)
 			meter.segments[index] = segment
 		end
-		meter.cue = ns.Cue.Create(self.healthBar, self.mask, module.cue.side, module.cue.glowTemplate)
+		meter.cue = ns.Cue.CreateBarEnd(self.healthBar, self.mask, module.cue.side, module.cue.glowTemplate)
 		self.meters[module] = meter
 	end
 	self:UpdateWidth()

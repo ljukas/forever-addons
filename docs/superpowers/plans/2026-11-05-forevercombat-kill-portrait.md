@@ -35,7 +35,7 @@
 - Modify: `addons/ForeverCombat/UI/Hosts.lua` (call site rename only)
 
 **Interfaces:**
-- Produces: `ns.Cue.CreateBarEnd(healthBar, mask, side, glowTemplate) -> ForeverCombatCue` (today's `ns.Cue.Create`, renamed); internal `NewCue(parent, anchorTo, riderWidth) -> cue, bar` that builds the clipping window (anchored with `SetAllPoints(anchorTo)` or by the caller), the `LONG_BAR_WIDTH` bar, and returns the bar so the caller rides a texture on `bar:GetStatusBarTexture()`. `CueMixin:Set(maxValue, total)` and `:Hide()` unchanged.
+- Produces: `ns.Cue.CreateBarEnd(healthBar, mask, side, glowTemplate) -> ForeverCombatCue` (today's `ns.Cue.Create`, renamed); internal `NewCue(parent, riderWidth) -> cue` that builds the clipping window (sized and anchored by the caller) and the long bar (`cue.bar`), and `AttachRider(cue, texture, width)` that rides a texture on `bar:GetStatusBarTexture()`. `CueMixin:Set(maxValue, total)` and `:Hide()` unchanged. *(As built; review then made the bar length riderWidth / 0.0016, added an overlay and an own CircleMask to the portrait, and HOST/DISPLAY logging — see the spec's amendments.)*
 
 - [ ] Step 1: Extract the window + long bar construction into `NewCue`; `CreateBarEnd` builds the glow rider and the side anchoring as today. Update the file comment.
 - [ ] Step 2: `Hosts.lua` calls `ns.Cue.CreateBarEnd`.

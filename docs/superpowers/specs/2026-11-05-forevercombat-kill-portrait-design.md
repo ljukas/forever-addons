@@ -51,21 +51,24 @@ finish the target off**, so you can move on to the next one.
 ## Decided by Claude (builder may revisit)
 
 - **"Washed red" keeps the face readable**: a multiplicative tint (`MOD` blend, a texture in
-  `RED_FONT_COLOR`) rather than an opaque red disc, so you still see who it is. If that turns
-  out too weak in game, switch to a semi-transparent `BLEND` overlay. Launch check.
+  `RED_FONT_COLOR`) rather than an opaque red disc, so you still see who it is; Blizzard
+  reddens low-health player portraits the same way. *Amended in review:* a multiply alone mostly
+  darkens dark portraits, so the same red at 0.35 alpha (`BLEND`) goes over it. Tune in game.
+- **Same start as the glow.** Each cue's long bar is its rider's width / 0.0016, so the 58px
+  portrait rider starts wiping in at the same total as the 16px glow (*amended in review*).
 - **Generalise the cue rather than duplicate it.** `ns.Cue` already does "show this texture
   only when total ≥ max"; the portrait is a second cue shape (window over the portrait,
   red texture as wide as the portrait, masked by the portrait mask). The DoT module declares
   it next to its bar cue, so the hosts render it in the same pass with the same total.
 - **Setting key** `dotKillPortrait` in `ForeverCombatDB.settings`, registered like the module
   checkboxes (default true). Adding a key needs no DB migration (registering fills the default).
-- **Layering**: ideally the red sits over the portrait and under the gold ring. If a child frame
-  can't sit between the container's two `BACKGROUND` sublevels, over the ring is acceptable,
-  because the circle mask keeps it inside the ring's opening. Launch check.
-
+- **Layering**: under the gold ring is impossible (portrait and ring are adjacent `BACKGROUND`
+  sublevels 1 and 2), so the red draws over the ring. *Amended in review:* the frame's own
+  `PortraitMask` is only 1px inside the ring, so the red gets its own `CircleMask` 3px further
+  in to stay off the ring's inner edge. Tune in game.
 - **Combo points stay visible.** On Forever, Blizzard's `ComboFrame` is centred on the target
-  portrait (`Blizzard_UnitFrame/Camelot/ComboFrame.lua`). The red must draw under it, never
-  over rogue and druid combo points. Launch check.
+  portrait (`Blizzard_UnitFrame/Camelot/ComboFrame.lua`) at MEDIUM strata and a 66px radius, so
+  by source they're above our LOW-strata red and outside its circle. Launch check.
 - **The checkbox is a child of DoT Meter** in the options panel, indented and greyed out while
   DoT Meter is off (Blizzard's `SetParentInitializer`), since it has nothing to show then.
 
@@ -80,7 +83,11 @@ File layout, names, how the second cue is declared on the module, the exact wipe
   it's secret. Check by eye).
 - The red is round, lines up with the portrait, and looks right with the gold ring and the boss
   (gold dragon) frame.
-- The red is clearly visible but the face is still recognisable.
+- The red is clearly visible but the face is still recognisable, also on dark, blue or grey
+  models and tap-denied (greyed) mobs.
+- The ring's inner edge, the boss gold dragon and the red threat flash stay un-tinted.
+- `HOST` lines: portrait 58×58, its layer `BACKGROUND 1`, ring `BACKGROUND 2`, combo frame
+  `MEDIUM`. `DISPLAY` shows `portrait=on/off` follow the checkbox.
 - Combo points (rogue, druid in cat form) still show on top of the red.
 - Unticking the checkbox (and the DoT Meter checkbox) clears it at once.
 - No Lua errors or blocked actions (`scripts/devlog.sh --errors`).

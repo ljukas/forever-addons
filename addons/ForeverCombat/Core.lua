@@ -31,7 +31,9 @@ ns.L = {
 	DOT_METER = "DoT Meter",
 	DOT_METER_TOOLTIP = "Mark the damage your damage over time spells still have to deal on your target's and focus's health bar. When the marks cover all of the remaining health, your spells will finish it off.",
 	HOT_METER = "HoT Meter",
-	HOT_METER_TOOLTIP = "Show the healing your heal over time spells still have to do past your target's and focus's health. When it reaches the end of the bar, they will heal it to full.",
+	HOT_METER_TOOLTIP = "Show the healing your heal over time spells still have to do past your target's, focus's and your own health. When it reaches the end of the bar, they will heal it to full.",
+	HOT_PLAYER_FRAME = "Show on Your Own Frame",
+	HOT_PLAYER_FRAME_TOOLTIP = "Also show the healing your heal over time spells still have to do on you, on your own unit frame.",
 	SECONDS = INT_SPELL_DURATION_SEC or "%d sec",
 	REMAINING = "%s (%s)",
 }

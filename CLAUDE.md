@@ -21,10 +21,17 @@ load the doc). Every one starts in a fresh worktree from `origin/main` (see "Wor
 - Do not assume a Retail or Classic API exists or behaves the same way. Verify it in
   `.cache/wow-ui-source` (below).
 
-**Not yet verified in game.** Forever launches 4 November 2026, and until then nothing here
-(ForeverDev, the devlog loop or any addon) has run in the client. Treat lint and
-`.cache/wow-ui-source` as the only checks, and say plainly what is untested. If the user
-reports launch-day results, work through the checklist in README.md.
+**Forever is live** (launched 4 November 2026). The source tells you what an API *is*; only the
+game tells you what it *returns*. Verify behaviour through the feedback loop below, and say
+plainly what hasn't been run in game yet.
+
+Confirmed in game (5 November 2026), where the docs alone would mislead:
+
+- `UNIT_COMBAT`'s `amount` is always secret, in and out of combat. Unit, event, flags and
+  school are readable. `HEAL` events report school 1 whatever the spell's school.
+- Player and target health and power are secret (`ContextuallySecret`) even out of combat.
+- `C_UnitAuras.GetUnitAuraBySpellID` / `GetAuraDataBySpellName` can't read auras on hostile
+  targets, but can read the player's own HoT on themselves out of combat.
 
 ## Looking up the API (do this before using any API you haven't verified)
 
@@ -80,7 +87,8 @@ Windows the scripts run in Git Bash, where `ln -s` silently copies: link with `l
 
 ## Feedback loop with the game
 
-Addons are linked into the game, so there is no copy or build step:
+This is the normal way to check a change. Addons are linked into the game, so there is no copy
+or build step:
 
 1. Claude edits the code and runs `scripts/lint.sh` until it's clean.
 2. The user types `/rl` (or uses the ForeverDev keybind or addon compartment entry) in game.

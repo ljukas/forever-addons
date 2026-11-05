@@ -87,6 +87,7 @@ WorldMapFrame = {}
 
 ---@class StatusBarOverlaySegment : Frame
 ---@field FillMask MaskTexture
+---@field fillAtlas string? the unit frame's segment atlas, from its *BarSegmentTemplate KeyValue
 
 ---@class TargetFrameHealthBar : StatusBar
 ---@field MyHealPredictionBar StatusBarOverlaySegment

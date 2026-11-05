@@ -38,11 +38,13 @@ function HostMixin:Init(frame, unit, container, setting)
 	self.healthBar = container.HealthBar
 	self.mask = container.HealthBarMask
 	self.meters = {}
+	-- Blizzard's own segments carry the frame's atlas (PlayerFrameBarSegmentTemplate, ...).
+	local fillAtlas = self.healthBar.MyHealPredictionBar.fillAtlas
 	for _, module in ns.Modules.Enumerate() do
 		local meter = { segments = {} }
 		for index = 1, MAX_SEGMENTS do
 			local segment = CreateFrame("StatusBar", nil, self.healthBar, "ForeverCombatSegmentTemplate")
-			segment:Init(self.healthBar, self.mask, module.color, module.reverse)
+			segment:Init(self.healthBar, self.mask, module.color, module.reverse, fillAtlas)
 			meter.segments[index] = segment
 		end
 		meter.cue = ns.Cue.Create(self.healthBar, self.mask, module.cue.side, module.cue.glowTemplate)
@@ -69,12 +71,23 @@ function HostMixin:UpdateWidth()
 	end
 end
 
--- Whether the host draws now: it's turned on, and its frame is visible and shows its own unit
--- (the player frame shows the vehicle while the player is in one).
+-- Why the host draws nothing now, or nil when it draws: it's turned off, its frame is hidden,
+-- the frame shows another unit (the player frame shows the vehicle while the player is in
+-- one), or the unit is dead.
+function HostMixin:GetHiddenReason()
+	if self.setting and not ns.Options.Get(self.setting) then
+		return "off"
+	elseif not self.frame:IsVisible() then
+		return "hidden"
+	elseif self.frame.unit ~= self.unit then
+		return "shows " .. tostring(self.frame.unit)
+	elseif UnitIsDeadOrGhost(self.unit) then
+		return "dead"
+	end
+end
+
 function HostMixin:IsShowing()
-	return (not self.setting or ns.Options.Get(self.setting))
-		and self.frame:IsVisible()
-		and self.frame.unit == self.unit
+	return not self:GetHiddenReason()
 end
 
 -- The green health fill.
@@ -134,13 +147,15 @@ end
 -- Returns true while any effect is shown.
 function HostMixin:Refresh(now)
 	local unit = self.unit
-	local key = self:IsShowing() and not UnitIsDeadOrGhost(unit) and ns.Units.Key(unit)
+	local hiddenReason = self:GetHiddenReason()
+	local key = not hiddenReason and ns.Units.Key(unit)
 	local anyShown = false
 	-- For the DISPLAY log only: what's shown, with the signature leaving out the totals so it's
 	-- logged when what's shown changes, not on every refresh.
-	local signature, shown
+	local state, signature, shown
 	if ns.dev.enabled then
-		signature, shown = key or "none", {}
+		state = key or ("none (" .. (hiddenReason or "no unit") .. ")")
+		signature, shown = state, {}
 	end
 	for _, module in ns.Modules.Enumerate() do
 		local meter = self.meters[module]
@@ -159,7 +174,7 @@ function HostMixin:Refresh(now)
 	end
 
 	if shown then
-		ns.dev:LogChanged("display " .. unit, signature, "DISPLAY", unit, key or "none", table.concat(shown, " "))
+		ns.dev:LogChanged("display " .. unit, signature, "DISPLAY", unit, state, table.concat(shown, " "))
 	end
 	return anyShown
 end
@@ -191,8 +206,10 @@ local function AddHost(frame, unit, container, hookVisuals, setting)
 	table.insert(hosts, host)
 	hostsByFrame[frame] = host
 
-	-- The cue follows the health.
+	-- The cue follows the health. The player frame comes back (Alt+Z, cinematics) with no
+	-- event that would redraw it.
 	host.healthBar:HookScript("OnValueChanged", MarkDirty)
+	frame:HookScript("OnShow", MarkDirty)
 	hookVisuals(MarkDirty)
 end
 

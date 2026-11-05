@@ -58,6 +58,30 @@ function HostMixin:Init(frame, unit)
 		local width = self.healthBar:GetWidth()
 		local layer, subLevel = self.healthBar:GetStatusBarTexture():GetDrawLayer()
 		ns.log("HOST", unit, "bar width", width, "secret", issecretvalue(width), "layer", layer, subLevel)
+
+		-- For the portrait launch checks: its size and what draws around the red.
+		local container = frame.TargetFrameContainer
+		local portrait = container.Portrait
+		local combo = ComboFrame
+		ns.log(
+			"HOST",
+			unit,
+			"portrait",
+			portrait:GetWidth(),
+			portrait:GetHeight(),
+			"scale",
+			frame:GetEffectiveScale(),
+			"layer",
+			portrait:GetDrawLayer(),
+			"ring layer",
+			container.FrameTexture:GetDrawLayer(),
+			"container",
+			container:GetFrameStrata(),
+			container:GetFrameLevel(),
+			"combo",
+			combo and combo:GetFrameStrata(),
+			combo and combo:GetFrameLevel()
+		)
 	end
 end
 
@@ -154,6 +178,11 @@ function HostMixin:Refresh(now)
 			anyShown = true
 			if shown then
 				local counts = string.format("%s=%d from %s", module.key, #effects, anchorName)
+				-- Whether the portrait cue is armed; if it's lit depends on the secret health.
+				if module.portraitCue then
+					local armed = ns.Options.Get(module.portraitCue.setting) and "on" or "off"
+					counts = counts .. " portrait=" .. armed
+				end
 				signature = signature .. " " .. counts
 				table.insert(shown, string.format("%s (%d)", counts, total))
 			end

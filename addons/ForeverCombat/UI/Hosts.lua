@@ -1,7 +1,7 @@
 local ADDON_NAME, ns = ...
 
--- The Blizzard unit frames the meters draw on: the target and focus frames, whose health
--- bars Blizzard already overlays with heal prediction and absorb segments. Every module gets
+-- The Blizzard unit frames the meters draw on: the target, focus and player frames, whose
+-- health bars Blizzard already overlays with heal prediction and absorb segments. Every module gets
 -- its own segments and cue per host, parented to the health bar beside Blizzard's. Only this
 -- file knows Blizzard's frame paths, so nameplates or party frames would be another host with
 -- their own Get* paths.
@@ -23,16 +23,18 @@ local hosts = {}
 local hostsByFrame = {}
 
 ---@class ForeverCombatHost
----@field frame TargetFrame
+---@field frame TargetFrame|PlayerFrame
 ---@field unit string
+---@field setting string? ForeverCombatDB.settings key that turns the host on, if it has one
 ---@field healthBar TargetFrameHealthBar
 ---@field mask MaskTexture
 local HostMixin = {}
 
-function HostMixin:Init(frame, unit)
+---@param container TargetFrameHealthBarsContainer
+function HostMixin:Init(frame, unit, container, setting)
 	self.frame = frame
 	self.unit = unit
-	local container = frame.TargetFrameContent.TargetFrameContentMain.HealthBarsContainer
+	self.setting = setting
 	self.healthBar = container.HealthBar
 	self.mask = container.HealthBarMask
 	self.meters = {}
@@ -65,6 +67,14 @@ function HostMixin:UpdateWidth()
 			segment:SetWidth(width)
 		end
 	end
+end
+
+-- Whether the host draws now: it's turned on, and its frame is visible and shows its own unit
+-- (the player frame shows the vehicle while the player is in one).
+function HostMixin:IsShowing()
+	return (not self.setting or ns.Options.Get(self.setting))
+		and self.frame:IsVisible()
+		and self.frame.unit == self.unit
 end
 
 -- The green health fill.
@@ -124,7 +134,7 @@ end
 -- Returns true while any effect is shown.
 function HostMixin:Refresh(now)
 	local unit = self.unit
-	local key = self.frame:IsVisible() and not UnitIsDeadOrGhost(unit) and ns.Units.Key(unit)
+	local key = self:IsShowing() and not UnitIsDeadOrGhost(unit) and ns.Units.Key(unit)
 	local anyShown = false
 	-- For the DISPLAY log only: what's shown, with the signature leaving out the totals so it's
 	-- logged when what's shown changes, not on every refresh.
@@ -174,15 +184,24 @@ local function OnUpdate(_, elapsed)
 	end
 end
 
-local function AddHost(frame, unit)
+-- hookVisuals(func) hooks func to where Blizzard re-anchors and resizes the frame's health bar.
+local function AddHost(frame, unit, container, hookVisuals, setting)
 	local host = CreateFromMixins(HostMixin)
-	host:Init(frame, unit)
+	host:Init(frame, unit, container, setting)
 	table.insert(hosts, host)
 	hostsByFrame[frame] = host
 
-	-- The cue follows the health; Blizzard re-anchors the bar on target changes.
+	-- The cue follows the health.
 	host.healthBar:HookScript("OnValueChanged", MarkDirty)
-	hooksecurefunc(frame, "UpdateHealthBarVisuals", MarkDirty)
+	hookVisuals(MarkDirty)
+end
+
+-- Blizzard re-anchors the target and focus health bars on unit changes.
+local function AddTargetHost(frame, unit)
+	local container = frame.TargetFrameContent.TargetFrameContentMain.HealthBarsContainer
+	AddHost(frame, unit, container, function(func)
+		hooksecurefunc(frame, "UpdateHealthBarVisuals", func)
+	end)
 end
 
 function ns.Hosts.ForFrame(frame)
@@ -191,8 +210,13 @@ end
 
 ns.OnInitialize(function()
 	EventUtil.ContinueOnAddOnLoaded("Blizzard_UnitFrame", function()
-		AddHost(TargetFrame, "target")
-		AddHost(FocusFrame, "focus")
+		AddTargetHost(TargetFrame, "target")
+		AddTargetHost(FocusFrame, "focus")
+		-- On the player frame it's a global function, not a method. Blizzard calls it entering
+		-- and leaving a vehicle, which also changes PlayerFrame.unit.
+		AddHost(PlayerFrame, "player", PlayerFrame_GetHealthBarContainer(), function(func)
+			hooksecurefunc("PlayerFrame_UpdateHealthBarVisuals", func)
+		end, "hotPlayerFrame")
 		-- HoT segments follow Blizzard's incoming heal segments, which it shows and hides here.
 		hooksecurefunc("UnitFrameHealPredictionBars_Update", MarkDirty)
 

@@ -110,6 +110,20 @@ TargetFrame = {}
 ---@class FocusFrame : TargetFrame
 FocusFrame = {}
 
+-- Blizzard_UnitFrame/Mainline/PlayerFrame.xml and PlayerFrame.lua: the player frame's health bar
+-- has the target frame's layout under PlayerFrameContent.PlayerFrameContentMain. unit is
+-- "vehicle" while the player is in one (PlayerFrame_ToVehicleArt).
+
+---@class PlayerFrame : Button
+---@field unit string
+PlayerFrame = {}
+
+---@return TargetFrameHealthBarsContainer
+function PlayerFrame_GetHealthBarContainer() end
+
+-- Overridden by Camelot/PlayerFrame.lua; hooked by name.
+function PlayerFrame_UpdateHealthBarVisuals() end
+
 -- Minimap: Blizzard_APIDocumentationGenerated/MinimapFrameAPIDocumentation.lua. Ketho's
 -- Retail-based annotations lack these two (and list SetBlipTexture, which Forever doesn't have).
 

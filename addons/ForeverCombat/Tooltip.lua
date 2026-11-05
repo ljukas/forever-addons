@@ -2,12 +2,12 @@ local ADDON_NAME, ns = ...
 
 local L = ns.L
 
--- Hovering the target or focus frame lists the player's DoTs or HoTs on that unit under
--- Blizzard's lines: spell, amount still to come and time left. UnitFrame_UpdateTooltip
+-- Hovering the target, focus or player frame lists the player's DoTs or HoTs on that unit
+-- under Blizzard's lines: spell, amount still to come and time left. UnitFrame_UpdateTooltip
 -- rebuilds the whole tooltip while it's hovered, so the lines are added fresh every time.
 local function AddEffects(frame)
 	local host = ns.Hosts.ForFrame(frame)
-	if not host or GameTooltip:GetOwner() ~= frame then
+	if not host or not host:IsShowing() or GameTooltip:GetOwner() ~= frame then
 		return
 	end
 	local unit = host.unit

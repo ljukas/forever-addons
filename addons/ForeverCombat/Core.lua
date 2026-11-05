@@ -4,8 +4,9 @@ local ADDON_NAME, ns = ...
 -- scripts/devlog.sh). Without ForeverDev, ns.dev is inert: ns.dev.enabled is false and every
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
 --   LOADED                                           Core.lua
---   SENT COMBO SCHOOL0 SECRET                        Engine/Tracker.lua
+--   SENT COMBO SCHOOL0 SCHOOL HEARD                  Engine/Tracker.lua
 --   SEEN TRACK TICK MISS AVOID END UNLISTED NOTREAD  Engine/Knowledge.lua, which keeps the aggregates
+--   SECRET                                           Engine/Knowledge.lua
 --   HOST DISPLAY                                     UI/Hosts.lua
 --   AURA                                             Dev/Probes.lua
 local function Nop() end

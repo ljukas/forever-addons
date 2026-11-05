@@ -2,31 +2,38 @@ local ADDON_NAME, ns = ...
 
 -- Decides which tracked effect a UNIT_COMBAT hit on a mob is a tick of. UNIT_COMBAT doesn't
 -- name the spell or the caster, so a hit is a tick when its school, timing and size fit one
--- of the player's effects on that mob. Hits from other players and melee that fit by chance
--- are the cost of that. No game API calls; Engine/Tracker.lua feeds it.
+-- of the player's effects on that mob. Heals report no useful school (Tracker passes 0), and
+-- the size is only checked when the amount is readable, which on Forever it never is. Hits
+-- from other players and melee that fit by chance are the cost of that.
+-- No game API calls; Engine/Tracker.lua feeds it.
 ns.TickMatcher = {}
 
 -- How far a tick may land from where the effect's rhythm puts it, in seconds.
 local WINDOW = 0.4
+-- The same for a hit of unknown size, which only its timing can tell from a nuke or melee of
+-- the same school. Ticks are exactly periodic: in game they landed within 0.09s of the rhythm.
+local UNSIZED_WINDOW = 0.15
 -- The first tick comes one interval after the cast lands. Projectiles (Fireball, Serpent
 -- Sting) land later than the cast succeeds, so it may come this much later still.
 local FIRST_TICK_EARLY, FIRST_TICK_LATE = 0.4, 1.5
 -- A tick's size relative to the expected one; partial resists make it smaller. Descriptions
 -- leave out spell and attack power, so until a tick size is learned the real ones can be
--- several times larger (Rip and Garrote scale strongly with attack power).
+-- several times larger (Rip and Garrote scale strongly with attack power). Unused while
+-- the amount is secret.
 local MIN_RATIO, MAX_RATIO = 0.45, 2.5
 local MAX_RATIO_UNLEARNED = 6
 
 -- The tick index the hit would be, how far off the rhythm it lands (seconds) and whether
--- that's close enough.
-local function Place(effect, now)
+-- that's close enough. The first tick keeps its wide window either way: projectiles make
+-- the cast's landing time uncertain.
+local function Place(effect, now, sized)
 	if effect.ticksSeen == 0 then
 		local offset = now - effect.start - effect.interval
 		return 1, offset, offset >= -FIRST_TICK_EARLY and offset <= FIRST_TICK_LATE
 	end
 	local steps = math.floor((now - effect.lastTickTime) / effect.interval + 0.5)
 	local offset = now - effect.lastTickTime - steps * effect.interval
-	return effect.lastTickIndex + steps, offset, math.abs(offset) <= WINDOW
+	return effect.lastTickIndex + steps, offset, math.abs(offset) <= (sized and WINDOW or UNSIZED_WINDOW)
 end
 
 -- Expected size of tick index on the effect.
@@ -43,9 +50,9 @@ local function Reject(effect, index, onTime, amount)
 	elseif index <= effect.lastTickIndex then
 		return "seen"
 	end
-	-- amount 0 is a tick fully absorbed by a shield: it keeps the rhythm but says nothing
-	-- about size.
-	if amount > 0 then
+	-- amount 0 is a tick fully absorbed by a shield, and nil one whose amount is secret (always,
+	-- on Forever): it keeps the rhythm but says nothing about size.
+	if amount and amount > 0 then
 		local ratio = amount / ns.TickMatcher.Expected(effect, index)
 		local maxRatio = effect.tickSource == "learned" and MAX_RATIO or MAX_RATIO_UNLEARNED
 		if ratio < MIN_RATIO or ratio > maxRatio then
@@ -63,7 +70,7 @@ function ns.TickMatcher.Match(effects, kind, amount, school, now)
 	local match, miss
 	for _, effect in pairs(effects) do
 		if effect.kind == kind and (school == 0 or bit.band(effect.school, school) ~= 0) then
-			local index, offset, onTime = Place(effect, now)
+			local index, offset, onTime = Place(effect, now, amount ~= nil)
 			local reason = Reject(effect, index, onTime, amount)
 			if not reason then
 				if not match or math.abs(offset) < math.abs(match.offset) then

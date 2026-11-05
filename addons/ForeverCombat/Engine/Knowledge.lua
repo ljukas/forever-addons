@@ -3,13 +3,15 @@ local ADDON_NAME, ns = ...
 -- What the tracker learns about the player's DoTs and HoTs in game, kept so the spell data
 -- (Data/Spells.lua) and the matcher's tolerances can be corrected from evidence. Two layers:
 --   * a trace line per decision through ns.log (ForeverDev's devlog, scripts/devlog.sh): SEEN,
---     TRACK, TICK, MISS, AVOID, END, UNLISTED, NOTREAD. It scrolls, ForeverDev keeps 500 lines.
+--     TRACK, TICK, MISS, AVOID, END, UNLISTED, NOTREAD, SECRET. It scrolls, ForeverDev keeps
+--     500 lines.
 --   * aggregates kept across sessions in ForeverDevDB.observed.ForeverCombat.spells
 --     (scripts/combat-knowledge.sh), small enough to keep until /fdev forget ForeverCombat:
 --     spells[spellName][spellID] = {
 --       rank, kind, description, parsed  the latest cast's, parsed = "438 over 18s: 6 x 73"
 --       casts, lastSeen                  lastSeen is a time() stamp
---       ticks = { count, crits, absorbed, min, max, sum }
+--       ticks = { count, crits, absorbed, min, max, sum, unsized }
+--                                        unsized: ticks whose amount was secret, outside count
 --       intervals, firstTick             histograms { ["3.0"] = count }: seconds between ticks,
 --                                        and from the cast to the first tick
 --       ticksPerEffect                   histogram { ["5/6"] = count }: ticks seen of expected,
@@ -114,7 +116,9 @@ end
 function ns.Knowledge.Tick(effect, index, amount, flags, offset, now)
 	local stats = Stats(effect.name, effect.spellID)
 	local ticks = stats.ticks
-	if amount == 0 then
+	if amount == nil then
+		ticks.unsized = (ticks.unsized or 0) + 1
+	elseif amount == 0 then
 		ticks.absorbed = ticks.absorbed + 1
 	else
 		ticks.count = ticks.count + 1
@@ -152,8 +156,30 @@ end
 function ns.Knowledge.Miss(miss, amount)
 	local stats = Stats(miss.effect.name, miss.effect.spellID)
 	ForeverDev.Count(stats.misses, miss.reason)
-	ForeverDev.Sample(stats.missSamples, string.format("%s: %d, %s", miss.reason, amount, miss.detail), MAX_SAMPLES)
+	ForeverDev.Sample(
+		stats.missSamples,
+		string.format("%s: %s, %s", miss.reason, tostring(amount), miss.detail),
+		MAX_SAMPLES
+	)
 	ns.log("MISS", miss.effect.name, "on", miss.effect.mobKey, "amount", amount, "why", miss.reason, miss.detail)
+end
+
+-- Which of a UNIT_COMBAT payload's fields are secret, once per combination and situation.
+function ns.Knowledge.CombatSecrets(unit, event, flags, amount, school, tracking)
+	local secret =
+		ForeverDev.SecretNames("unit", unit, "event", event, "flags", flags, "amount", amount, "school", school)
+	if secret ~= "none" then
+		local situation = ForeverDev.Situation()
+		ns.dev:LogOnce(
+			"secret " .. secret .. " " .. situation,
+			"SECRET",
+			"UNIT_COMBAT secret:",
+			secret,
+			situation,
+			"tracking",
+			tracking
+		)
+	end
 end
 
 function ns.Knowledge.Avoid(effect, event)

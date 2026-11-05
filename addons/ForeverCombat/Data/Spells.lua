@@ -11,7 +11,8 @@ local ADDON_NAME, ns = ...
 -- with rank and Forever's tuning. The rest isn't in the description:
 --   kind      "dot" (damage, UNIT_COMBAT WOUND) or "hot" (healing, UNIT_COMBAT HEAL)
 --   school    school mask as UNIT_COMBAT reports it: 1 Physical (bleeds), 2 Holy, 4 Fire,
---             8 Nature, 16 Frost, 32 Shadow, 64 Arcane
+--             8 Nature, 16 Frost, 32 Shadow, 64 Arcane. Only DoTs match on it: Forever
+--             reports every heal as school 1, so a HoT's school is informational.
 --   interval  seconds between ticks. From Classic and unchecked in Forever: the intervals
 --             Engine/Knowledge.lua observes (scripts/combat-knowledge.sh) confirm or correct them.
 --   shape     uneven ticks, see SHAPES (default even)

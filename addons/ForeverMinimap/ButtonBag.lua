@@ -19,6 +19,9 @@ local SIZE, GAP = 24, 2
 
 -- Blizzard frames whose named children are looked at.
 local PARENTS = { "Minimap", "MinimapBackdrop", "MinimapCluster" }
+-- UIParent's children are looked at too, but only those on the minimap's ring: some addons
+-- (Cinematic) keep their button there so it isn't shrunk or faded with the minimap.
+local RING_PARENTS = { "UIParent" }
 
 local H = ns.ButtonBagHelpers -- Logic/ButtonBagHelpers.lua
 local IsSecret, Direction, HasHandler, ByLabel = H.IsSecret, H.Direction, H.HasHandler, H.ByLabel
@@ -155,10 +158,17 @@ local function OnForeignMove(frame)
 end
 
 -- The addon placing its own button while it is in the bag: remembered, so Release puts it where
--- the addon last wanted it rather than where it was when collected.
+-- the addon last wanted it rather than where it was when collected. Not for a button found off the
+-- minimap: its addon places it on UIParent by its own (in the bag, much smaller) scale, so those
+-- anchors would be wrong once Release gives its scale back, and the ones from before it was
+-- collected are kept instead.
+local function Remembers(saved)
+	return saved and not saved.offMinimap and not layingOut
+end
+
 local function OnForeignSetPoint(frame, ...)
 	local saved = collected[frame]
-	if saved and not layingOut then
+	if Remembers(saved) then
 		table.insert(saved.points, { n = select("#", ...), ... })
 	end
 	OnForeignMove(frame)
@@ -166,8 +176,10 @@ end
 
 local function OnForeignClearAllPoints(frame)
 	local saved = collected[frame]
-	if saved and not layingOut then
+	if Remembers(saved) then
 		wipe(saved.points)
+	end
+	if saved and not layingOut then
 		LayoutSoon()
 	end
 end
@@ -247,6 +259,7 @@ local function Collect(frame, entry)
 		scale = scale,
 		key = entry.key,
 		label = entry.label,
+		offMinimap = entry.offMinimap,
 		libDBIcon = libDBIcon,
 		object = libDBIcon and entry.key:match(LIBDBICON_PREFIX .. "(.+)") or nil,
 	}
@@ -319,10 +332,10 @@ function Release(frame)
 	layingOut = false
 end
 
-local function Consider(frame, name)
+local function Consider(frame, name, offMinimap)
 	local entry = found[name]
 	if not entry then
-		entry = { key = name, label = H.Label(name), frame = frame }
+		entry = { key = name, label = H.Label(name), frame = frame, offMinimap = offMinimap or nil }
 		found[name] = entry
 	end
 	if Enabled() and not ns.db.buttonBag.ignored[name] then
@@ -341,6 +354,70 @@ local function ScanSoon()
 		scanPending = false
 		Scan()
 	end)
+end
+
+-- Off the minimap, only a frame about the size of a minimap button counts (LibDBIcon's and
+-- Cinematic's are 31 pixels): toolbars and panels near the minimap are left alone.
+local MAX_RING_SIZE = 40
+
+-- [frame] = true while a UIParent button that had no place at scan time waits for its first
+-- SetPoint (Cinematic places its button only while the minimap is shown), false after.
+local waiting = {}
+
+local function WaitForPlacement(frame)
+	if waiting[frame] ~= nil then
+		return
+	end
+	waiting[frame] = true
+	hooksecurefunc(frame, "SetPoint", function()
+		if waiting[frame] then
+			waiting[frame] = false
+			ScanSoon()
+		end
+	end)
+end
+
+-- Whether a UIParent child could be a minimap button: a clickable button of a button's size whose
+-- center is in the band round the minimap's edge. One not placed yet is looked at again once it is.
+local function OnRing(frame)
+	local isButton = frame:IsObjectType("Button")
+	if IsSecret(isButton) or not isButton or not HasHandler(frame, "OnClick") then
+		return false
+	end
+	local width, height = frame:GetSize()
+	if IsSecret(width, height) or width > MAX_RING_SIZE or height > MAX_RING_SIZE then
+		return false
+	end
+	local distance, why = H.RingDistance(frame)
+	if why == "not placed yet" then
+		WaitForPlacement(frame)
+	end
+	return distance ~= nil and ns.ButtonRules.NearRing(distance)
+end
+
+-- Considers the parent's named children. With ringOnly, children that can't be a button on the
+-- minimap's ring are passed over unlogged: UIParent has hundreds of them.
+local function ScanChildren(parent, ringOnly)
+	for _, frame in ipairs(parent and { parent:GetChildren() } or {}) do
+		-- GetChildren may return secret frames (its Hierarchy aspect); those are left alone. A
+		-- forbidden frame refuses every other method call, so that check comes next.
+		local forbidden = not IsSecret(frame) and frame:IsForbidden()
+		local name = forbidden == false and H.Name(frame)
+		if name and (found[name] or not ringOnly or OnRing(frame)) then
+			local reason, ring
+			if not found[name] then
+				reason, ring = Reject(frame, name)
+			end
+			if reason then
+				if ns.dev.enabled then
+					ring = type(ring) == "number" and string.format("%.2f", ring) or ring
+					ns.dev:LogOnce("skip:" .. name .. reason, "BAG", "skip", reason, name, "ring", ring)
+				end
+			else
+				Consider(frame, name, ringOnly)
+			end
+		end
+	end
 end
 
 -- Finds the candidates (always: it only reads) and collects them (only while the bag is on).
@@ -367,26 +444,10 @@ function Scan()
 		end
 	end
 	for _, parentName in ipairs(PARENTS) do
-		local parent = _G[parentName]
-		for _, frame in ipairs(parent and { parent:GetChildren() } or {}) do
-			-- A forbidden frame refuses every other method call, so this comes first.
-			local forbidden = frame:IsForbidden()
-			local name = not IsSecret(forbidden) and not forbidden and H.Name(frame)
-			if name then
-				local reason, ring
-				if not found[name] then
-					reason, ring = Reject(frame, name)
-				end
-				if reason then
-					if ns.dev.enabled then
-						ring = type(ring) == "number" and string.format("%.2f", ring) or ring
-						ns.dev:LogOnce("skip:" .. name .. reason, "BAG", "skip", reason, name, "ring", ring)
-					end
-				else
-					Consider(frame, name)
-				end
-			end
-		end
+		ScanChildren(_G[parentName], false)
+	end
+	for _, parentName in ipairs(RING_PARENTS) do
+		ScanChildren(_G[parentName], true)
 	end
 	Layout()
 end

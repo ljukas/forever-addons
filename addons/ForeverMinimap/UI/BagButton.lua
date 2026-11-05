@@ -10,8 +10,8 @@ local ADDON_NAME, ns = ...
 -- addons/ForeverDev/Probes.lua, and put the one that looks right first once launch shows which.
 local ICON_ATLASES = { "uitools-icon-hamburger", "common-icon-hamburger", "friends-icon-menu", "OptionsIcon-Brown" }
 
--- Pixels the button's center sits outside the minimap's edge.
-local RING_MARGIN = 5
+-- Pixels the button's center sits outside the minimap's edge, as for other addons' buttons.
+local RING_MARGIN = 10
 
 ---@class ForeverMinimapBagButtonMixin : Button
 ---@field Icon Texture

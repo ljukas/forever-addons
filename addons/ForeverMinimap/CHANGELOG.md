@@ -18,3 +18,5 @@
   should stay on the minimap instead.
 - Turn the button off under Options → AddOns → ForeverMinimap and every button goes back where
   it was.
+- The button has the same gold ring as other addons' minimap buttons, and buttons that sit on
+  the minimap's edge without belonging to it, such as Cinematic's, are gathered too.

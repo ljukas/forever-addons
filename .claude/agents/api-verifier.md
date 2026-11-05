@@ -1,6 +1,6 @@
 ---
 name: api-verifier
-description: Verifies that every WoW API, event, widget method, template, mixin, atlas and global constant a diff uses exists in the Forever client's own source (.cache/wow-ui-source), with the signature the code assumes, and that secret-flagged values are handled. Until Forever launches this is the only check that addon code calls things that exist. Use proactively after adding or changing Lua or XML under addons/ or template/, before committing. Read-only.
+description: Verifies that every WoW API, event, widget method, template, mixin, atlas and global constant a diff uses exists in the Forever client's own source (.cache/wow-ui-source), with the signature the code assumes, and that secret-flagged values are handled. It catches calls to things that don't exist before an in-game reload does. Use proactively after adding or changing Lua or XML under addons/ or template/, before committing. Read-only.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---

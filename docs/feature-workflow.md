@@ -12,7 +12,7 @@ Companions — one hat per commit, pick the doc by the hat:
 
 > **Roadmap → step → task.** A feature bigger than one PR gets a roadmap (`docs/superpowers/roadmaps/`) split into **steps**: one plan, one session, one PR each. A step's plan is split into **tasks**. A feature that fits in one PR is a single step. **Review happens per step, not per task** (Phase 5); the one exception is the SavedVariables gate (Phase 4).
 
-> **Before launch.** WoW Forever launches 4 November 2026. Until then nothing here has run in the client, and Phase 6 records what is untested instead of testing it. Say so plainly; never write "works" about code the game hasn't run.
+> **Tested in game.** WoW Forever is live (since 4 November 2026), so Phase 6 tests in the client through the devlog loop. Never write "works" about code the game hasn't run; when the user can't test yet, say so plainly and record the in-game checks.
 
 ---
 
@@ -74,12 +74,12 @@ Dispatch several explorers in parallel when the feature touches independent seam
 
 **Name the step's reviewers.** The plan lists the specialists Phase 5 will add to the core reviewers (see [step reviewers](#step-reviewers)), and a **Review Focus** section: the few places most likely to be wrong, which every reviewer gets. Tasks don't name reviewers.
 
-**List the launch checks.** Every assumption only the running client can confirm (a payload isn't secret, an event fires in that order, the art lines up) goes in the plan with the `ns.log` tag, `Dev/` probe or `Knowledge.lua` evidence that will show it. They become instrumentation in the tasks and the checklist in Phase 6.
+**List the in-game checks.** Every assumption only the running client can confirm (a payload isn't secret, an event fires in that order, the art lines up) goes in the plan with the `ns.log` tag, `Dev/` probe or `Knowledge.lua` evidence that will show it. They become instrumentation in the tasks and the checklist in Phase 6.
 **Output:** A plan in `docs/superpowers/plans/`.
 
 ### 4. Build, task by task
 **What:** Execute the plan **one task at a time**, each through the same loop:
-1. **Implement** the task. Verify each API in the Forever source before its first use, and add Forever-only APIs to `types/forever.lua` once verified. Add the `ns.log` tags, probes and evidence the launch checks need, the way CLAUDE.md → "Logging, probing and evidence" says (dev-only code stays out of releases). There's no automated test suite for addon code, so keep pure logic (parsers, matchers, math, layouts) in functions apart from event and frame code, where a reviewer can check it by reading. Run `scripts/lint.sh` until it's clean.
+1. **Implement** the task. Verify each API in the Forever source before its first use, and add Forever-only APIs to `types/forever.lua` once verified. Add the `ns.log` tags, probes and evidence the in-game checks need, the way CLAUDE.md → "Logging, probing and evidence" says (dev-only code stays out of releases). There's no automated test suite for addon code, so keep pure logic (parsers, matchers, math, layouts) in functions apart from event and frame code, where a reviewer can check it by reading. Run `scripts/lint.sh` until it's clean.
 2. **Commit** it: one hat, a conventional message, `git add <paths>` (never `-A`), with `git branch --show-current` in the same command.
 3. **Check the evidence:** a subagent implementer pastes `git log --oneline -N` and `git show --stat HEAD` into its report, and you check `HEAD` yourself before the next task. Reports of commits that don't exist happen.
 
@@ -101,9 +101,9 @@ There's no reviewer between tasks: review is per step (Phase 5). The loop still 
 #### Step reviewers
 **Core, always:**
 - `addon-reviewer` *(agent)*: the CLAUDE.md conventions, taint, combat lockdown, secret-value usage, native-UI extension, TOC metadata and CHANGELOG.
-- `api-verifier` *(agent)*: every API, event, widget method, template and atlas the diff uses exists in the Forever source with that signature and allows the arguments passed; it lists which values read can be secret, for `addon-reviewer`. Mandatory whenever Lua or XML under `addons/` or `template/` changed: until launch it is the only check that the code calls things that exist.
+- `api-verifier` *(agent)*: every API, event, widget method, template and atlas the diff uses exists in the Forever source with that signature and allows the arguments passed; it lists which values read can be secret, for `addon-reviewer`. Mandatory whenever Lua or XML under `addons/` or `template/` changed: it catches calls to things that don't exist before the user spends a reload finding out.
 - **Correctness reviewer** (`general-purpose`): bugs, nil paths, failure paths, event ordering on login and `/reload`, combat and instance behavior, across the whole diff.
-- **Spec reviewer** (`general-purpose`): does the step do what the plan and spec say, all of it and nothing more? Missing tasks, silent design changes, scope creep, launch checks without the `ns.log` lines that would answer them.
+- **Spec reviewer** (`general-purpose`): does the step do what the plan and spec say, all of it and nothing more? Missing tasks, silent design changes, scope creep, in-game checks without the `ns.log` lines that would answer them.
 
 **Specialists, one per layer the diff touches:**
 
@@ -115,9 +115,9 @@ There's no reviewer between tasks: review is per step (Phase 5). The loop still 
 | Packaging: `.pkgmeta`, TOC metadata, `scripts/package.sh`, `release.yml` | **Release reviewer** (`general-purpose`): packager directives (`@project-version@`, `#@do-not-package@` blocks), `LICENSE` in the zip, nothing dev-only shipped (ForeverDev, `Dev/` probes: do-not-package in the TOC and ignored in `.pkgmeta`) |
 
 ### 6. Verify end-to-end
-**What:** Evidence before any "done" claim. Run the [pre-PR gate](#pre-pr-gate), then the in-game check that fits the date:
-- **After launch:** `scripts/worktree.sh game`, then ask the user to `/rl` (a brand-new addon folder may need a client restart), to exercise the feature with the exact steps you give them, and to `/rl` again, because SavedVariables (and so the devlog) are only written on reload, logout or exit. Then `scripts/devlog.sh --errors` must show no Lua errors or blocked actions, and `scripts/devlog.sh --addon <Name>` (plus `scripts/observed.sh <Name>` for evidence) must show the launch-check tags with the values the plan expects. Anything else is a bug: [bugfix-workflow.md](./bugfix-workflow.md).
-- **Before launch:** the game can't run it. Record the plan's launch checks as a project memory (`<addon>-launch-checks`, like the existing ForeverProfessions and ForeverCombat ones): what to do in game, which devlog tag and value confirms each assumption, and which file to change if it's wrong. The PR's *Testing* section says "untested in game".
+**What:** Evidence before any "done" claim. Run the [pre-PR gate](#pre-pr-gate), then test in game:
+- **In game (the default):** `scripts/worktree.sh game`, then ask the user to `/rl` (a brand-new addon folder may need a client restart), to exercise the feature with the exact steps you give them, and to `/rl` again, because SavedVariables (and so the devlog) are only written on reload, logout or exit. Then `scripts/devlog.sh --errors` must show no Lua errors or blocked actions, and `scripts/devlog.sh --addon <Name>` (plus `scripts/observed.sh <Name>` for evidence) must show the in-game-check tags with the values the plan expects. Anything else is a bug: [bugfix-workflow.md](./bugfix-workflow.md).
+- **If the user can't test now:** record the plan's in-game checks as a project memory (`<addon>-launch-checks`, like the existing ones): what to do in game, which devlog tag and value confirms each assumption, and which file to change if it's wrong. The PR's *Testing* section says "untested in game".
 
 ### 7. Ship
 **What:** Integrate the finished, green work: open the PR with `.github/pull_request_template.md` (*Summary*, and *Testing* with real evidence) and squash-merge. The PR title is the conventional-commit subject, and a `feat` or `fix` to an addon adds a players' line under `## Unreleased` in its `CHANGELOG.md`. CodeRabbit reviews every PR to `main` (`.coderabbit.yaml`, luacheck via `.luacheckrc`), and its pre-merge checks (player changelog, testing evidence, breaking-change marker) must pass before merge. Treat its comments like review findings: verify each, fix the real ones, reply to the rest. Before the worktree is removed, `scripts/worktree.sh restore`. Releasing is separate (CLAUDE.md → "Releasing an addon").
@@ -136,7 +136,7 @@ scripts/check-pr-title.sh "<title>"            # = pr-title.yml
 git fetch origin && git diff --stat origin/main...HEAD -- 'addons/*/CHANGELOG.md'   # a feat/fix added its players' line
 ```
 - **APIs:** `api-verifier` found nothing missing from the Forever source (Phase 5).
-- **In game:** after launch, `scripts/devlog.sh --errors` is clean for the session that exercised the change. Before launch, the launch checks are recorded and the PR says the change is untested in game.
+- **In game:** `scripts/devlog.sh --errors` is clean for the session that exercised the change. If it couldn't be tested, the in-game checks are recorded and the PR says the change is untested in game.
 - **PR title:** `<type>(<scope>): <subject>`, ≤72 chars, imperative, and one concern. CI checks only the format; the rest is on you.
 
 Paste the output (or say what you checked) in the PR's *Testing* section. Unchecked claims are not evidence.
@@ -165,8 +165,8 @@ Paste the output (or say what you checked) in the PR's *Testing* section. Unchec
 | **Scope map** | Feasibility + phase breakdown for a multi-phase feature | `docs/superpowers/specs/*-scope-map.md` |
 | **Spec** | Design detail for one phase that isn't a standalone decision | `docs/superpowers/specs/` |
 | **Roadmap** | The steps of a feature bigger than one PR | `docs/superpowers/roadmaps/` |
-| **Plan** | The checkpointed build sequence, PR slicing and launch checks for one step | `docs/superpowers/plans/` |
-| **Launch checks** | What to verify in game, and how, once the client runs it | a project memory, `<addon>-launch-checks` |
+| **Plan** | The checkpointed build sequence, PR slicing and in-game checks for one step | `docs/superpowers/plans/` |
+| **In-game checks** | What to verify in game, and how, when the user couldn't test before the PR | a project memory, `<addon>-launch-checks` |
 | **Workflow** | The reusable process (this doc, refactor, bugfix) | `docs/*-workflow.md` (run via `.claude/skills/*-workflow/`) |
 
 ---

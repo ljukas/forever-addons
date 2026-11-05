@@ -33,10 +33,10 @@ Companions: **[feature-workflow.md](./feature-workflow.md)** for adding capabili
 ### 2. Establish the safety net — *first*
 **What:** You can only *assert* behavior was preserved if something checks it. There's no automated test suite for addon code, so the net is built from what the repo has, and you need it in place before touching structure:
 - **`scripts/lint.sh` clean before you start.** LuaLS catches undefined globals and wrong API calls against the Forever source. It does **not** catch a misspelled or moved `ns.` field: `ns` is an untyped table. After every move or rename, grep for the old name across `addons/`.
-- **Characterization in game (after launch):** before restructuring, have the user run a fixed set of in-game steps and `/rl`, and keep that `scripts/devlog.sh` output. The same steps after the refactor must produce the same log lines and no new errors. Add `ns.log` lines first where the code you're moving logs nothing.
+- **Characterization in game:** before restructuring, have the user run a fixed set of in-game steps and `/rl`, and keep that `scripts/devlog.sh` output. The same steps after the refactor must produce the same log lines and no new errors. Add `ns.log` lines first where the code you're moving logs nothing.
 - **Pure logic** (parsers, matchers, math): write down a few input → output examples from the current code (bugs included: you're pinning *what is*, not *what should be*) and check them by trace after the change.
 
-**Rule:** **no safety net → no refactor.** Before launch the in-game net doesn't exist, so limit pre-launch refactors to mechanical ones that lint and grep can verify (moves, renames, extractions), or write the characterization steps as a launch check and refactor once it has run.
+**Rule:** **no safety net → no refactor.** If the user can't run the characterization steps yet, limit the refactor to mechanical changes that lint and grep can verify (moves, renames, extractions), or wait until they can.
 
 ### 3. Decide what to refactor *toward*
 **What:** A refactor needs a destination. We use the vocabulary of **John Ousterhout's *A Philosophy of Software Design***:
@@ -77,7 +77,7 @@ A swap is a refactor *only if behavior stays the same*, and Blizzard's facilitie
 - Planned/large refactors run the same **task loop** as features ([feature-workflow.md → Phase 4](./feature-workflow.md#4-build-task-by-task)): one step at a time, git evidence checked, no reviewer in between (except the SavedVariables gate). Review happens once, over the whole branch, in Phase 7.
 
 ### 6. Verify behavior preservation
-**What:** The whole point: *prove* nothing observable changed, don't assert it. Run the [pre-PR gate](./feature-workflow.md#pre-pr-gate), grep for every old name once more, and after launch repeat the characterization steps from Phase 2 (`scripts/worktree.sh game`, the same steps, `/rl`) and compare the devlog output. For UI, check it looks and anchors the same in game. Before launch, say in the PR which checks ran and which wait for launch.
+**What:** The whole point: *prove* nothing observable changed, don't assert it. Run the [pre-PR gate](./feature-workflow.md#pre-pr-gate), grep for every old name once more, and repeat the characterization steps from Phase 2 (`scripts/worktree.sh game`, the same steps, `/rl`) and compare the devlog output. For UI, check it looks and anchors the same in game. If any in-game check couldn't run, say in the PR which ran and which are still owed.
 
 ### 7. Review & ship
 **What:** Review the whole branch, then integrate. Same shape as the feature workflow's [step review](./feature-workflow.md#5-review-the-step): every reviewer in parallel, each told to *assume the refactor changed behavior*; verify each finding before fixing it.
@@ -128,7 +128,7 @@ Ousterhout is skeptical of strict TDD; Beck/Fowler treat tests as the indispensa
 |---|---|---|
 | 0. Isolate | `EnterWorktree` *(tool)*, then `scripts/worktree.sh setup` | — |
 | 1. Confirm & size | — | `feature-dev:code-explorer` *(agent)*; `Explore` *(agent)* |
-| 2. Safety net | `scripts/lint.sh`; `scripts/devlog.sh` *(characterization, after launch)* | `scripts/worktree.sh game` |
+| 2. Safety net | `scripts/lint.sh`; `scripts/devlog.sh` *(characterization)* | `scripts/worktree.sh game` |
 | 3. Decide target | *(human/judgment — APOSD)* | `feature-dev:code-architect` *(agent)* |
 | 4. Pick strategy | `superpowers:writing-plans` *(planned/large)* | `Plan` *(agent)*; `.cache/wow-ui-source` *(a swap's gap list)* |
 | 5. Small steps | `code-simplifier:code-simplifier` *(agent)* / `/simplify` *(mechanical cleanup; quality only, no bug hunting)* | `superpowers:subagent-driven-development`; `superpowers:dispatching-parallel-agents`; `superpowers:systematic-debugging` |

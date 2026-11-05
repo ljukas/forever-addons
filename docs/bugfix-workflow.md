@@ -10,7 +10,7 @@ Companions — one hat per commit:
 
 > **Where the tools are.** The phases say *what* and *why*. *Which* skill or agent to use lives in [Current toolchain mapping](#current-toolchain-mapping). The prose names only mandatory review gates.
 
-> **Before launch** (4 November 2026) the client can't run anything, so a bug is something found by reading: a review finding, or code that contradicts the Forever source. Reproduce and verify by tracing through the code and the source, and record what only the game can confirm as a launch check.
+> **The game is the check.** Forever is live, so reproduce and verify in game through the devlog loop (CLAUDE.md → "Feedback loop with the game"). Tracing through the code and the Forever source is the fallback for when the user can't test right now; the PR then says the fix is untested in game.
 
 ---
 
@@ -34,7 +34,7 @@ Companions — one hat per commit:
 
 ### 2. Reproduce
 **What:** Get the smallest reliable reproduction. Claude can't play, so a repro is exact in-game steps for the user plus the devlog output that shows the bug. When the devlog doesn't say enough, add an `ns.log` line at the suspected point, have the user repeat the steps and `/rl`, and read it again.
-Before launch, a repro is a written trace through the code and the Forever source that arrives at the wrong behavior, marked unconfirmed.
+If the user can't play right now, a written trace through the code and the Forever source that arrives at the wrong behavior can stand in, marked unconfirmed until it's seen in game.
 Can't reproduce? Keep gathering evidence (Phase 1) rather than fixing blind. A fix for an unreproduced bug is a guess, and you can't show it worked.
 
 ### 3. Find the root cause
@@ -48,14 +48,14 @@ Can't reproduce? Keep gathering evidence (Phase 1) rather than fixing blind. A f
 - **A LuaLS diagnostic**, when the bug was a wrong call: an annotation in `types/forever.lua` that makes the mistake a lint error, so it can't come back.
 - **Pure logic** (parsers, matchers, math): a worked example in the PR (input, wrong output, right output) that a reviewer can check by reading.
 
-Before launch, the tag's expected values become a launch check.
+If the fix can't be tested in game yet, the tag's expected values become an in-game check the user runs later.
 
 ### 5. Make the minimal fix
 **What:** Change only what the root cause requires. **One hat:** no drive-by refactors or cleanups in the fix commit. If the fix needs restructuring, land that as a separate `refactor` commit first, under the refactor workflow's safety-net rules.
 The fix still honors the CLAUDE.md conventions. A change to what an addon stores still gets `savedvariables-guard`, even in a hurry, and if the bug wrote bad data into players' SavedVariables, the fix includes a migration that repairs it.
 
 ### 6. Verify
-**What:** The check from Phase 4 now shows the right behavior, the original repro no longer reproduces (rerun it; don't only check the new tag), `scripts/devlog.sh --errors` is clean, and the [pre-PR gate](./feature-workflow.md#pre-pr-gate) is green. Before launch: the fix is checked by trace and the PR says it's untested in game.
+**What:** The check from Phase 4 now shows the right behavior, the original repro no longer reproduces (rerun it; don't only check the new tag), `scripts/devlog.sh --errors` is clean, and the [pre-PR gate](./feature-workflow.md#pre-pr-gate) is green. Only if the user can't test now: check the fix by trace and say in the PR that it's untested in game.
 
 ### 7. Review & ship
 **What:**

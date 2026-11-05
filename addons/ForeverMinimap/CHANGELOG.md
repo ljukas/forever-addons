@@ -8,6 +8,8 @@
   nodes as you move and turn.
 - A node's icon disappears once you've looted it.
 - Poor Copper Veins get the ore icon too.
+- Each node's icon shows what it gives: Copper Ore on a Copper Vein, Peacebloom on Peacebloom,
+  and so on, still inside the gold tracking ring.
 - Nodes in caves get a dimmed icon.
 - The icons grow and shrink with the minimap's Icon Scale in Edit Mode, like the game's own
   minimap icons. Turn them on or off under Options → AddOns → ForeverMinimap.

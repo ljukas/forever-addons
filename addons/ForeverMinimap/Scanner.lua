@@ -319,13 +319,17 @@ local function Settle()
 			if sweep.mapID then
 				table.insert(markers, {
 					kind = ns.Nodes[name],
+					item = ns.NodeItems[name],
 					gray = gray,
 					mapID = sweep.mapID,
 					mapX = dot.x / sweep.width,
 					mapY = dot.y / sweep.height,
 				})
 			else
-				table.insert(markers, { kind = ns.Nodes[name], gray = gray, ox = dot.x, oy = dot.y })
+				table.insert(
+					markers,
+					{ kind = ns.Nodes[name], item = ns.NodeItems[name], gray = gray, ox = dot.x, oy = dot.y }
+				)
 			end
 		end
 	end

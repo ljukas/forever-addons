@@ -224,6 +224,18 @@ local function Hook(frame)
 	hooksecurefunc(frame, "RegisterForDrag", OnForeignRegisterForDrag)
 end
 
+-- Sets a frame's strata and level, then fixes each again if `fixedStrata` / `fixedLevel` say so.
+-- A fixed strata or level ignores SetFrameStrata / SetFrameLevel, and LibDBIcon fixes its buttons at
+-- MEDIUM 8, under the open strip and the frames round the minimap; so the fix is lifted for the set.
+local function SetLayer(frame, strata, level, fixedStrata, fixedLevel)
+	frame:SetFixedFrameStrata(false)
+	frame:SetFixedFrameLevel(false)
+	frame:SetFrameStrata(strata)
+	frame:SetFrameLevel(level)
+	frame:SetFixedFrameStrata(fixedStrata)
+	frame:SetFixedFrameLevel(fixedLevel)
+end
+
 local function Collect(frame, entry)
 	if collected[frame] or entry.fighting then
 		return
@@ -244,7 +256,8 @@ local function Collect(frame, entry)
 	-- Nor a parent, strata, level or scale we can't read.
 	local parent, scale = frame:GetParent(), frame:GetScale()
 	local strata, level = frame:GetFrameStrata(), frame:GetFrameLevel()
-	if IsSecret(parent, strata, level, scale) then
+	local fixedStrata, fixedLevel = frame:HasFixedFrameStrata(), frame:HasFixedFrameLevel()
+	if IsSecret(parent, strata, level, scale, fixedStrata, fixedLevel) then
 		if ns.dev.enabled then
 			ns.dev:LogOnce("secret:" .. entry.key, "BAG", "secret", "frame values", entry.key)
 		end
@@ -256,6 +269,8 @@ local function Collect(frame, entry)
 		points = points,
 		strata = strata,
 		level = level,
+		fixedStrata = fixedStrata,
+		fixedLevel = fixedLevel,
 		scale = scale,
 		key = entry.key,
 		label = entry.label,
@@ -265,9 +280,7 @@ local function Collect(frame, entry)
 	}
 	layingOut = true
 	frame:SetParent(container)
-	-- LibDBIcon buttons have a fixed strata and level and keep theirs, which is fine.
-	frame:SetFrameStrata(container:GetFrameStrata())
-	frame:SetFrameLevel(container:GetFrameLevel() + 2)
+	SetLayer(frame, container:GetFrameStrata(), container:GetFrameLevel() + 2, fixedStrata, fixedLevel)
 	layingOut = false
 	-- LibDBIcon's showOnMouseover fades a button out; in the bag it is always visible. Release's
 	-- Refresh hands the alpha back to LibDBIcon, and the saved one is put back first in case it doesn't.
@@ -294,8 +307,7 @@ function Release(frame)
 	layingOut = true
 	frame:SetParent(saved.parent)
 	frame:SetScale(saved.scale)
-	frame:SetFrameStrata(saved.strata)
-	frame:SetFrameLevel(saved.level)
+	SetLayer(frame, saved.strata, saved.level, saved.fixedStrata, saved.fixedLevel)
 	local lib = saved.libDBIcon and LibDBIcon()
 	if lib then
 		-- LibDBIcon locks a button by clearing its drag scripts, not its drag registration, so the

@@ -77,7 +77,10 @@ ns.OnInitialize(function()
 
 	local scale = Register("buttonBagScale", Settings.VarType.Number, L.BUTTON_BAG_SCALE)
 	local scaleOptions = Settings.CreateSliderOptions(ns.Options.SCALE_MIN, ns.Options.SCALE_MAX, ns.Options.SCALE_STEP)
-	scaleOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, FormatPercentage)
+	-- Rounded, so a step that lands on 0.6999 still reads 70%.
+	scaleOptions:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
+		return FormatPercentage(value, true)
+	end)
 	local scaleInitializer = Settings.CreateSlider(category, scale, scaleOptions, L.BUTTON_BAG_SCALE_TOOLTIP)
 	scaleInitializer:SetParentInitializer(bagInitializer, function()
 		return bag:GetValue()

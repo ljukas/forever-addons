@@ -11,4 +11,5 @@
 #@end-do-not-package@
 
 Core.lua
+Knowledge.lua
 Wash.lua

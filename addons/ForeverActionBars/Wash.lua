@@ -102,9 +102,7 @@ hooksecurefunc("ActionButton_UpdateRangeIndicator", function(button, checksRange
 		if ns.dev.enabled then
 			LogSecrets("pet", checksRange, inRange)
 		end
-		if ns.Knowledge then
-			ns.Knowledge.PetRange(button, checksRange, inRange)
-		end
+		ns.Knowledge.PetRange(button, checksRange, inRange)
 	end
 end)
 

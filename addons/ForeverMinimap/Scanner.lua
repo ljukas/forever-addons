@@ -186,6 +186,35 @@ end
 
 -- The known nodes named under a minimap offset, as from Lines.Parse, or nil. Secret tooltip
 -- data (restricted states) reads as nothing.
+-- What Lines.Parse made of each tooltip line, by its text: { r, g, b, nodes }. A quest area
+-- covers much of the minimap, so most probes of a sweep read the same objective lines, and each
+-- is parsed (and, in dev, logged) once instead of at every probe. Emptied when it holds
+-- PARSED_MAX texts, so changing quest progress can't grow it without end.
+local PARSED_MAX = 200
+local parsed, parsedCount = {}, 0
+
+local function Parse(text, r, g, b)
+	local entry = parsed[text]
+	if entry and entry.r == r and entry.g == g and entry.b == b then
+		return entry.nodes
+	end
+	if ns.dev.enabled then
+		local started = debugprofilestop()
+		LogLine(text, r, g, b)
+		stats.dev = stats.dev + debugprofilestop() - started
+	end
+	if not entry then
+		if parsedCount >= PARSED_MAX then
+			wipe(parsed)
+			parsedCount = 0
+		end
+		parsedCount = parsedCount + 1
+	end
+	local nodes = ns.Lines.Parse(text, r, g, b)
+	parsed[text] = { r = r, g = g, b = b, nodes = nodes }
+	return nodes
+end
+
 local function ReadPoint(rect, ox, oy)
 	local half = rect.width / 2
 	local started = ns.dev.enabled and debugprofilestop()
@@ -211,12 +240,7 @@ local function ReadPoint(rect, ox, oy)
 		local text = Usable(line) and line.leftText or nil
 		if Usable(text) then
 			local r, g, b = LineColor(line)
-			if ns.dev.enabled then
-				local logStarted = debugprofilestop()
-				LogLine(text, r, g, b)
-				stats.dev = stats.dev + debugprofilestop() - logStarted
-			end
-			for _, node in ipairs(ns.Lines.Parse(text, r, g, b)) do
+			for _, node in ipairs(Parse(text, r, g, b)) do
 				nodes = nodes or {}
 				table.insert(nodes, node)
 			end

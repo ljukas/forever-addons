@@ -227,5 +227,30 @@ local function Draw()
 	HideFrom(shown + 1)
 end
 
+-- Dev only: the time Draw takes, as a DRAW line every DRAW_EVERY seconds the minimap is shown.
+local DRAW_EVERY = 30
+local drawn = { seconds = 0, frames = 0, ms = 0, worst = 0 }
+
+local function DrawTimed(_, elapsed)
+	local started = debugprofilestop()
+	Draw()
+	local ms = debugprofilestop() - started
+	drawn.seconds, drawn.frames = drawn.seconds + elapsed, drawn.frames + 1
+	drawn.ms, drawn.worst = drawn.ms + ms, math.max(drawn.worst, ms)
+	if drawn.seconds >= DRAW_EVERY then
+		ns.log(
+			"DRAW",
+			("%.0f s, %d frames: %.2f ms per second, %.3f ms per frame, worst frame %.2f ms"):format(
+				drawn.seconds,
+				drawn.frames,
+				drawn.ms / drawn.seconds,
+				drawn.ms / drawn.frames,
+				drawn.worst
+			)
+		)
+		drawn.seconds, drawn.frames, drawn.ms, drawn.worst = 0, 0, 0, 0
+	end
+end
+
 -- Only runs while the minimap is shown, since the container is its child.
-container:SetScript("OnUpdate", Draw)
+container:SetScript("OnUpdate", ns.dev.enabled and DrawTimed or Draw)

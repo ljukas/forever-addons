@@ -90,6 +90,7 @@ local sweeps = 0 -- dev only: sweeps since login
 local stats
 local function ResetStats()
 	stats = { sweeps = 0, coarse = 0, fine = 0, reused = 0, dots = 0, ms = 0, client = 0, dev = 0, worst = 0 }
+	stats.since = GetTime()
 end
 ResetStats()
 
@@ -482,7 +483,8 @@ local function Settle()
 				"SCAN",
 				(
 					"sweeps %d, per sweep of the last %d: %.0f+%.0f probes (grid %d/%d px) %.1f dots "
-					.. "%.1f groups reused %.2f ms (client %.2f, dev %.2f); worst frame %.2f ms; dot radius %.1f px"
+					.. "%.1f groups reused %.2f ms (client %.2f, dev %.2f); worst frame %.2f ms; dot radius %.1f px; "
+					.. "%.2f ms per second over %.0f s"
 				):format(
 					sweeps,
 					n,
@@ -496,7 +498,9 @@ local function Settle()
 					stats.client / n,
 					stats.dev / n,
 					stats.worst,
-					math.sqrt(dotArea / math.pi)
+					math.sqrt(dotArea / math.pi),
+					stats.ms / math.max(1, GetTime() - stats.since),
+					GetTime() - stats.since
 				)
 			)
 			ResetStats()

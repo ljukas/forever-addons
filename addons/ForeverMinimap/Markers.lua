@@ -8,10 +8,16 @@ local ADDON_NAME, ns = ...
 ns.Markers = {}
 
 local markers = {}
+local version = 0 -- counts every change, so the icons are only redrawn after one
 
 -- Replaces every marker with a scan's (Scanner.lua).
 function ns.Markers.Replace(list)
 	markers = list
+	version = version + 1
+end
+
+function ns.Markers.Version()
+	return version
 end
 
 function ns.Markers.Enumerate()
@@ -48,6 +54,7 @@ function ns.Markers.RemoveNearPlayer(yards, pixelsPerYard)
 	end
 	if nearest and nearestYards <= yards then
 		table.remove(markers, nearest)
+		version = version + 1
 		return true, nearestYards
 	end
 	return false, nearestYards

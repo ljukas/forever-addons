@@ -1,7 +1,8 @@
 local ADDON_NAME, ns = ...
 
--- Draws an icon on each marker (Markers.lua), every frame, from the player's current position
--- and facing, so the icons move with the minimap exactly; scans only add and drop markers.
+-- Draws an icon on each marker (Markers.lua) from the player's current position and facing, in
+-- every frame where they, the zoom or the markers changed, so the icons move with the minimap
+-- exactly; scans only add and drop markers.
 
 -- The tracking icons, for a herb or ore whose item has no icon (Data/Nodes.lua). Chests use
 -- Find Treasure's icon instead (TreasureIcon).
@@ -141,6 +142,8 @@ function ForeverMinimapNodeIconMixin:SetNode(kind, item, gray, size)
 			texture:SetVertexColor(shade, shade, shade)
 		end
 	end
+	-- Whether the icon is final: false while the client still owes an icon it will be asked for again.
+	return icon ~= nil or (kind ~= "treasure" and item == nil)
 end
 
 -- The icons follow the minimap's icon scale (Edit Mode → Minimap → Icon Scale), as the game's
@@ -187,18 +190,49 @@ local function HideFrom(first)
 	end
 end
 
+-- What the icons were last drawn from. While none of it changes (the player stands still, no
+-- scan changed the markers) the icons are already right, and drawing them again every frame
+-- is wasted work.
+local drawnFrom = {}
+
+local function SameAsDrawn(version, width, size, view)
+	local last = drawnFrom
+	if not (last.complete and last.version == version and last.width == width and last.size == size) then
+		return false
+	end
+	if not view then
+		return last.view == false
+	end
+	local other = last.view
+	return other
+		and other.mapID == view.mapID
+		and other.px == view.px
+		and other.py == view.py
+		and other.facing == view.facing
+		and other.pixelsPerYard == view.pixelsPerYard
+end
+
 local function Draw()
 	if ns.Markers.IsEmpty() then
-		HideFrom(1)
+		if drawnFrom.version then
+			HideFrom(1)
+			drawnFrom = {}
+		end
 		return
 	end
 	local width = Minimap:GetWidth()
 	if not width or issecretvalue(width) then
 		HideFrom(1)
+		drawnFrom = {}
 		return
 	end
 	local view = ns.Scanner.CurrentView()
 	local size = math.max(1, Round(BASE_SIZE * iconScale))
+	local version = ns.Markers.Version()
+	if SameAsDrawn(version, width, size, view) then
+		return
+	end
+	local complete = true
 	-- Whole icons only: one past the minimap's round edge isn't drawn.
 	local maxDistance = width / 2 - 0.75 * size - EDGE_MARGIN
 	local shown = 0
@@ -218,13 +252,16 @@ local function Draw()
 				icon = CreateFrame("Frame", nil, container, "ForeverMinimapNodeIconTemplate") --[[@as ForeverMinimapNodeIconMixin]]
 				icons[shown] = icon
 			end
-			icon:SetNode(marker.kind, marker.item, marker.gray, size)
+			if not icon:SetNode(marker.kind, marker.item, marker.gray, size) then
+				complete = false
+			end
 			icon:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
 			icon:SetAlpha(distance < OVER_PLAYER * size and OVER_PLAYER_ALPHA or 1)
 			icon:Show()
 		end
 	end
 	HideFrom(shown + 1)
+	drawnFrom = { version = version, width = width, size = size, view = view or false, complete = complete }
 end
 
 -- Dev only: the time Draw takes, as a DRAW line every DRAW_EVERY seconds the minimap is shown.

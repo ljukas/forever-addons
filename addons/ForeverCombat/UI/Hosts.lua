@@ -1,7 +1,7 @@
 local ADDON_NAME, ns = ...
 
--- The Blizzard unit frames the meters draw on: the target and focus frames, whose health
--- bars Blizzard already overlays with heal prediction and absorb segments. Every module gets
+-- The Blizzard unit frames the meters draw on: the target, focus and player frames, whose
+-- health bars Blizzard already overlays with heal prediction and absorb segments. Every module gets
 -- its own segments and cue per host, parented to the health bar beside Blizzard's. Only this
 -- file knows Blizzard's frame paths, so nameplates or party frames would be another host with
 -- their own Get* paths.
@@ -23,29 +23,36 @@ local hosts = {}
 local hostsByFrame = {}
 
 ---@class ForeverCombatHost
----@field frame TargetFrame
+---@field frame TargetFrame|PlayerFrame
 ---@field unit string
+---@field setting string? ForeverCombatDB.settings key that turns the host on, if it has one
 ---@field healthBar TargetFrameHealthBar
 ---@field mask MaskTexture
 local HostMixin = {}
 
-function HostMixin:Init(frame, unit)
+---@param container TargetFrameHealthBarsContainer
+function HostMixin:Init(frame, unit, container, setting)
 	self.frame = frame
 	self.unit = unit
-	local container = frame.TargetFrameContent.TargetFrameContentMain.HealthBarsContainer
+	self.setting = setting
 	self.healthBar = container.HealthBar
 	self.mask = container.HealthBarMask
 	self.meters = {}
+	-- The round portrait the DoT meter washes red. Only the target and focus frames have this
+	-- container; the player host goes without, since DoTs never draw on the player.
+	local frameContainer = frame.TargetFrameContainer
+	-- Blizzard's own segments carry the frame's atlas (PlayerFrameBarSegmentTemplate, ...).
+	local fillAtlas = self.healthBar.MyHealPredictionBar.fillAtlas
 	for _, module in ns.Modules.Enumerate() do
 		local meter = { segments = {} }
 		for index = 1, MAX_SEGMENTS do
 			local segment = CreateFrame("StatusBar", nil, self.healthBar, "ForeverCombatSegmentTemplate")
-			segment:Init(self.healthBar, self.mask, module.color, module.reverse)
+			segment:Init(self.healthBar, self.mask, module.color, module.reverse, fillAtlas)
 			meter.segments[index] = segment
 		end
 		meter.cue = ns.Cue.CreateBarEnd(self.healthBar, self.mask, module.cue.side, module.cue.glowTemplate)
-		if module.portraitCue then
-			meter.portraitCue = ns.Cue.CreatePortrait(frame.TargetFrameContainer)
+		if module.portraitCue and frameContainer then
+			meter.portraitCue = ns.Cue.CreatePortrait(frameContainer)
 		end
 		self.meters[module] = meter
 	end
@@ -60,28 +67,29 @@ function HostMixin:Init(frame, unit)
 		ns.log("HOST", unit, "bar width", width, "secret", issecretvalue(width), "layer", layer, subLevel)
 
 		-- For the portrait launch checks: its size and what draws around the red.
-		local frameContainer = frame.TargetFrameContainer
-		local portrait = frameContainer.Portrait
-		local combo = ComboFrame
-		ns.log(
-			"HOST",
-			unit,
-			"portrait",
-			portrait:GetWidth(),
-			portrait:GetHeight(),
-			"scale",
-			frame:GetEffectiveScale(),
-			"layer",
-			portrait:GetDrawLayer(),
-			"ring layer",
-			frameContainer.FrameTexture:GetDrawLayer(),
-			"container",
-			frameContainer:GetFrameStrata(),
-			frameContainer:GetFrameLevel(),
-			"combo",
-			combo and combo:GetFrameStrata(),
-			combo and combo:GetFrameLevel()
-		)
+		if frameContainer then
+			local portrait = frameContainer.Portrait
+			local combo = ComboFrame
+			ns.log(
+				"HOST",
+				unit,
+				"portrait",
+				portrait:GetWidth(),
+				portrait:GetHeight(),
+				"scale",
+				frame:GetEffectiveScale(),
+				"layer",
+				portrait:GetDrawLayer(),
+				"ring layer",
+				frameContainer.FrameTexture:GetDrawLayer(),
+				"container",
+				frameContainer:GetFrameStrata(),
+				frameContainer:GetFrameLevel(),
+				"combo",
+				combo and combo:GetFrameStrata(),
+				combo and combo:GetFrameLevel()
+			)
+		end
 	end
 end
 
@@ -92,6 +100,25 @@ function HostMixin:UpdateWidth()
 			segment:SetWidth(width)
 		end
 	end
+end
+
+-- Why the host draws nothing now, or nil when it draws: it's turned off, its frame is hidden,
+-- the frame shows another unit (the player frame shows the vehicle while the player is in
+-- one), or the unit is dead.
+function HostMixin:GetHiddenReason()
+	if self.setting and not ns.Options.Get(self.setting) then
+		return "off"
+	elseif not self.frame:IsVisible() then
+		return "hidden"
+	elseif self.frame.unit ~= self.unit then
+		return "shows " .. tostring(self.frame.unit)
+	elseif UnitIsDeadOrGhost(self.unit) then
+		return "dead"
+	end
+end
+
+function HostMixin:IsShowing()
+	return not self:GetHiddenReason()
 end
 
 -- The green health fill.
@@ -162,13 +189,15 @@ end
 -- Returns true while any effect is shown.
 function HostMixin:Refresh(now)
 	local unit = self.unit
-	local key = self.frame:IsVisible() and not UnitIsDeadOrGhost(unit) and ns.Units.Key(unit)
+	local hiddenReason = self:GetHiddenReason()
+	local key = not hiddenReason and ns.Units.Key(unit)
 	local anyShown = false
 	-- For the DISPLAY log only: what's shown, with the signature leaving out the totals so it's
 	-- logged when what's shown changes, not on every refresh.
-	local signature, shown
+	local state, signature, shown
 	if ns.dev.enabled then
-		signature, shown = key or "none", {}
+		state = key or ("none (" .. (hiddenReason or "no unit") .. ")")
+		signature, shown = state, {}
 	end
 	for _, module in ns.Modules.Enumerate() do
 		local meter = self.meters[module]
@@ -192,7 +221,7 @@ function HostMixin:Refresh(now)
 	end
 
 	if shown then
-		ns.dev:LogChanged("display " .. unit, signature, "DISPLAY", unit, key or "none", table.concat(shown, " "))
+		ns.dev:LogChanged("display " .. unit, signature, "DISPLAY", unit, state, table.concat(shown, " "))
 	end
 	return anyShown
 end
@@ -217,15 +246,26 @@ local function OnUpdate(_, elapsed)
 	end
 end
 
-local function AddHost(frame, unit)
+-- hookVisuals(func) hooks func to where Blizzard re-anchors and resizes the frame's health bar.
+local function AddHost(frame, unit, container, hookVisuals, setting)
 	local host = CreateFromMixins(HostMixin)
-	host:Init(frame, unit)
+	host:Init(frame, unit, container, setting)
 	table.insert(hosts, host)
 	hostsByFrame[frame] = host
 
-	-- The cue follows the health; Blizzard re-anchors the bar on target changes.
+	-- The cue follows the health. The player frame comes back (Alt+Z, cinematics) with no
+	-- event that would redraw it.
 	host.healthBar:HookScript("OnValueChanged", MarkDirty)
-	hooksecurefunc(frame, "UpdateHealthBarVisuals", MarkDirty)
+	frame:HookScript("OnShow", MarkDirty)
+	hookVisuals(MarkDirty)
+end
+
+-- Blizzard re-anchors the target and focus health bars on unit changes.
+local function AddTargetHost(frame, unit)
+	local container = frame.TargetFrameContent.TargetFrameContentMain.HealthBarsContainer
+	AddHost(frame, unit, container, function(func)
+		hooksecurefunc(frame, "UpdateHealthBarVisuals", func)
+	end)
 end
 
 function ns.Hosts.ForFrame(frame)
@@ -234,8 +274,13 @@ end
 
 ns.OnInitialize(function()
 	EventUtil.ContinueOnAddOnLoaded("Blizzard_UnitFrame", function()
-		AddHost(TargetFrame, "target")
-		AddHost(FocusFrame, "focus")
+		AddTargetHost(TargetFrame, "target")
+		AddTargetHost(FocusFrame, "focus")
+		-- On the player frame it's a global function, not a method. Blizzard calls it entering
+		-- and leaving a vehicle, which also changes PlayerFrame.unit.
+		AddHost(PlayerFrame, "player", PlayerFrame_GetHealthBarContainer(), function(func)
+			hooksecurefunc("PlayerFrame_UpdateHealthBarVisuals", func)
+		end, "hotPlayerFrame")
 		-- HoT segments follow Blizzard's incoming heal segments, which it shows and hides here.
 		hooksecurefunc("UnitFrameHealPredictionBars_Update", MarkDirty)
 

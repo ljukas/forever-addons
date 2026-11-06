@@ -1,8 +1,11 @@
 local ADDON_NAME, ns = ...
 
+local L = ns.L
+
 -- Options > AddOns > ForeverCombat: a checkbox per module, and under it, indented and greyed out
--- while the module is off, one for its portrait cue if it has one. The registered settings write
--- straight into ForeverCombatDB.settings, and registering one fills in its default.
+-- while the module is off, one for its portrait cue if it has one, and the HoT meter's one for the
+-- player frame host (UI/Hosts.lua). The registered settings write straight into
+-- ForeverCombatDB.settings, and registering one fills in its default.
 ns.Options = {}
 
 local function GetVariable(key)
@@ -30,6 +33,14 @@ local function AddCheckbox(category, key, label, tooltip)
 	return Settings.CreateCheckbox(category, setting, tooltip)
 end
 
+-- Adds a checkbox nested under the module's, greyed out while the module is off.
+local function AddChild(category, module, parent, key, label, tooltip)
+	local child = AddCheckbox(category, key, label, tooltip)
+	child:SetParentInitializer(parent, function()
+		return ns.Options.Get(module.setting)
+	end)
+end
+
 ns.OnInitialize(function()
 	local category = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)
 
@@ -37,10 +48,11 @@ ns.OnInitialize(function()
 		local initializer = AddCheckbox(category, module.setting, module.label, module.tooltip)
 		local portraitCue = module.portraitCue
 		if portraitCue then
-			local child = AddCheckbox(category, portraitCue.setting, portraitCue.label, portraitCue.tooltip)
-			child:SetParentInitializer(initializer, function()
-				return ns.Options.Get(module.setting)
-			end)
+			AddChild(category, module, initializer, portraitCue.setting, portraitCue.label, portraitCue.tooltip)
+		end
+		if module.key == "hot" then
+			-- Only HoTs draw on the player, so this one is the HoT meter's.
+			AddChild(category, module, initializer, "hotPlayerFrame", L.HOT_PLAYER_FRAME, L.HOT_PLAYER_FRAME_TOOLTIP)
 		end
 	end
 

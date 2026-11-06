@@ -23,6 +23,10 @@ local GLOW_INSET = 7
 local PORTRAIT_SIZE = 58
 -- How far inside the portrait's edge the red stops, clear of the gold ring (tune in game).
 local PORTRAIT_MASK_INSET = 3
+-- The gold ring (part of the frame's atlas) isn't centred on the portrait texture: its hole sits
+-- a little right of and below it. Moves the red's circle by this much (tune in game).
+local PORTRAIT_MASK_OFFSET_X = 1
+local PORTRAIT_MASK_OFFSET_Y = -1
 -- How strongly the red covers the portrait (tune in game).
 local PORTRAIT_OVERLAY_ALPHA = 0.5
 
@@ -35,7 +39,19 @@ local CueMixin = {}
 function CueMixin:Set(maxValue, total)
 	self.bar:SetMinMaxValues(0, maxValue)
 	self.bar:SetValue(total)
+	self:RaiseAboveParent()
 	self.window:Show()
+end
+
+-- A frame at its parent's level doesn't reliably draw above the parent's own textures: in game
+-- the target frame's portrait and frame art covered the red. So the window sits one level up,
+-- set again on every show because Blizzard re-layers the unit frames (Edit Mode) after load.
+-- DoesItDie (swirllyman/DoesItDie, Display.lua) re-raises its kill skull for the same reason.
+function CueMixin:RaiseAboveParent()
+	local level = self.window:GetParent():GetFrameLevel()
+	if not issecretvalue(level) and self.window:GetFrameLevel() ~= level + 1 then
+		self.window:SetFrameLevel(level + 1)
+	end
 end
 
 function CueMixin:Hide()
@@ -48,7 +64,6 @@ local function NewCue(parent, riderWidth)
 	local cue = CreateFromMixins(CueMixin)
 
 	local window = CreateFrame("Frame", nil, parent)
-	window:SetUsingParentLevel(true)
 	window:SetClipsChildren(true)
 	window:Hide()
 	cue.window = window
@@ -120,8 +135,9 @@ function ns.Cue.CreatePortrait(container)
 
 	local mask = cue.window:CreateMaskTexture()
 	mask:SetAtlas("CircleMask", false, nil, nil, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-	mask:SetPoint("TOPLEFT", portrait, "TOPLEFT", PORTRAIT_MASK_INSET, -PORTRAIT_MASK_INSET)
-	mask:SetPoint("BOTTOMRIGHT", portrait, "BOTTOMRIGHT", -PORTRAIT_MASK_INSET, PORTRAIT_MASK_INSET)
+	local x, y = PORTRAIT_MASK_OFFSET_X, PORTRAIT_MASK_OFFSET_Y
+	mask:SetPoint("TOPLEFT", portrait, "TOPLEFT", PORTRAIT_MASK_INSET + x, -PORTRAIT_MASK_INSET + y)
+	mask:SetPoint("BOTTOMRIGHT", portrait, "BOTTOMRIGHT", -PORTRAIT_MASK_INSET + x, PORTRAIT_MASK_INSET + y)
 
 	local red = RED_FONT_COLOR
 	local overlay = cue.bar:CreateTexture(nil, "ARTWORK")

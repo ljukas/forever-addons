@@ -9,6 +9,8 @@
 - **Red portrait when your DoTs will kill:** as soon as your damage over time spells have enough
   damage left to finish off your target or focus, its portrait turns red, so you know at a
   glance to switch targets. Turn it off under DoT Meter in the addon's options.
+- The red portrait stays inside the portrait's round frame instead of also tinting the gold
+  ring and a square around it.
 - **HoT meter:** your heal over time spells extend a friendly target's or focus's health bar by
   the healing they still have to do. When they reach the end of the bar, it glows: they'll heal
   it to full.

@@ -29,6 +29,7 @@ files["template/Addon/**"].globals = { "__ADDON__DB" }
 files["addons/ForeverCombat/**"].globals = {
 	"ForeverCombatDB",
 	"ForeverCombatSegmentMixin",
+	"SLASH_FOREVERCOMBAT_PROBE1",
 }
 
 files["addons/ForeverDev/**"].globals = {

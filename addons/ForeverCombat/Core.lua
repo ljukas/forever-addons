@@ -8,7 +8,7 @@ local ADDON_NAME, ns = ...
 --   SEEN TRACK TICK MISS AVOID END UNLISTED NOTREAD  Engine/Knowledge.lua, which keeps the aggregates
 --   SECRET                                           Engine/Knowledge.lua
 --   HOST DISPLAY                                     UI/Hosts.lua
---   AURA                                             Dev/Probes.lua
+--   AURA PORTRAIT                                    Dev/Probes.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.

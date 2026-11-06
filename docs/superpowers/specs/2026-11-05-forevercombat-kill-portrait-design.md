@@ -54,6 +54,11 @@ finish the target off**, so you can move on to the next one.
   `RED_FONT_COLOR`) rather than an opaque red disc, so you still see who it is; Blizzard
   reddens low-health player portraits the same way. *Amended in review:* a multiply alone mostly
   darkens dark portraits, so the same red at 0.35 alpha (`BLEND`) goes over it. Tune in game.
+  *Amended after the first in-game run (6 Nov 2026):* `MOD` ignores alpha, so the circle mask
+  can't clip it and the whole square went red, ring included. The wash is now the `BLEND` red
+  alone, at 0.5 alpha. It also drew under the target frame's own portrait and ring when it
+  shared their frame level, so each cue now raises itself one level above its parent on every
+  show, and its circle sits 1px right and down to centre it in the ring (confirmed by eye).
 - **Same start as the glow.** Each cue's long bar is its rider's width / 0.0016, so the 58px
   portrait rider starts wiping in at the same total as the 16px glow (*amended in review*).
 - **Generalise the cue rather than duplicate it.** `ns.Cue` already does "show this texture

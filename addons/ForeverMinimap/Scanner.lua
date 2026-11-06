@@ -1,6 +1,6 @@
 local ADDON_NAME, ns = ...
 
--- Finds the herb and ore tracking dots on the minimap (ADR 0001). The client tells addons nothing
+-- Finds the herb, ore and chest tracking dots on the minimap (ADR 0001). The client tells addons nothing
 -- about tracked nodes, but the minimap names what is under a point: with its soft cursor on,
 -- Minimap:UpdateMouseoverAtPoint moves the minimap's mouseover there and
 -- C_TooltipInfo.GetMinimapMouseover reads the names.

@@ -11,6 +11,8 @@
 - Each node's icon shows what it gives: Copper Ore on a Copper Vein, Peacebloom on Peacebloom,
   and so on, still inside the gold tracking ring.
 - Nodes in caves get a dimmed icon.
+- Treasure chests that Find Treasure shows get an icon too: Find Treasure's own chest icon in
+  the same gold ring, instead of a plain yellow dot. It disappears once you've looted the chest.
 - The icons grow and shrink with the minimap's Icon Scale in Edit Mode, like the game's own
   minimap icons. Turn them on or off under Options → AddOns → ForeverMinimap.
 - Looking for nodes on the minimap takes about half the CPU it did, and much less while you

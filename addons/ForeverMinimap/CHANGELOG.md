@@ -15,6 +15,8 @@
   the same gold ring, instead of a plain yellow dot. It disappears once you've looted the chest.
 - The icons grow and shrink with the minimap's Icon Scale in Edit Mode, like the game's own
   minimap icons. Turn them on or off under Options → AddOns → ForeverMinimap.
+- Looking for nodes on the minimap takes about half the CPU it did, and much less while you
+  stand still, without the short spikes every second or two.
 - Other addons' minimap buttons are gathered behind one button on the minimap's edge. Click it
   to fold the buttons out, click again to fold them away.
 - Drag the button around the minimap's edge to put it where you like, and choose which way

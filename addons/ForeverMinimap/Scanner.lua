@@ -14,16 +14,14 @@ local ADDON_NAME, ns = ...
 -- Positions in a sweep are "places": yards east and south on the zone map, or, where the client
 -- has no map position, minimap pixels from the center that don't follow the player.
 --
--- Dev log tags: SCAN (a summary every few sweeps, and each time the minimap hides), DOT (once per kind of dot seen), LINE (once
--- per distinct tooltip line and color), MISS (once per name that isn't a known node), LOOT
--- (what gathering removed).
+-- Dev log tags: SCAN (a summary of the last few sweeps, and each time the minimap hides), DOT
+-- (once per kind of dot seen), LINE (once per distinct tooltip line and color), MISS (once per
+-- name that isn't a known node), LOOT (what gathering removed).
 ns.Scanner = {}
 
-local COARSE = 8 -- coarse grid spacing, minimap pixels
-local FINE = 2 -- fine grid spacing, minimap pixels
-local PROBES_PER_FRAME = 60
+local PROBES_PER_FRAME = 30
 local INTERVAL_MOVING = 0.5 -- seconds between sweeps while the player moves or turns
-local INTERVAL_STILL = 1.5 -- and while standing still
+local INTERVAL_STILL = 2 -- and while standing still
 local INTERVAL_LONGEST = 3 -- the wait doubles after each sweep that found nothing, up to this
 local PAUSE = 0.25 -- seconds between checks while the mouse is over the minimap
 local REACH = 5 -- yards: how near the player a node gathered just now is
@@ -31,21 +29,69 @@ local TURN = 0.05 -- radians of turning that count as moving
 local SUMMARY_EVERY = 20 -- sweeps per SCAN log line
 
 -- The area one dot's hits cover, in minimap pixels: measured in every sweep (Settle), starting
--- from a guess in the middle of the hit radii NodeSight measured (11 to 24 px), within limits.
+-- from the hit radius measured in game at 100% icon scale (11.3 to 11.8 px), within limits.
 local MIN_AREA, MAX_AREA = math.pi * 3 ^ 2, math.pi * 32 ^ 2
-local dotArea = math.pi * 16 ^ 2
+local dotArea = math.pi * 12 ^ 2
+
+-- The grid spacings, in minimap pixels, follow a dot's radius. The coarse grid's half-diagonal
+-- is three quarters of a radius, so a dot gets a coarse hit even when it is a quarter smaller
+-- than learned; the fine grid takes about four steps per radius. Against Logic/Grid.lua on
+-- modelled dots, that finds the same dots as an 8 and 2 px grid with half the probes at 100%
+-- icon scale, and puts their middles within half a pixel on average.
+local COARSE_PER_RADIUS, MIN_COARSE, MAX_COARSE = 1.05, 6, 14
+local FINE_PER_RADIUS, MIN_FINE, MAX_FINE = 0.27, 2, 4
+
+-- A dot's radius is learned only from dots the coarse grid finds, so a grid laid out for big
+-- dots could keep missing small ones. The radius it is laid out for is therefore at most the
+-- one measured at 100% icon scale times the minimap's icon scale now (Edit Mode, 50% to 200%),
+-- in case the dots shrink with it.
+local RADIUS_AT_FULL_SCALE = 11.5
+
+local function Usable(value)
+	return value ~= nil and not issecretvalue(value)
+end
+
+-- The minimap's icon scale as Edit Mode holds it, or its smallest when it can't be read (it
+-- reads 0 until Edit Mode has set the minimap up).
+local function IconScale()
+	if not (MinimapCluster and MinimapCluster.GetSettingValue and Enum.EditModeMinimapSetting) then
+		return 0.5
+	end
+	local percent = MinimapCluster:GetSettingValue(Enum.EditModeMinimapSetting.IconScale)
+	if Usable(percent) and type(percent) == "number" and percent > 0 then
+		return percent / 100
+	end
+	return 0.5
+end
+
+local function Spacings()
+	local radius = math.min(math.sqrt(dotArea / math.pi), RADIUS_AT_FULL_SCALE * IconScale())
+	local coarse = math.max(MIN_COARSE, math.min(MAX_COARSE, math.floor(radius * COARSE_PER_RADIUS + 0.5)))
+	local fine = math.max(MIN_FINE, math.min(MAX_FINE, math.floor(radius * FINE_PER_RADIUS + 0.5)))
+	return coarse, fine
+end
 
 local sweep -- the sweep running now, or nil
 local wait = 0 -- seconds until the next sweep
 local empties = 0 -- sweeps in a row that found nothing
 local cleared = false -- whether the markers were cleared since the icons were last enabled
 local last = {} -- where the player was when the last sweep started: { x, y, facing }
-local layout, layoutWidth -- the coarse grid keys, kept until the minimap's size changes
-local stats = { sweeps = 0, probes = 0, dots = 0, ms = 0, worst = 0 } -- dev only
-
-local function Usable(value)
-	return value ~= nil and not issecretvalue(value)
+local layout, layoutWidth, layoutStep -- the coarse grid keys, kept until the minimap's size or the spacing changes
+-- The fine hits of the last sweep that ran start to end with the player standing still: { view,
+-- coarse, fine, age, groups = { [Signature] = points } }, or nil. age counts the sweeps in a row
+-- that took them over; after REUSE_SWEEPS, every group is probed again. That bounds how long a
+-- change the coarse grid can't see (one of two touching nodes gathered) shows wrong.
+local kept
+local REUSE_SWEEPS = 4
+local sweeps = 0 -- dev only: sweeps since login
+-- Dev only: totals over the sweeps since the last SCAN line. ms is all the time spent in sweeps,
+-- client the part of it in the two client calls per probe, dev the part spent logging tooltip
+-- lines (players don't pay for that), worst the slowest frame.
+local stats
+local function ResetStats()
+	stats = { sweeps = 0, coarse = 0, fine = 0, reused = 0, dots = 0, ms = 0, client = 0, dev = 0, worst = 0 }
 end
+ResetStats()
 
 -- Minimap pixels per yard at the current zoom, or nil.
 function ns.Scanner.PixelsPerYard()
@@ -140,15 +186,53 @@ end
 
 -- The known nodes named under a minimap offset, as from Lines.Parse, or nil. Secret tooltip
 -- data (restricted states) reads as nothing.
+-- What Lines.Parse made of each tooltip line, by its text: { r, g, b, nodes }. A quest area
+-- covers much of the minimap, so most probes of a sweep read the same objective lines, and each
+-- is parsed (and, in dev, logged) once instead of at every probe. Emptied when it holds
+-- PARSED_MAX texts, so changing quest progress can't grow it without end.
+local PARSED_MAX = 200
+local parsed, parsedCount = {}, 0
+
+local function Parse(text, r, g, b)
+	local entry = parsed[text]
+	if entry and entry.r == r and entry.g == g and entry.b == b then
+		return entry.nodes
+	end
+	if ns.dev.enabled then
+		local started = debugprofilestop()
+		LogLine(text, r, g, b)
+		stats.dev = stats.dev + debugprofilestop() - started
+	end
+	if not entry then
+		if parsedCount >= PARSED_MAX then
+			wipe(parsed)
+			parsedCount = 0
+		end
+		parsedCount = parsedCount + 1
+	end
+	local nodes = ns.Lines.Parse(text, r, g, b)
+	parsed[text] = { r = r, g = g, b = b, nodes = nodes }
+	return nodes
+end
+
 local function ReadPoint(rect, ox, oy)
 	local half = rect.width / 2
+	local started = ns.dev.enabled and debugprofilestop()
 	Minimap:UpdateMouseoverAtPoint((rect.left + half + ox) * rect.scale, (rect.bottom + half + oy) * rect.scale)
 	local data = C_TooltipInfo.GetMinimapMouseover()
-	if not data or issecretvalue(data) or issecrettable(data) then
+	if started then
+		stats.client = stats.client + debugprofilestop() - started
+	end
+	if not data then
+		return nil
+	end
+	if issecretvalue(data) or issecrettable(data) then
+		sweep.blind = true
 		return nil
 	end
 	local lines = data.lines
 	if not lines or issecretvalue(lines) or issecrettable(lines) then
+		sweep.blind = sweep.blind or lines ~= nil
 		return nil
 	end
 	local nodes
@@ -156,13 +240,12 @@ local function ReadPoint(rect, ox, oy)
 		local text = Usable(line) and line.leftText or nil
 		if Usable(text) then
 			local r, g, b = LineColor(line)
-			if ns.dev.enabled then
-				LogLine(text, r, g, b)
-			end
-			for _, node in ipairs(ns.Lines.Parse(text, r, g, b)) do
+			for _, node in ipairs(Parse(text, r, g, b)) do
 				nodes = nodes or {}
 				table.insert(nodes, node)
 			end
+		elseif text ~= nil or not Usable(line) then
+			sweep.blind = true
 		end
 	end
 	return nodes
@@ -188,33 +271,68 @@ local function OnFineHit(probe, nodes)
 	end
 end
 
+-- Whether the minimap shows the same place in both views: the player hasn't moved, turned or
+-- zoomed in between.
+local function SameView(a, b)
+	return a ~= nil
+		and b ~= nil
+		and a.mapID == b.mapID
+		and a.px == b.px
+		and a.py == b.py
+		and a.facing == b.facing
+		and a.pixelsPerYard == b.pixelsPerYard
+end
+
+-- A group's name and coarse keys as one string. Sorts keys.
+local function Signature(name, keys)
+	table.sort(keys)
+	return name .. ":" .. table.concat(keys, ",")
+end
+
 -- Reached after the coarse probes: queues a fine grid, in places, over every group of hits.
+-- While the player stands still, a group whose coarse hits are the same as in the last sweep
+-- is the same dot, so it takes that sweep's fine hits instead of probing again.
 local function Refine(view)
 	local unit = view and 1 / view.pixelsPerYard or 1 -- places per minimap pixel
 	sweep.unit = unit
-	local reach = COARSE * unit
+	sweep.view = view
+	sweep.steady = SameView(view, sweep.start)
+	local reuse = sweep.steady
+		and kept
+		and kept.age < REUSE_SWEEPS
+		and SameView(view, kept.view)
+		and kept.coarse == sweep.coarseStep
+		and kept.fine == sweep.fineStep
+	sweep.reusing = reuse
+	local reach = sweep.coarseStep * unit
 	for name, seen in pairs(sweep.coarse) do
-		local placesByGroup = {}
-		for i, keys in ipairs(ns.Grid.Groups(seen)) do
+		local keysByGroup, placesByGroup = ns.Grid.Groups(seen), {}
+		for i, keys in ipairs(keysByGroup) do
 			placesByGroup[i] = {}
 			for _, key in ipairs(keys) do
 				table.insert(placesByGroup[i], seen[key])
 			end
 		end
 		for i, places in ipairs(placesByGroup) do
-			local others = {}
-			for j, theirs in ipairs(placesByGroup) do
-				if j ~= i then
-					for _, place in ipairs(theirs) do
-						table.insert(others, place)
+			local group = { name = name, points = {}, signature = Signature(name, keysByGroup[i]) }
+			table.insert(sweep.groups, group)
+			local points = reuse and kept.groups[group.signature]
+			if points then
+				group.points = points
+				sweep.reused = sweep.reused + 1
+			else
+				local others = {}
+				for j, theirs in ipairs(placesByGroup) do
+					if j ~= i then
+						for _, place in ipairs(theirs) do
+							table.insert(others, place)
+						end
 					end
 				end
-			end
-			local group = { name = name, points = {} }
-			table.insert(sweep.groups, group)
-			local cover = ns.Grid.Cover(places, reach, FINE * unit)
-			for _, point in ipairs(ns.Grid.Claim(cover, places, others, reach)) do
-				table.insert(sweep.queue, { x = point.x, y = point.y, group = group, onHit = OnFineHit })
+				local cover = ns.Grid.Cover(places, reach, sweep.fineStep * unit)
+				for _, point in ipairs(ns.Grid.Claim(cover, places, others, reach)) do
+					table.insert(sweep.queue, { x = point.x, y = point.y, group = group, onHit = OnFineHit })
+				end
 			end
 		end
 	end
@@ -243,7 +361,11 @@ local function Advance()
 				ox, oy = ToOffset(probe.x, probe.y, view)
 			end
 			if ox * ox + oy * oy <= reach * reach then
-				sweep.probes = sweep.probes + 1
+				if probe.x then
+					sweep.fineProbes = sweep.fineProbes + 1
+				else
+					sweep.coarseProbes = sweep.coarseProbes + 1
+				end
 				local nodes = ReadPoint(rect, ox, oy)
 				if nodes then
 					probe.onHit(probe, nodes, ToPlace(ox, oy, view))
@@ -256,7 +378,7 @@ end
 -- After the last probe: the groups' fine hits become dots, the dots markers.
 local function Settle()
 	local unit = sweep.unit or 1
-	local cellArea = (FINE * unit) ^ 2
+	local cellArea = (sweep.fineStep * unit) ^ 2
 
 	-- One dot's area first, from this sweep's round groups, which are mostly lone dots: their
 	-- median, so a round cluster of several nodes can't skew it. With a single round group it
@@ -335,23 +457,49 @@ local function Settle()
 	end
 	ns.Markers.Replace(markers)
 
+	-- Kept only when the player stood still through the whole sweep and every probe could be
+	-- read: a move during the fine pass can push some of its probes off the minimap, and a
+	-- restricted state can hide what is under them, and either leaves a group short of hits.
+	local age = sweep.reusing and kept.age + 1 or 0
+	kept = nil
+	if sweep.steady and not sweep.blind and SameView(ns.Scanner.CurrentView(), sweep.view) then
+		kept = { view = sweep.view, coarse = sweep.coarseStep, fine = sweep.fineStep, age = age, groups = {} }
+		for _, group in ipairs(sweep.groups) do
+			kept.groups[group.signature] = group.points
+		end
+	end
+
 	empties = #markers == 0 and empties + 1 or 0
 	wait = math.min(INTERVAL_LONGEST, (sweep.moved and INTERVAL_MOVING or INTERVAL_STILL) * 2 ^ empties)
 	if ns.dev.enabled then
-		stats.sweeps, stats.probes, stats.dots = stats.sweeps + 1, stats.probes + sweep.probes, stats.dots + #markers
-		if stats.sweeps == 1 or stats.sweeps % SUMMARY_EVERY == 0 then
+		sweeps = sweeps + 1
+		stats.sweeps, stats.dots = stats.sweeps + 1, stats.dots + #markers
+		stats.coarse, stats.fine = stats.coarse + sweep.coarseProbes, stats.fine + sweep.fineProbes
+		stats.reused = stats.reused + sweep.reused
+		if sweeps == 1 or sweeps % SUMMARY_EVERY == 0 then
 			local n = stats.sweeps
 			ns.log(
 				"SCAN",
-				("sweeps %d, per sweep: %.0f probes %.1f dots %.2f ms; worst frame %.2f ms; dot radius %.1f px"):format(
+				(
+					"sweeps %d, per sweep of the last %d: %.0f+%.0f probes (grid %d/%d px) %.1f dots "
+					.. "%.1f groups reused %.2f ms (client %.2f, dev %.2f); worst frame %.2f ms; dot radius %.1f px"
+				):format(
+					sweeps,
 					n,
-					stats.probes / n,
+					stats.coarse / n,
+					stats.fine / n,
+					sweep.coarseStep,
+					sweep.fineStep,
 					stats.dots / n,
+					stats.reused / n,
 					stats.ms / n,
+					stats.client / n,
+					stats.dev / n,
 					stats.worst,
 					math.sqrt(dotArea / math.pi)
 				)
 			)
+			ResetStats()
 		end
 	end
 	sweep = nil
@@ -370,23 +518,29 @@ local function Begin()
 		moved = view.px ~= last.x or view.py ~= last.y or math.abs(view.facing - (last.facing or 0)) > TURN
 		last.x, last.y, last.facing = view.px, view.py, view.facing
 	end
-	if layoutWidth ~= rect.width then
-		layout, layoutWidth = ns.Grid.Points(rect.width, COARSE), rect.width
+	local coarseStep, fineStep = Spacings()
+	if layoutWidth ~= rect.width or layoutStep ~= coarseStep then
+		layout, layoutWidth, layoutStep = ns.Grid.Points(rect.width, coarseStep), rect.width, coarseStep
 	end
 	sweep = {
 		mapID = view and view.mapID or false,
 		width = view and view.width,
 		height = view and view.height,
 		moved = moved,
+		start = view,
+		coarseStep = coarseStep,
+		fineStep = fineStep,
 		queue = {},
 		at = 1,
 		coarse = {},
 		groups = {},
-		probes = 0,
+		coarseProbes = 0, -- dev only: probes read, coarse and fine, and groups that kept their fine hits
+		fineProbes = 0,
+		reused = 0,
 	}
 	local half = rect.width / 2
 	for _, key in ipairs(layout) do
-		local ox, oy = math.floor(key / 1000) * COARSE - half, key % 1000 * COARSE - half
+		local ox, oy = math.floor(key / 1000) * coarseStep - half, key % 1000 * coarseStep - half
 		table.insert(sweep.queue, { ox = ox, oy = oy, key = key, onHit = OnCoarseHit })
 	end
 	table.insert(sweep.queue, { onReach = Refine })
@@ -422,9 +576,10 @@ local function Enabled()
 	return ns.Options.Get("showNodeIcons") and ns.Tracking.IsFinding()
 end
 
--- Starts a new sweep at the next frame, dropping one that is half done.
+-- Starts a new sweep at the next frame, dropping one that is half done, and probes every group
+-- again: what called it (looting, zooming, a new zone, a changed option) may have changed them.
 function ns.Scanner.ScanSoon()
-	sweep, wait, empties = nil, 0, 0
+	sweep, wait, empties, kept = nil, 0, 0, nil
 end
 
 -- Every frame while the minimap is shown (the frame is its child): a sweep, or the wait for it.

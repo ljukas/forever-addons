@@ -65,8 +65,10 @@ the tint getting stuck (for example on a slot emptied by a talent swap) and bein
   **Decided behaviour (Claude's call after the builder check):** the wash's visibility is
   driven by the client's secret-safe setters, `Region:SetAlphaFromBoolean(value, alphaIfTrue,
   alphaIfFalse)` (`SimpleRegionAPIDocumentation.lua`, `SecretArguments = "AllowedWhenTainted"`).
-  `checksRange` sets the overlay frame's alpha (true → 1, false → 0) and `inRange` sets the
-  wash's alpha (true → 0, false → the wash opacity). The two multiply, so the result is
+  *Amended in the plan:* no nested frame (a child frame would draw over the cooldown swipe).
+  Each overlay texture takes `checksRange` through `SetVertexColorFromBoolean` (red with
+  alpha 1 vs alpha 0) and `inRange` through `SetAlphaFromBoolean` (0 vs the opacity). Vertex
+  alpha and region alpha multiply, so the result is
   "shown only when checksRange and not inRange", with no comparison, negation or branch in Lua.
   It works the same whether the values are secret or not, and it can't stick: every update
   overwrites both alphas. `issecretvalue` is still used, but only for the `RANGE` logging.

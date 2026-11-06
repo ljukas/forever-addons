@@ -11,12 +11,32 @@ local ATLASES = {
 -- Item icons carry a dark border; Blizzard crops it off round item icons the same way.
 local ITEM_INSET = 0.08
 
+-- Seconds before asking the client again for an item icon it couldn't give.
+local ICON_RETRY = 1
+
+local itemIcons = {} -- [itemID] = icon file, once the client gave one
+local iconRetryAt = {} -- [itemID] = GetTime() after which to ask again
+
 -- The item's icon file, or nil: from the client's own item data, so no server query is needed.
+-- Icons are drawn every frame, so each is asked for once and kept.
 local function ItemIcon(item)
-	local icon = item and C_Item.GetItemIconByID(item)
-	if icon and not issecretvalue(icon) then
+	if not item then
+		return nil
+	end
+	local icon = itemIcons[item]
+	if icon then
 		return icon
 	end
+	local now = GetTime()
+	if iconRetryAt[item] and now < iconRetryAt[item] then
+		return nil
+	end
+	icon = C_Item.GetItemIconByID(item)
+	if icon and not issecretvalue(icon) then
+		itemIcons[item] = icon
+		return icon
+	end
+	iconRetryAt[item] = now + ICON_RETRY
 end
 
 -- The ring is about 2.5 times the icon, and its hole sits up and to the left of the texture's
@@ -57,7 +77,7 @@ local function Round(value)
 end
 
 function ForeverMinimapNodeIconMixin:SetNode(kind, item, gray, size)
-	-- An item whose icon the client couldn't give yet is tried again on the next draw.
+	-- An item whose icon the client couldn't give yet is tried again (ItemIcon's retry).
 	local icon = ItemIcon(item)
 	if self.kind ~= kind or self.item ~= item or self.icon ~= icon then
 		self.kind, self.item, self.icon = kind, item, icon

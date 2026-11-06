@@ -14,9 +14,9 @@ local ADDON_NAME, ns = ...
 -- Positions in a sweep are "places": yards east and south on the zone map, or, where the client
 -- has no map position, minimap pixels from the center that don't follow the player.
 --
--- Dev log tags: SCAN (a summary every few sweeps, and each time the minimap hides), DOT (once per kind of dot seen), LINE (once
--- per distinct tooltip line and color), MISS (once per name that isn't a known node), LOOT
--- (what gathering removed).
+-- Dev log tags: SCAN (a summary of the last few sweeps, and each time the minimap hides), DOT
+-- (once per kind of dot seen), LINE (once per distinct tooltip line and color), MISS (once per
+-- name that isn't a known node), LOOT (what gathering removed).
 ns.Scanner = {}
 
 local COARSE = 8 -- coarse grid spacing, minimap pixels
@@ -41,7 +41,15 @@ local empties = 0 -- sweeps in a row that found nothing
 local cleared = false -- whether the markers were cleared since the icons were last enabled
 local last = {} -- where the player was when the last sweep started: { x, y, facing }
 local layout, layoutWidth -- the coarse grid keys, kept until the minimap's size changes
-local stats = { sweeps = 0, probes = 0, dots = 0, ms = 0, worst = 0 } -- dev only
+local sweeps = 0 -- dev only: sweeps since login
+-- Dev only: totals over the sweeps since the last SCAN line. ms is all the time spent in sweeps,
+-- client the part of it in the two client calls per probe, dev the part spent logging tooltip
+-- lines (players don't pay for that), worst the slowest frame.
+local stats
+local function ResetStats()
+	stats = { sweeps = 0, coarse = 0, fine = 0, dots = 0, ms = 0, client = 0, dev = 0, worst = 0 }
+end
+ResetStats()
 
 local function Usable(value)
 	return value ~= nil and not issecretvalue(value)
@@ -142,8 +150,12 @@ end
 -- data (restricted states) reads as nothing.
 local function ReadPoint(rect, ox, oy)
 	local half = rect.width / 2
+	local started = ns.dev.enabled and debugprofilestop()
 	Minimap:UpdateMouseoverAtPoint((rect.left + half + ox) * rect.scale, (rect.bottom + half + oy) * rect.scale)
 	local data = C_TooltipInfo.GetMinimapMouseover()
+	if started then
+		stats.client = stats.client + debugprofilestop() - started
+	end
 	if not data or issecretvalue(data) or issecrettable(data) then
 		return nil
 	end
@@ -157,7 +169,9 @@ local function ReadPoint(rect, ox, oy)
 		if Usable(text) then
 			local r, g, b = LineColor(line)
 			if ns.dev.enabled then
+				local logStarted = debugprofilestop()
 				LogLine(text, r, g, b)
+				stats.dev = stats.dev + debugprofilestop() - logStarted
 			end
 			for _, node in ipairs(ns.Lines.Parse(text, r, g, b)) do
 				nodes = nodes or {}
@@ -243,7 +257,11 @@ local function Advance()
 				ox, oy = ToOffset(probe.x, probe.y, view)
 			end
 			if ox * ox + oy * oy <= reach * reach then
-				sweep.probes = sweep.probes + 1
+				if probe.x then
+					sweep.fineProbes = sweep.fineProbes + 1
+				else
+					sweep.coarseProbes = sweep.coarseProbes + 1
+				end
 				local nodes = ReadPoint(rect, ox, oy)
 				if nodes then
 					probe.onHit(probe, nodes, ToPlace(ox, oy, view))
@@ -338,20 +356,30 @@ local function Settle()
 	empties = #markers == 0 and empties + 1 or 0
 	wait = math.min(INTERVAL_LONGEST, (sweep.moved and INTERVAL_MOVING or INTERVAL_STILL) * 2 ^ empties)
 	if ns.dev.enabled then
-		stats.sweeps, stats.probes, stats.dots = stats.sweeps + 1, stats.probes + sweep.probes, stats.dots + #markers
-		if stats.sweeps == 1 or stats.sweeps % SUMMARY_EVERY == 0 then
+		sweeps = sweeps + 1
+		stats.sweeps, stats.dots = stats.sweeps + 1, stats.dots + #markers
+		stats.coarse, stats.fine = stats.coarse + sweep.coarseProbes, stats.fine + sweep.fineProbes
+		if sweeps == 1 or sweeps % SUMMARY_EVERY == 0 then
 			local n = stats.sweeps
 			ns.log(
 				"SCAN",
-				("sweeps %d, per sweep: %.0f probes %.1f dots %.2f ms; worst frame %.2f ms; dot radius %.1f px"):format(
+				(
+					"sweeps %d, per sweep of the last %d: %.0f+%.0f probes %.1f dots %.2f ms "
+					.. "(client %.2f, dev %.2f); worst frame %.2f ms; dot radius %.1f px"
+				):format(
+					sweeps,
 					n,
-					stats.probes / n,
+					stats.coarse / n,
+					stats.fine / n,
 					stats.dots / n,
 					stats.ms / n,
+					stats.client / n,
+					stats.dev / n,
 					stats.worst,
 					math.sqrt(dotArea / math.pi)
 				)
 			)
+			ResetStats()
 		end
 	end
 	sweep = nil
@@ -382,7 +410,8 @@ local function Begin()
 		at = 1,
 		coarse = {},
 		groups = {},
-		probes = 0,
+		coarseProbes = 0, -- dev only: probes read, coarse and fine
+		fineProbes = 0,
 	}
 	local half = rect.width / 2
 	for _, key in ipairs(layout) do

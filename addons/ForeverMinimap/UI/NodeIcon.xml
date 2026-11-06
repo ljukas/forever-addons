@@ -3,8 +3,8 @@
 	<Script file="NodeIcons.lua"/>
 
 	<!-- An icon on a minimap tracking dot, laid out like Blizzard's tracking button
-	     (Blizzard_WorldMapTemplates.xml): the dark minimap background disc, the herb or ore
-	     tracking atlas made round with the mask Blizzard uses on round icons (Blizzard_PVPUI.xml),
+	     (Blizzard_WorldMapTemplates.xml): the dark minimap background disc, the node's item icon
+	     (or the herb or ore tracking atlas) made round with the mask Blizzard uses on round icons (Blizzard_PVPUI.xml),
 	     and the gold tracking ring. The frame takes no mouse, so hovering still reaches the
 	     minimap. Sizes are set in Lua. -->
 	<Frame name="ForeverMinimapNodeIconTemplate" mixin="ForeverMinimapNodeIconMixin" virtual="true">

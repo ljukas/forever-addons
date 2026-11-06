@@ -1,0 +1,15 @@
+## Interface: 16001
+## Title: ForeverActionBars
+## Notes: Tints action buttons red while their target is out of range.
+## Author: ljukas
+## X-License: MIT
+## Version: @project-version@
+## Category: Forever Enhanced Addons
+## X-Category: Action Bars
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua
+Knowledge.lua
+Wash.lua

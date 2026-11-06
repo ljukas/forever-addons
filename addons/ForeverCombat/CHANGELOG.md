@@ -6,6 +6,9 @@
 - **DoT meter:** your damage over time spells mark the damage they still have to deal on your
   target's and focus's health bar, one segment per spell. When they cover all of the remaining
   health, the bar's end glows: they'll finish it off.
+- **Red portrait when your DoTs will kill:** as soon as your damage over time spells have enough
+  damage left to finish off your target or focus, its portrait turns red, so you know at a
+  glance to switch targets. Turn it off under DoT Meter in the addon's options.
 - **HoT meter:** your heal over time spells extend a friendly target's or focus's health bar by
   the healing they still have to do. When they reach the end of the bar, it glows: they'll heal
   it to full.

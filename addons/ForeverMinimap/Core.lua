@@ -6,6 +6,7 @@ local ADDON_NAME, ns = ...
 --   LOADED                   Core.lua
 --   SCAN DOT LINE MISS LOOT  Scanner.lua
 --   SCALE                    UI/NodeIcons.lua
+--   ITEM                     Dev/NodeItems.lua
 --   BAG                      UI/BagButton.lua, ButtonBag.lua
 local function Nop() end
 

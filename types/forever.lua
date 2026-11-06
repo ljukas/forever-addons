@@ -161,3 +161,21 @@ Enum.TooltipDataLineType.UnitLevel = 47
 -- shape ("ROUND", "SQUARE", "CORNER-TOPLEFT", ...); nil when no addon does.
 ---@type (fun(): string)?
 GetMinimapShape = nil
+
+-- Frames from Forever's own UI source (Blizzard_UnitFrame/Camelot/).
+
+-- Combo points around the target portrait (Camelot/ComboFrame.xml, ComboFrame.lua).
+---@type Frame
+ComboFrame = nil
+
+-- PetActionBar: the pet bar frame, Blizzard_ActionBar/Mainline/PetActionBar.xml.
+---@type Frame
+PetActionBar = {}
+
+-- ActionBarButtonRangeCheckFrame: routes ACTION_RANGE_CHECK_UPDATE to action buttons,
+-- Blizzard_ActionBar/Shared/ActionButtonComponentTemplate.xml and ActionButton.lua.
+---@class ActionBarButtonRangeCheckFrame : Frame
+---@field actions table<number, table<Button, Button>>
+---@field RegisterFrame fun(self: ActionBarButtonRangeCheckFrame, action: number, frame: Button)
+---@field UnregisterFrame fun(self: ActionBarButtonRangeCheckFrame, action: number, frame: Button)
+ActionBarButtonRangeCheckFrame = {}

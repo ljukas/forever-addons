@@ -33,19 +33,41 @@ local SUMMARY_EVERY = 20 -- sweeps per SCAN log line
 local MIN_AREA, MAX_AREA = math.pi * 3 ^ 2, math.pi * 32 ^ 2
 local dotArea = math.pi * 12 ^ 2
 
--- The grid spacings, in minimap pixels, follow a dot's radius, which grows and shrinks with the
--- minimap's icon scale (Edit Mode, 50% to 200%). The coarse grid's half-diagonal is three
--- quarters of a radius, so a dot gets a coarse hit even when it is a quarter smaller than
--- learned; the fine grid takes about four steps per radius. Against Logic/Grid.lua on modelled
--- dots, that finds the same dots as an 8 and 2 px grid with half the probes at 100% icon scale,
--- and puts their middles within half a pixel on average.
+-- The grid spacings, in minimap pixels, follow a dot's radius. The coarse grid's half-diagonal
+-- is three quarters of a radius, so a dot gets a coarse hit even when it is a quarter smaller
+-- than learned; the fine grid takes about four steps per radius. Against Logic/Grid.lua on
+-- modelled dots, that finds the same dots as an 8 and 2 px grid with half the probes at 100%
+-- icon scale, and puts their middles within half a pixel on average.
 local COARSE_PER_RADIUS, MIN_COARSE, MAX_COARSE = 1.05, 6, 14
 local FINE_PER_RADIUS, MIN_FINE, MAX_FINE = 0.27, 2, 4
 
+-- A dot's radius is learned only from dots the coarse grid finds, so a grid laid out for big
+-- dots could keep missing small ones. The radius it is laid out for is therefore at most the
+-- one measured at 100% icon scale times the minimap's icon scale now (Edit Mode, 50% to 200%),
+-- in case the dots shrink with it.
+local RADIUS_AT_FULL_SCALE = 11.5
+
+local function Usable(value)
+	return value ~= nil and not issecretvalue(value)
+end
+
+-- The minimap's icon scale as Edit Mode holds it, or its smallest when it can't be read (it
+-- reads 0 until Edit Mode has set the minimap up).
+local function IconScale()
+	if not (MinimapCluster and MinimapCluster.GetSettingValue and Enum.EditModeMinimapSetting) then
+		return 0.5
+	end
+	local percent = MinimapCluster:GetSettingValue(Enum.EditModeMinimapSetting.IconScale)
+	if Usable(percent) and type(percent) == "number" and percent > 0 then
+		return percent / 100
+	end
+	return 0.5
+end
+
 local function Spacings()
-	local radius = math.sqrt(dotArea / math.pi)
-	local coarse = math.max(MIN_COARSE, math.min(MAX_COARSE, Round(radius * COARSE_PER_RADIUS)))
-	local fine = math.max(MIN_FINE, math.min(MAX_FINE, Round(radius * FINE_PER_RADIUS)))
+	local radius = math.min(math.sqrt(dotArea / math.pi), RADIUS_AT_FULL_SCALE * IconScale())
+	local coarse = math.max(MIN_COARSE, math.min(MAX_COARSE, math.floor(radius * COARSE_PER_RADIUS + 0.5)))
+	local fine = math.max(MIN_FINE, math.min(MAX_FINE, math.floor(radius * FINE_PER_RADIUS + 0.5)))
 	return coarse, fine
 end
 
@@ -56,8 +78,11 @@ local cleared = false -- whether the markers were cleared since the icons were l
 local last = {} -- where the player was when the last sweep started: { x, y, facing }
 local layout, layoutWidth, layoutStep -- the coarse grid keys, kept until the minimap's size or the spacing changes
 -- The fine hits of the last sweep that ran start to end with the player standing still: { view,
--- coarse, fine, groups = { [Signature] = points } }, or nil.
+-- coarse, fine, age, groups = { [Signature] = points } }, or nil. age counts the sweeps in a row
+-- that took them over; after REUSE_SWEEPS, every group is probed again. That bounds how long a
+-- change the coarse grid can't see (one of two touching nodes gathered) shows wrong.
 local kept
+local REUSE_SWEEPS = 4
 local sweeps = 0 -- dev only: sweeps since login
 -- Dev only: totals over the sweeps since the last SCAN line. ms is all the time spent in sweeps,
 -- client the part of it in the two client calls per probe, dev the part spent logging tooltip
@@ -67,10 +92,6 @@ local function ResetStats()
 	stats = { sweeps = 0, coarse = 0, fine = 0, reused = 0, dots = 0, ms = 0, client = 0, dev = 0, worst = 0 }
 end
 ResetStats()
-
-local function Usable(value)
-	return value ~= nil and not issecretvalue(value)
-end
 
 -- Minimap pixels per yard at the current zoom, or nil.
 function ns.Scanner.PixelsPerYard()
@@ -173,11 +194,16 @@ local function ReadPoint(rect, ox, oy)
 	if started then
 		stats.client = stats.client + debugprofilestop() - started
 	end
-	if not data or issecretvalue(data) or issecrettable(data) then
+	if not data then
+		return nil
+	end
+	if issecretvalue(data) or issecrettable(data) then
+		sweep.blind = true
 		return nil
 	end
 	local lines = data.lines
 	if not lines or issecretvalue(lines) or issecrettable(lines) then
+		sweep.blind = sweep.blind or lines ~= nil
 		return nil
 	end
 	local nodes
@@ -194,6 +220,8 @@ local function ReadPoint(rect, ox, oy)
 				nodes = nodes or {}
 				table.insert(nodes, node)
 			end
+		elseif text ~= nil or not Usable(line) then
+			sweep.blind = true
 		end
 	end
 	return nodes
@@ -247,9 +275,11 @@ local function Refine(view)
 	sweep.steady = SameView(view, sweep.start)
 	local reuse = sweep.steady
 		and kept
+		and kept.age < REUSE_SWEEPS
 		and SameView(view, kept.view)
 		and kept.coarse == sweep.coarseStep
 		and kept.fine == sweep.fineStep
+	sweep.reusing = reuse
 	local reach = sweep.coarseStep * unit
 	for name, seen in pairs(sweep.coarse) do
 		local keysByGroup, placesByGroup = ns.Grid.Groups(seen), {}
@@ -403,9 +433,13 @@ local function Settle()
 	end
 	ns.Markers.Replace(markers)
 
+	-- Kept only when the player stood still through the whole sweep and every probe could be
+	-- read: a move during the fine pass can push some of its probes off the minimap, and a
+	-- restricted state can hide what is under them, and either leaves a group short of hits.
+	local age = sweep.reusing and kept.age + 1 or 0
 	kept = nil
-	if sweep.steady then
-		kept = { view = sweep.view, coarse = sweep.coarseStep, fine = sweep.fineStep, groups = {} }
+	if sweep.steady and not sweep.blind and SameView(ns.Scanner.CurrentView(), sweep.view) then
+		kept = { view = sweep.view, coarse = sweep.coarseStep, fine = sweep.fineStep, age = age, groups = {} }
 		for _, group in ipairs(sweep.groups) do
 			kept.groups[group.signature] = group.points
 		end

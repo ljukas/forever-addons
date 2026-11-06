@@ -2,7 +2,7 @@ local ADDON_NAME, ns = ...
 
 local L = ns.L
 
--- HoT meter: on a friendly target or focus (or the player), one segment per HoT of the
+-- HoT meter: on a friendly target or focus, and on the player frame, one segment per HoT of the
 -- player's, extending the green past Blizzard's own incoming heal segments, in the color
 -- Blizzard uses for the player's incoming heals. Once they reach the end of the bar, the HoTs
 -- will heal to full: the bar's right end glows like an over-absorb.

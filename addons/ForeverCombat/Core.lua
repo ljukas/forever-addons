@@ -33,7 +33,9 @@ ns.L = {
 	DOT_KILL_PORTRAIT = "Red Portrait When DoTs Will Kill",
 	DOT_KILL_PORTRAIT_TOOLTIP = "Turn the portrait of your target or focus red as soon as your damage over time spells have enough damage left to finish it off, so you know to switch targets.",
 	HOT_METER = "HoT Meter",
-	HOT_METER_TOOLTIP = "Show the healing your heal over time spells still have to do past your target's and focus's health. When it reaches the end of the bar, they will heal it to full.",
+	HOT_METER_TOOLTIP = "Show the healing your heal over time spells still have to do past your target's, focus's and your own health. When it reaches the end of the bar, they will heal it to full.",
+	HOT_PLAYER_FRAME = "Show on Your Own Frame",
+	HOT_PLAYER_FRAME_TOOLTIP = "Also show your heal over time spells on yourself, on your own unit frame.",
 	SECONDS = INT_SPELL_DURATION_SEC or "%d sec",
 	REMAINING = "%s (%s)",
 }

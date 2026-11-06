@@ -11,8 +11,12 @@ ForeverCombatSegmentMixin = {}
 -- Once per segment. Draws one sublevel above the health fill like Blizzard's segments
 -- (StatusBarOverlaySegmentMixin:Initialize), clipped to the health bar's rounded mask.
 -- reverse segments fill leftward from their right edge. The shadow sits at the fill's left
--- end, where the next segment of a stack starts.
-function ForeverCombatSegmentMixin:Init(healthBar, mask, color, reverse)
+-- end, where the next segment of a stack starts. fillAtlas, when given, replaces the target
+-- frame's segment atlas (each unit frame's segment template names its own).
+function ForeverCombatSegmentMixin:Init(healthBar, mask, color, reverse, fillAtlas)
+	if fillAtlas then
+		self.Fill:SetAtlas(fillAtlas, TextureKitConstants.IgnoreAtlasSize)
+	end
 	local layer, subLevel = healthBar:GetStatusBarTexture():GetDrawLayer()
 	self.Fill:SetDrawLayer(layer, subLevel + 1)
 	self.EdgeShadow:SetDrawLayer(layer, subLevel + 2)

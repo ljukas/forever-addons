@@ -3,10 +3,41 @@ local ADDON_NAME, ns = ...
 -- Draws an icon on each marker (Markers.lua), every frame, from the player's current position
 -- and facing, so the icons move with the minimap exactly; scans only add and drop markers.
 
+-- The tracking icons, for a node whose item has no icon (Data/Nodes.lua).
 local ATLASES = {
 	herb = "professions_tracking_herb",
 	ore = "professions_tracking_ore",
 }
+-- Item icons carry a dark border; Blizzard crops it off round item icons the same way.
+local ITEM_INSET = 0.08
+
+-- Seconds before asking the client again for an item icon it couldn't give.
+local ICON_RETRY = 1
+
+local itemIcons = {} -- [itemID] = icon file, once the client gave one
+local iconRetryAt = {} -- [itemID] = GetTime() after which to ask again
+
+-- The item's icon file, or nil: from the client's own item data, so no server query is needed.
+-- Icons are drawn every frame, so each is asked for once and kept.
+local function ItemIcon(item)
+	if not item then
+		return nil
+	end
+	local icon = itemIcons[item]
+	if icon then
+		return icon
+	end
+	local now = GetTime()
+	if iconRetryAt[item] and now < iconRetryAt[item] then
+		return nil
+	end
+	icon = C_Item.GetItemIconByID(item)
+	if icon and not issecretvalue(icon) then
+		itemIcons[item] = icon
+		return icon
+	end
+	iconRetryAt[item] = now + ICON_RETRY
+end
 
 -- The ring is about 2.5 times the icon, and its hole sits up and to the left of the texture's
 -- middle: Blizzard centers this ring at (+12, -13) from the icon for a 64 px ring
@@ -33,6 +64,8 @@ local BASE_SIZE = 9
 ---@field Icon Texture
 ---@field Ring Texture
 ---@field kind string?
+---@field item number?
+---@field icon number?
 ---@field gray boolean?
 ---@field size number?
 ForeverMinimapNodeIconMixin = {}
@@ -43,10 +76,18 @@ local function Round(value)
 	return math.floor(value + 0.5)
 end
 
-function ForeverMinimapNodeIconMixin:SetNode(kind, gray, size)
-	if self.kind ~= kind then
-		self.kind = kind
-		self.Icon:SetAtlas(ATLASES[kind])
+function ForeverMinimapNodeIconMixin:SetNode(kind, item, gray, size)
+	-- An item whose icon the client couldn't give yet is tried again (ItemIcon's retry).
+	local icon = ItemIcon(item)
+	if self.kind ~= kind or self.item ~= item or self.icon ~= icon then
+		self.kind, self.item, self.icon = kind, item, icon
+		if icon then
+			self.Icon:SetTexture(icon)
+			self.Icon:SetTexCoord(ITEM_INSET, 1 - ITEM_INSET, ITEM_INSET, 1 - ITEM_INSET)
+		else
+			self.Icon:SetTexCoord(0, 1, 0, 1) -- SetAtlas's own reset is not documented
+			self.Icon:SetAtlas(ATLASES[kind])
+		end
 	end
 	if self.size ~= size then
 		self.size = size
@@ -145,7 +186,7 @@ local function Draw()
 				icon = CreateFrame("Frame", nil, container, "ForeverMinimapNodeIconTemplate") --[[@as ForeverMinimapNodeIconMixin]]
 				icons[shown] = icon
 			end
-			icon:SetNode(marker.kind, marker.gray, size)
+			icon:SetNode(marker.kind, marker.item, marker.gray, size)
 			icon:SetPoint("CENTER", Minimap, "CENTER", ox, oy)
 			icon:SetAlpha(distance < OVER_PLAYER * size and OVER_PLAYER_ALPHA or 1)
 			icon:Show()

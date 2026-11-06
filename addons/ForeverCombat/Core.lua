@@ -30,6 +30,8 @@ end
 ns.L = {
 	DOT_METER = "DoT Meter",
 	DOT_METER_TOOLTIP = "Mark the damage your damage over time spells still have to deal on your target's and focus's health bar. When the marks cover all of the remaining health, your spells will finish it off.",
+	DOT_KILL_PORTRAIT = "Red Portrait When DoTs Will Kill",
+	DOT_KILL_PORTRAIT_TOOLTIP = "Turn the portrait of your target or focus red as soon as your damage over time spells have enough damage left to finish it off, so you know to switch targets.",
 	HOT_METER = "HoT Meter",
 	HOT_METER_TOOLTIP = "Show the healing your heal over time spells still have to do past your target's and focus's health. When it reaches the end of the bar, they will heal it to full.",
 	SECONDS = INT_SPELL_DURATION_SEC or "%d sec",

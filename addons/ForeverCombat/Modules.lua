@@ -13,6 +13,9 @@ local ADDON_NAME, ns = ...
 --   cue        { side = "LEFT" | "RIGHT", glowTemplate = Blizzard's glow texture template,
 --              GetMax = function(unit) }: the glow at that end of the bar lights up once the
 --              effects' total reaches GetMax(unit), which may be secret
+--   portraitCue  optional { setting, label, tooltip }: also wash the unit frame's portrait red
+--              when the cue lights (same total and GetMax), behind its own checkbox, shown
+--              under the module's in the options panel
 --   GetAnchor  function(module, host): the region whose right edge the first segment starts
 --              from, and a name for it in the DISPLAY log line
 ns.Modules = {}

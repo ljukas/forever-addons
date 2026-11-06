@@ -30,3 +30,7 @@ UI/NodeIcon.xml
 UI/BagButton.xml
 ButtonBag.lua
 ButtonBagMenu.lua
+
+#@do-not-package@
+Dev/NodeItems.lua
+#@end-do-not-package@

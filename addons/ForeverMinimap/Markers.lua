@@ -2,8 +2,8 @@ local ADDON_NAME, ns = ...
 
 -- The dots the last scan found, kept as positions in the world so their icons follow the
 -- minimap as the player moves and turns. A marker is
---   { kind, gray, mapID, mapX, mapY }  where the client gave a map position, or
---   { kind, gray, ox, oy }             a minimap offset, where it didn't (some instances and
+--   { kind, item, gray, mapID, mapX, mapY }  where the client gave a map position, or
+--   { kind, item, gray, ox, oy }             a minimap offset, where it didn't (some instances and
 --                                      caves); those stay put until the next scan.
 ns.Markers = {}
 

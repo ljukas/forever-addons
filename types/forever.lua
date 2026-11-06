@@ -146,3 +146,9 @@ Enum.TooltipDataLineType.UnitLevel = 47
 -- shape ("ROUND", "SQUARE", "CORNER-TOPLEFT", ...); nil when no addon does.
 ---@type (fun(): string)?
 GetMinimapShape = nil
+
+-- Frames from Forever's own UI source (Blizzard_UnitFrame/Camelot/).
+
+-- Combo points around the target portrait (Camelot/ComboFrame.xml, ComboFrame.lua).
+---@type Frame
+ComboFrame = nil

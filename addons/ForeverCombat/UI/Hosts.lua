@@ -43,7 +43,10 @@ function HostMixin:Init(frame, unit)
 			segment:Init(self.healthBar, self.mask, module.color, module.reverse)
 			meter.segments[index] = segment
 		end
-		meter.cue = ns.Cue.Create(self.healthBar, self.mask, module.cue.side, module.cue.glowTemplate)
+		meter.cue = ns.Cue.CreateBarEnd(self.healthBar, self.mask, module.cue.side, module.cue.glowTemplate)
+		if module.portraitCue then
+			meter.portraitCue = ns.Cue.CreatePortrait(frame.TargetFrameContainer)
+		end
 		self.meters[module] = meter
 	end
 	self:UpdateWidth()
@@ -55,6 +58,30 @@ function HostMixin:Init(frame, unit)
 		local width = self.healthBar:GetWidth()
 		local layer, subLevel = self.healthBar:GetStatusBarTexture():GetDrawLayer()
 		ns.log("HOST", unit, "bar width", width, "secret", issecretvalue(width), "layer", layer, subLevel)
+
+		-- For the portrait launch checks: its size and what draws around the red.
+		local frameContainer = frame.TargetFrameContainer
+		local portrait = frameContainer.Portrait
+		local combo = ComboFrame
+		ns.log(
+			"HOST",
+			unit,
+			"portrait",
+			portrait:GetWidth(),
+			portrait:GetHeight(),
+			"scale",
+			frame:GetEffectiveScale(),
+			"layer",
+			portrait:GetDrawLayer(),
+			"ring layer",
+			frameContainer.FrameTexture:GetDrawLayer(),
+			"container",
+			frameContainer:GetFrameStrata(),
+			frameContainer:GetFrameLevel(),
+			"combo",
+			combo and combo:GetFrameStrata(),
+			combo and combo:GetFrameLevel()
+		)
 	end
 end
 
@@ -89,6 +116,9 @@ local function HideMeter(meter)
 		segment:Hide()
 	end
 	meter.cue:Hide()
+	if meter.portraitCue then
+		meter.portraitCue:Hide()
+	end
 end
 
 -- Draws one module's effects. Returns their remaining total and where the segments start.
@@ -117,7 +147,15 @@ function HostMixin:Render(module, meter, effects, now)
 			segment:Hide()
 		end
 	end
-	meter.cue:Set(module.cue.GetMax(self.unit), total)
+	local maxValue = module.cue.GetMax(self.unit)
+	meter.cue:Set(maxValue, total)
+	if meter.portraitCue then
+		if ns.Options.Get(module.portraitCue.setting) then
+			meter.portraitCue:Set(maxValue, total)
+		else
+			meter.portraitCue:Hide()
+		end
+	end
 	return total, anchorName
 end
 
@@ -140,6 +178,11 @@ function HostMixin:Refresh(now)
 			anyShown = true
 			if shown then
 				local counts = string.format("%s=%d from %s", module.key, #effects, anchorName)
+				-- Whether the portrait cue is armed; if it's lit depends on the secret health.
+				if module.portraitCue then
+					local armed = ns.Options.Get(module.portraitCue.setting) and "on" or "off"
+					counts = counts .. " portrait=" .. armed
+				end
 				signature = signature .. " " .. counts
 				table.insert(shown, string.format("%s (%d)", counts, total))
 			end

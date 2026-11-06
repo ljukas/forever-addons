@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Health is secret (even out of combat): no Lua comparison or arithmetic on `UnitHealth`; it only goes into `StatusBar:SetMinMaxValues`.
-- Native look: Blizzard's `RED_FONT_COLOR`, the frame's own `TargetFrameContainer.PortraitMask`; no custom art.
+- Native look: Blizzard's `RED_FONT_COLOR` and `CircleMask` atlas (the same one as the frame's `TargetFrameContainer.PortraitMask`, as our own mask inset by `PORTRAIT_MASK_INSET` to keep the red off the ring); no custom art.
 - No taint: only our own frames/textures, parented to Blizzard's; no fields set on Blizzard frames.
 - Setting key `dotKillPortrait`, default true, no DB migration.
 - No automated tests exist for addon code; each task's check is `scripts/lint.sh` clean plus reading. In-game checks are the launch checks below (the game is owned by another session: do **not** run `scripts/worktree.sh game`).
@@ -55,7 +55,7 @@
 
 **Interfaces:**
 - Consumes: `NewCue` from Task 1.
-- Produces: `ns.Cue.CreatePortrait(container) -> ForeverCombatCue`, where `container` is `frame.TargetFrameContainer`; window `SetAllPoints(container.Portrait)`; rider texture `ARTWORK`, `SetColorTexture(RED_FONT_COLOR:GetRGB())`, `SetBlendMode("MOD")`, width = `container.Portrait:GetWidth()`, `AddMaskTexture(container.PortraitMask)`.
+- Produces: `ns.Cue.CreatePortrait(container) -> ForeverCombatCue`, where `container` is `frame.TargetFrameContainer`; window `SetAllPoints(container.Portrait)`; rider texture `ARTWORK`, `SetColorTexture(RED_FONT_COLOR:GetRGB())`, `SetBlendMode("MOD")`, width = `container.Portrait:GetWidth()`, masked by its own `CircleMask` mask texture inset `PORTRAIT_MASK_INSET` (3px) from the portrait, so the red stays off the gold ring (the frame's `PortraitMask` is only 1px inside it). *(As amended in review: a `BLEND` overlay at `PORTRAIT_OVERLAY_ALPHA` goes over the `MOD` tint, under the same mask.)*
 - Module field: `portraitCue = { setting = "dotKillPortrait", label = L.DOT_KILL_PORTRAIT, tooltip = L.DOT_KILL_PORTRAIT_TOOLTIP }`. It lights on the same `cue.GetMax`/total as the module's bar cue.
 
 - [ ] Step 1: `CreatePortrait` in `Cue.lua`.

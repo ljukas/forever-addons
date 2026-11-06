@@ -23,8 +23,8 @@ local GLOW_INSET = 7
 local PORTRAIT_SIZE = 58
 -- How far inside the portrait's edge the red stops, clear of the gold ring (tune in game).
 local PORTRAIT_MASK_INSET = 3
--- The plain red laid over the multiplied one (tune in game).
-local PORTRAIT_OVERLAY_ALPHA = 0.35
+-- How strongly the red covers the portrait (tune in game).
+local PORTRAIT_OVERLAY_ALPHA = 0.5
 
 ---@class ForeverCombatCue
 ---@field window Frame
@@ -97,11 +97,13 @@ function ns.Cue.CreateBarEnd(healthBar, mask, side, glowTemplate)
 	return cue
 end
 
--- container: a unit frame's TargetFrameContainer. Washes its round portrait red, the way
--- Blizzard reddens a low-health player's portrait (TargetFrame.lua: SetVertexColor(1, 0, 0)):
--- Blizzard's red multiplied over the portrait (MOD) keeps the face readable, and the same red
--- at PORTRAIT_OVERLAY_ALPHA on top keeps dark portraits from just going darker. Both ride the
--- fill as wide as the portrait, so they wipe in over the same last 0.16% as the glow.
+-- container: a unit frame's TargetFrameContainer. Washes its round portrait red: Blizzard's
+-- red at PORTRAIT_OVERLAY_ALPHA, riding the fill as wide as the portrait, so it wipes in over
+-- the same last 0.16% as the glow.
+--
+-- No MOD (multiply) tint: a mask works through the texture's alpha and MOD ignores alpha, so a
+-- masked MOD texture still multiplies its whole square, ring and corners included (what the
+-- game showed on 6 Nov 2026). None of Blizzard's own MOD textures is masked.
 --
 -- The ring is the next BACKGROUND sublevel above the portrait, so nothing of ours can sit
 -- between them, and the frame's own PortraitMask is only 1px inside the ring. The red gets
@@ -122,15 +124,10 @@ function ns.Cue.CreatePortrait(container)
 	mask:SetPoint("BOTTOMRIGHT", portrait, "BOTTOMRIGHT", -PORTRAIT_MASK_INSET, PORTRAIT_MASK_INSET)
 
 	local red = RED_FONT_COLOR
-	local tint = cue.bar:CreateTexture(nil, "ARTWORK", nil, 1)
-	tint:SetColorTexture(red:GetRGB())
-	tint:SetBlendMode("MOD")
-	local overlay = cue.bar:CreateTexture(nil, "ARTWORK", nil, 2)
+	local overlay = cue.bar:CreateTexture(nil, "ARTWORK")
 	overlay:SetColorTexture(red.r, red.g, red.b, PORTRAIT_OVERLAY_ALPHA)
-	for _, texture in ipairs({ tint, overlay }) do
-		AttachRider(cue, texture, width)
-		texture:AddMaskTexture(mask)
-	end
+	AttachRider(cue, overlay, width)
+	overlay:AddMaskTexture(mask)
 
 	return cue
 end

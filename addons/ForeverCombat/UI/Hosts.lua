@@ -60,8 +60,8 @@ function HostMixin:Init(frame, unit)
 		ns.log("HOST", unit, "bar width", width, "secret", issecretvalue(width), "layer", layer, subLevel)
 
 		-- For the portrait launch checks: its size and what draws around the red.
-		local container = frame.TargetFrameContainer
-		local portrait = container.Portrait
+		local frameContainer = frame.TargetFrameContainer
+		local portrait = frameContainer.Portrait
 		local combo = ComboFrame
 		ns.log(
 			"HOST",
@@ -74,10 +74,10 @@ function HostMixin:Init(frame, unit)
 			"layer",
 			portrait:GetDrawLayer(),
 			"ring layer",
-			container.FrameTexture:GetDrawLayer(),
+			frameContainer.FrameTexture:GetDrawLayer(),
 			"container",
-			container:GetFrameStrata(),
-			container:GetFrameLevel(),
+			frameContainer:GetFrameStrata(),
+			frameContainer:GetFrameLevel(),
 			"combo",
 			combo and combo:GetFrameStrata(),
 			combo and combo:GetFrameLevel()

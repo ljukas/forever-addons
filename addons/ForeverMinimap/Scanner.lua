@@ -19,11 +19,9 @@ local ADDON_NAME, ns = ...
 -- name that isn't a known node), LOOT (what gathering removed).
 ns.Scanner = {}
 
-local COARSE = 8 -- coarse grid spacing, minimap pixels
-local FINE = 2 -- fine grid spacing, minimap pixels
-local PROBES_PER_FRAME = 60
+local PROBES_PER_FRAME = 30
 local INTERVAL_MOVING = 0.5 -- seconds between sweeps while the player moves or turns
-local INTERVAL_STILL = 1.5 -- and while standing still
+local INTERVAL_STILL = 2 -- and while standing still
 local INTERVAL_LONGEST = 3 -- the wait doubles after each sweep that found nothing, up to this
 local PAUSE = 0.25 -- seconds between checks while the mouse is over the minimap
 local REACH = 5 -- yards: how near the player a node gathered just now is
@@ -31,23 +29,42 @@ local TURN = 0.05 -- radians of turning that count as moving
 local SUMMARY_EVERY = 20 -- sweeps per SCAN log line
 
 -- The area one dot's hits cover, in minimap pixels: measured in every sweep (Settle), starting
--- from a guess in the middle of the hit radii NodeSight measured (11 to 24 px), within limits.
+-- from the hit radius measured in game at 100% icon scale (11.3 to 11.8 px), within limits.
 local MIN_AREA, MAX_AREA = math.pi * 3 ^ 2, math.pi * 32 ^ 2
-local dotArea = math.pi * 16 ^ 2
+local dotArea = math.pi * 12 ^ 2
+
+-- The grid spacings, in minimap pixels, follow a dot's radius, which grows and shrinks with the
+-- minimap's icon scale (Edit Mode, 50% to 200%). The coarse grid's half-diagonal is three
+-- quarters of a radius, so a dot gets a coarse hit even when it is a quarter smaller than
+-- learned; the fine grid takes about four steps per radius. Against Logic/Grid.lua on modelled
+-- dots, that finds the same dots as an 8 and 2 px grid with half the probes at 100% icon scale,
+-- and puts their middles within half a pixel on average.
+local COARSE_PER_RADIUS, MIN_COARSE, MAX_COARSE = 1.05, 6, 14
+local FINE_PER_RADIUS, MIN_FINE, MAX_FINE = 0.27, 2, 4
+
+local function Spacings()
+	local radius = math.sqrt(dotArea / math.pi)
+	local coarse = math.max(MIN_COARSE, math.min(MAX_COARSE, Round(radius * COARSE_PER_RADIUS)))
+	local fine = math.max(MIN_FINE, math.min(MAX_FINE, Round(radius * FINE_PER_RADIUS)))
+	return coarse, fine
+end
 
 local sweep -- the sweep running now, or nil
 local wait = 0 -- seconds until the next sweep
 local empties = 0 -- sweeps in a row that found nothing
 local cleared = false -- whether the markers were cleared since the icons were last enabled
 local last = {} -- where the player was when the last sweep started: { x, y, facing }
-local layout, layoutWidth -- the coarse grid keys, kept until the minimap's size changes
+local layout, layoutWidth, layoutStep -- the coarse grid keys, kept until the minimap's size or the spacing changes
+-- The fine hits of the last sweep that ran start to end with the player standing still: { view,
+-- coarse, fine, groups = { [Signature] = points } }, or nil.
+local kept
 local sweeps = 0 -- dev only: sweeps since login
 -- Dev only: totals over the sweeps since the last SCAN line. ms is all the time spent in sweeps,
 -- client the part of it in the two client calls per probe, dev the part spent logging tooltip
 -- lines (players don't pay for that), worst the slowest frame.
 local stats
 local function ResetStats()
-	stats = { sweeps = 0, coarse = 0, fine = 0, dots = 0, ms = 0, client = 0, dev = 0, worst = 0 }
+	stats = { sweeps = 0, coarse = 0, fine = 0, reused = 0, dots = 0, ms = 0, client = 0, dev = 0, worst = 0 }
 end
 ResetStats()
 
@@ -202,33 +219,66 @@ local function OnFineHit(probe, nodes)
 	end
 end
 
+-- Whether the minimap shows the same place in both views: the player hasn't moved, turned or
+-- zoomed in between.
+local function SameView(a, b)
+	return a ~= nil
+		and b ~= nil
+		and a.mapID == b.mapID
+		and a.px == b.px
+		and a.py == b.py
+		and a.facing == b.facing
+		and a.pixelsPerYard == b.pixelsPerYard
+end
+
+-- A group's name and coarse keys as one string. Sorts keys.
+local function Signature(name, keys)
+	table.sort(keys)
+	return name .. ":" .. table.concat(keys, ",")
+end
+
 -- Reached after the coarse probes: queues a fine grid, in places, over every group of hits.
+-- While the player stands still, a group whose coarse hits are the same as in the last sweep
+-- is the same dot, so it takes that sweep's fine hits instead of probing again.
 local function Refine(view)
 	local unit = view and 1 / view.pixelsPerYard or 1 -- places per minimap pixel
 	sweep.unit = unit
-	local reach = COARSE * unit
+	sweep.view = view
+	sweep.steady = SameView(view, sweep.start)
+	local reuse = sweep.steady
+		and kept
+		and SameView(view, kept.view)
+		and kept.coarse == sweep.coarseStep
+		and kept.fine == sweep.fineStep
+	local reach = sweep.coarseStep * unit
 	for name, seen in pairs(sweep.coarse) do
-		local placesByGroup = {}
-		for i, keys in ipairs(ns.Grid.Groups(seen)) do
+		local keysByGroup, placesByGroup = ns.Grid.Groups(seen), {}
+		for i, keys in ipairs(keysByGroup) do
 			placesByGroup[i] = {}
 			for _, key in ipairs(keys) do
 				table.insert(placesByGroup[i], seen[key])
 			end
 		end
 		for i, places in ipairs(placesByGroup) do
-			local others = {}
-			for j, theirs in ipairs(placesByGroup) do
-				if j ~= i then
-					for _, place in ipairs(theirs) do
-						table.insert(others, place)
+			local group = { name = name, points = {}, signature = Signature(name, keysByGroup[i]) }
+			table.insert(sweep.groups, group)
+			local points = reuse and kept.groups[group.signature]
+			if points then
+				group.points = points
+				sweep.reused = sweep.reused + 1
+			else
+				local others = {}
+				for j, theirs in ipairs(placesByGroup) do
+					if j ~= i then
+						for _, place in ipairs(theirs) do
+							table.insert(others, place)
+						end
 					end
 				end
-			end
-			local group = { name = name, points = {} }
-			table.insert(sweep.groups, group)
-			local cover = ns.Grid.Cover(places, reach, FINE * unit)
-			for _, point in ipairs(ns.Grid.Claim(cover, places, others, reach)) do
-				table.insert(sweep.queue, { x = point.x, y = point.y, group = group, onHit = OnFineHit })
+				local cover = ns.Grid.Cover(places, reach, sweep.fineStep * unit)
+				for _, point in ipairs(ns.Grid.Claim(cover, places, others, reach)) do
+					table.insert(sweep.queue, { x = point.x, y = point.y, group = group, onHit = OnFineHit })
+				end
 			end
 		end
 	end
@@ -274,7 +324,7 @@ end
 -- After the last probe: the groups' fine hits become dots, the dots markers.
 local function Settle()
 	local unit = sweep.unit or 1
-	local cellArea = (FINE * unit) ^ 2
+	local cellArea = (sweep.fineStep * unit) ^ 2
 
 	-- One dot's area first, from this sweep's round groups, which are mostly lone dots: their
 	-- median, so a round cluster of several nodes can't skew it. With a single round group it
@@ -353,25 +403,37 @@ local function Settle()
 	end
 	ns.Markers.Replace(markers)
 
+	kept = nil
+	if sweep.steady then
+		kept = { view = sweep.view, coarse = sweep.coarseStep, fine = sweep.fineStep, groups = {} }
+		for _, group in ipairs(sweep.groups) do
+			kept.groups[group.signature] = group.points
+		end
+	end
+
 	empties = #markers == 0 and empties + 1 or 0
 	wait = math.min(INTERVAL_LONGEST, (sweep.moved and INTERVAL_MOVING or INTERVAL_STILL) * 2 ^ empties)
 	if ns.dev.enabled then
 		sweeps = sweeps + 1
 		stats.sweeps, stats.dots = stats.sweeps + 1, stats.dots + #markers
 		stats.coarse, stats.fine = stats.coarse + sweep.coarseProbes, stats.fine + sweep.fineProbes
+		stats.reused = stats.reused + sweep.reused
 		if sweeps == 1 or sweeps % SUMMARY_EVERY == 0 then
 			local n = stats.sweeps
 			ns.log(
 				"SCAN",
 				(
-					"sweeps %d, per sweep of the last %d: %.0f+%.0f probes %.1f dots %.2f ms "
-					.. "(client %.2f, dev %.2f); worst frame %.2f ms; dot radius %.1f px"
+					"sweeps %d, per sweep of the last %d: %.0f+%.0f probes (grid %d/%d px) %.1f dots "
+					.. "%.1f groups reused %.2f ms (client %.2f, dev %.2f); worst frame %.2f ms; dot radius %.1f px"
 				):format(
 					sweeps,
 					n,
 					stats.coarse / n,
 					stats.fine / n,
+					sweep.coarseStep,
+					sweep.fineStep,
 					stats.dots / n,
+					stats.reused / n,
 					stats.ms / n,
 					stats.client / n,
 					stats.dev / n,
@@ -398,24 +460,29 @@ local function Begin()
 		moved = view.px ~= last.x or view.py ~= last.y or math.abs(view.facing - (last.facing or 0)) > TURN
 		last.x, last.y, last.facing = view.px, view.py, view.facing
 	end
-	if layoutWidth ~= rect.width then
-		layout, layoutWidth = ns.Grid.Points(rect.width, COARSE), rect.width
+	local coarseStep, fineStep = Spacings()
+	if layoutWidth ~= rect.width or layoutStep ~= coarseStep then
+		layout, layoutWidth, layoutStep = ns.Grid.Points(rect.width, coarseStep), rect.width, coarseStep
 	end
 	sweep = {
 		mapID = view and view.mapID or false,
 		width = view and view.width,
 		height = view and view.height,
 		moved = moved,
+		start = view,
+		coarseStep = coarseStep,
+		fineStep = fineStep,
 		queue = {},
 		at = 1,
 		coarse = {},
 		groups = {},
-		coarseProbes = 0, -- dev only: probes read, coarse and fine
+		coarseProbes = 0, -- dev only: probes read, coarse and fine, and groups that kept their fine hits
 		fineProbes = 0,
+		reused = 0,
 	}
 	local half = rect.width / 2
 	for _, key in ipairs(layout) do
-		local ox, oy = math.floor(key / 1000) * COARSE - half, key % 1000 * COARSE - half
+		local ox, oy = math.floor(key / 1000) * coarseStep - half, key % 1000 * coarseStep - half
 		table.insert(sweep.queue, { ox = ox, oy = oy, key = key, onHit = OnCoarseHit })
 	end
 	table.insert(sweep.queue, { onReach = Refine })
@@ -451,9 +518,10 @@ local function Enabled()
 	return ns.Options.Get("showNodeIcons") and ns.Tracking.IsFinding()
 end
 
--- Starts a new sweep at the next frame, dropping one that is half done.
+-- Starts a new sweep at the next frame, dropping one that is half done, and probes every group
+-- again: what called it (looting, zooming, a new zone, a changed option) may have changed them.
 function ns.Scanner.ScanSoon()
-	sweep, wait, empties = nil, 0, 0
+	sweep, wait, empties, kept = nil, 0, 0, nil
 end
 
 -- Every frame while the minimap is shown (the frame is its child): a sweep, or the wait for it.

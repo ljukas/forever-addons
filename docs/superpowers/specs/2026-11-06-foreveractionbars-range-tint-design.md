@@ -1,6 +1,6 @@
 # ForeverActionBars: red out-of-range tint on action buttons
 
-Date: 2026-11-06 · Status: draft, awaiting approval · Addon: ForeverActionBars (new)
+Date: 2026-11-06 · Status: approved, amended after the step review · Addon: ForeverActionBars (new)
 
 ## Intent
 
@@ -95,8 +95,9 @@ the tint getting stuck (for example on a slot emptied by a talent swap) and bein
 - No support for third-party bar addons (Bartender, Dominos and the like). Only Blizzard's buttons.
 - **No gamepad action bars** (decided by the user: not a focus yet). Forever's
   `Blizzard_GamepadActionBars` buttons handle range in their own
-  `GamepadActionBarButtonMixin:RefreshRange` and never call the hooked function, so they get no
-  wash. Covering them later means a second hook.
+  `GamepadActionBarButtonMixin:RefreshRange` (they do reach the hooked function through
+  `ActionBarActionButtonMixin.OnEvent`, but the addon skips any button with a `RefreshRange`),
+  so they get no wash. Covering them later means a second hook.
 - **No pet-bar wash in this version** (goal 4).
 - The learned-spells fallback (phase 2, above).
 
@@ -146,8 +147,14 @@ inside `if ns.dev.enabled then`.
    long-range spell). The evidence that settles it is a pet melee ability reporting *in range*
    while the player is clearly out of melee range. Whenever a pet class gets played, the data
    accumulates by itself and we check it then. A project memory records what to look for.
-3. **Clearing:** target dropped, target dies, slot emptied by dragging, talent or spec swap, bar
-   paging, stance/form change. In each case no wash remains.
+3. **Clearing and coming back:** target dropped, target dies, slot emptied by dragging, talent
+   or spec swap, bar paging, stance/form change, a bar hidden and shown again. In each case no
+   stale wash remains, **and** when the new action is out of range the wash comes back (it
+   must always match the red hotkey). Also: a `[mod:shift]` macro out of range keeps its wash
+   while shift is pressed and released, and `/rl` while targeting a far mob shows the wash
+   right away (`RANGE refresh login`).
+3b. **The secret-safe AND:** a self-buff (no range check) on the bar with a hostile target
+   selected shows **no** wash. A ranged spell shows it beyond range and loses it within range.
 4. **Stacking looks right:** out of range plus out of mana, and out of range plus unusable, on a
    real button.
 5. **Layering:** cooldown swipe, proc glow, pet autocast and hotkey stay visible over the wash.
@@ -187,6 +194,25 @@ inside `if ns.dev.enabled then`.
   `Update`, `ACTIONBAR_SLOT_CHANGED`, `ACTIONBAR_PAGE_CHANGED`, `UPDATE_BONUS_ACTIONBAR`, the pet
   bar's update), as long as every case in goal 5 is covered.
 - File layout and any extra `ns.log` lines beyond the `RANGE` checks above.
+
+## Amended after the step review
+
+Five reviewers read the finished step; these supersede the text above where they differ.
+
+- **Clearing mirrors Blizzard's range registration** instead of `ActionButton.OnActionChanged`.
+  That callback fires after Blizzard has already re-enabled the range check, so clearing there
+  could wipe a wash the hotkey still showed (macro conditionals, same-slot swaps). The addon
+  post-hooks `ActionBarButtonRangeCheckFrame:UnregisterFrame` (clear) and `:RegisterFrame`
+  (re-read the range with `C_ActionBar.IsActionInRange`, or clear if the slot is empty). That
+  also covers bars hidden and shown, and assisted-combat slots, and the buttons already
+  registered at login are read once on `PLAYER_ENTERING_WORLD`.
+- **Which buttons:** an explicit test (has `action`, `icon`, `IconMask` and `Border`, no
+  `RefreshRange`, not on `PetActionBar`) instead of comparing `UpdateAction` with the mixin's
+  function, which another addon's hook would break. The pet path matches on `button.bar`
+  (pet buttons are parented to per-slot containers, not to `PetActionBar`).
+- **The edge copies Blizzard's `Border`:** same atlas, OVERLAY sublevel 0 and
+  `SetAllPoints(button.Border)`, so it fits the smaller totem-bar buttons too. No desaturate:
+  the atlas art is neutral, and Blizzard tints it green with a vertex colour.
 
 ## Untested
 

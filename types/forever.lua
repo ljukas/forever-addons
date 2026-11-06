@@ -152,3 +152,7 @@ GetMinimapShape = nil
 -- Combo points around the target portrait (Camelot/ComboFrame.xml, ComboFrame.lua).
 ---@type Frame
 ComboFrame = nil
+
+-- PetActionBar: the pet bar frame, Blizzard_ActionBar/Mainline/PetActionBar.xml.
+---@type Frame
+PetActionBar = {}

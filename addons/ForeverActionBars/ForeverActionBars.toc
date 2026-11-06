@@ -11,3 +11,4 @@
 #@end-do-not-package@
 
 Core.lua
+Wash.lua

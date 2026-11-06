@@ -6,9 +6,10 @@ local _, ns = ...
 -- (Blizzard_ActionBar/Shared/ActionButton.lua); this post-hooks it.
 --
 -- checksRange and inRange may be secret values, so Lua never compares or branches on them.
--- Each texture takes checksRange through SetVertexColorFromBoolean (vertex alpha 1 or 0) and
--- inRange through SetAlphaFromBoolean (region alpha 0 or its opacity). The renderer multiplies
--- the two, so the texture shows only when checksRange and not inRange.
+-- C_CurveUtil.EvaluateColorValueFromBoolean picks between two values on a (secret) boolean, so
+-- nesting two of them gives "checksRange and not inRange" as an alpha, which SetAlpha takes
+-- even when secret. (SetVertexColorFromBoolean and SetAlphaFromBoolean can't be combined for
+-- this: both set the same alpha, and the later call wins.)
 --
 -- The wash sits on the button itself, just above the icon and below the button's frame art
 -- and child frames (cooldown swipe, hotkey, count, proc glow). The edge is drawn exactly like
@@ -26,8 +27,7 @@ local EDGE_ALPHA = 1
 local EDGE_ATLAS = "UI-HUD-ActionBar-IconFrame-Border"
 
 local r, g, b = RED_FONT_COLOR:GetRGB()
-local SHOWN = CreateColor(r, g, b, 1)
-local HIDDEN = CreateColor(r, g, b, 0)
+local Pick = C_CurveUtil.EvaluateColorValueFromBoolean
 
 -- button -> { wash = Texture, edge = Texture }. Kept here rather than on the button, so the
 -- addon writes no fields onto Blizzard's secure frames.
@@ -47,7 +47,7 @@ end
 
 local function Create(button)
 	local wash = button:CreateTexture(nil, "BACKGROUND", nil, 7)
-	wash:SetColorTexture(1, 1, 1)
+	wash:SetColorTexture(r, g, b)
 	wash:SetAllPoints(button.icon)
 	wash:AddMaskTexture(button.IconMask)
 	wash:SetAlpha(0)
@@ -57,6 +57,7 @@ local function Create(button)
 	local edge = button:CreateTexture(nil, "OVERLAY", nil, 0)
 	edge:SetAtlas(EDGE_ATLAS)
 	edge:SetAllPoints(button.Border)
+	edge:SetVertexColor(r, g, b)
 	edge:SetAlpha(0)
 
 	local overlay = { wash = wash, edge = edge }
@@ -67,10 +68,8 @@ end
 -- Shows the wash when checksRange and not inRange. Neither may be nil; both may be secret.
 function ns.Wash.Apply(button, checksRange, inRange)
 	local overlay = overlays[button] or Create(button)
-	overlay.wash:SetVertexColorFromBoolean(checksRange, SHOWN, HIDDEN)
-	overlay.wash:SetAlphaFromBoolean(inRange, 0, WASH_ALPHA)
-	overlay.edge:SetVertexColorFromBoolean(checksRange, SHOWN, HIDDEN)
-	overlay.edge:SetAlphaFromBoolean(inRange, 0, EDGE_ALPHA)
+	overlay.wash:SetAlpha(Pick(checksRange, Pick(inRange, 0, WASH_ALPHA), 0))
+	overlay.edge:SetAlpha(Pick(checksRange, Pick(inRange, 0, EDGE_ALPHA), 0))
 end
 
 -- Hides the wash. cause is only logged.

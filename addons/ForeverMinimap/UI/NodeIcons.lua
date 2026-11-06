@@ -3,7 +3,8 @@ local ADDON_NAME, ns = ...
 -- Draws an icon on each marker (Markers.lua), every frame, from the player's current position
 -- and facing, so the icons move with the minimap exactly; scans only add and drop markers.
 
--- The tracking icons, for a node whose item has no icon (Data/Nodes.lua).
+-- The tracking icons, for a herb or ore whose item has no icon (Data/Nodes.lua). Chests use
+-- Find Treasure's icon instead (TreasureIcon).
 local ATLASES = {
 	herb = "professions_tracking_herb",
 	ore = "professions_tracking_ore",
@@ -76,9 +77,27 @@ local function Round(value)
 	return math.floor(value + 0.5)
 end
 
+-- A chest gives no one item: it gets Find Treasure's own icon from the tracking menu, as square
+-- as an item icon.
+local function TreasureIcon()
+	local icon = ns.Tracking.TreasureTexture()
+	if icon then
+		return icon
+	end
+	icon = C_Spell.GetSpellTexture(ns.Tracking.FIND_TREASURE)
+	if icon and not issecretvalue(icon) then
+		return icon
+	end
+end
+
 function ForeverMinimapNodeIconMixin:SetNode(kind, item, gray, size)
 	-- An item whose icon the client couldn't give yet is tried again (ItemIcon's retry).
-	local icon = ItemIcon(item)
+	local icon
+	if kind == "treasure" then
+		icon = TreasureIcon()
+	else
+		icon = ItemIcon(item)
+	end
 	if self.kind ~= kind or self.item ~= item or self.icon ~= icon then
 		self.kind, self.item, self.icon = kind, item, icon
 		if icon then
@@ -86,7 +105,11 @@ function ForeverMinimapNodeIconMixin:SetNode(kind, item, gray, size)
 			self.Icon:SetTexCoord(ITEM_INSET, 1 - ITEM_INSET, ITEM_INSET, 1 - ITEM_INSET)
 		else
 			self.Icon:SetTexCoord(0, 1, 0, 1) -- SetAtlas's own reset is not documented
-			self.Icon:SetAtlas(ATLASES[kind])
+			if ATLASES[kind] then
+				self.Icon:SetAtlas(ATLASES[kind])
+			else
+				self.Icon:SetTexture(nil) -- a chest before any treasure icon could be read: the ring alone
+			end
 		end
 	end
 	if self.size ~= size then

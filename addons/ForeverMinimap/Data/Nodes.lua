@@ -1,7 +1,7 @@
 local ADDON_NAME, ns = ...
 
--- The herb and ore nodes Find Herbs and Find Minerals show, by enUS name: which tracking icon
--- each gets. Only names in this list get an icon, so party members, NPCs and quest objects under
+-- The herb, ore and chest nodes Find Herbs, Find Minerals and Find Treasure show, by enUS name:
+-- which kind of icon each gets. Only names in this list get an icon, so party members, NPCs and quest objects under
 -- a minimap probe are left alone. A deliberate copy of the names in ForeverProfessions'
 -- Data/GatherNodes.lua: the addons don't depend on each other (ADR 0001).
 ns.Nodes = {
@@ -58,12 +58,23 @@ ns.Nodes = {
 	["Plaguebloom"] = "herb",
 	["Icecap"] = "herb",
 	["Black Lotus"] = "herb",
+
+	-- Find Treasure. Battered Chest was seen in game (2026-11-06); the rest are Classic Era's
+	-- chests, a launch check: a chest missing here logs MISS with its name.
+	["Battered Chest"] = "treasure",
+	["Tattered Chest"] = "treasure",
+	["Solid Chest"] = "treasure",
+	["Large Battered Chest"] = "treasure",
+	["Large Iron Bound Chest"] = "treasure",
+	["Large Solid Chest"] = "treasure",
+	["Large Mithril Bound Chest"] = "treasure",
+	["Buccaneer's Strongbox"] = "treasure",
 }
 
 -- The item each node gives, by the same names: its icon marks the node on the minimap
 -- (UI/NodeIcons.lua). From Classic Era item IDs; Dev/NodeItems.lua logs each one's name in game
 -- to check them. A name missing here, or an item whose icon the client can't give, keeps the
--- herb or ore tracking icon.
+-- herb or ore tracking icon. Chests have no item: they get Find Treasure's icon.
 ns.NodeItems = {
 	-- Mining
 	["Copper Vein"] = 2770, -- Copper Ore

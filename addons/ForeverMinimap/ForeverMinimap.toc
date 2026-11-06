@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: ForeverMinimap
-## Notes: Shows the herbs and ore your minimap tracking finds as icons in the minimap's gold tracking ring, and gathers other addons' minimap buttons into one button.
+## Notes: Shows the herbs, ore and treasure chests your minimap tracking finds as icons in the minimap's gold tracking ring, and gathers other addons' minimap buttons into one button.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@

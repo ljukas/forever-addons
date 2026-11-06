@@ -6,6 +6,7 @@ local ADDON_NAME, ns = ...
 --   LOADED                   Core.lua
 --   SCAN DOT LINE MISS LOOT  Scanner.lua
 --   SCALE                    UI/NodeIcons.lua
+--   TRACK                    Tracking.lua
 --   ITEM                     Dev/NodeItems.lua
 --   BAG                      UI/BagButton.lua, ButtonBag.lua
 local function Nop() end
@@ -28,7 +29,7 @@ end
 -- enUS only for now. Blizzard's own global strings are used where one exists.
 ns.L = {
 	SHOW_NODE_ICONS = "Show icons on tracked nodes",
-	SHOW_NODE_ICONS_TOOLTIP = "Show the herbs and ore your tracking finds as icons on the minimap. They follow the minimap's Icon Scale in Edit Mode.",
+	SHOW_NODE_ICONS_TOOLTIP = "Show the herbs, ore and treasure chests your tracking finds as icons on the minimap. They follow the minimap's Icon Scale in Edit Mode.",
 	SHOW_BUTTON_BAG = "Gather addon minimap buttons",
 	SHOW_BUTTON_BAG_TOOLTIP = "Collect the minimap buttons other addons add into one button on the minimap edge.",
 	BUTTON_BAG_DIRECTION = "Open buttons towards",

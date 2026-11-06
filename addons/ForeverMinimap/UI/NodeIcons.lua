@@ -79,15 +79,24 @@ end
 
 -- A chest gives no one item: it gets Find Treasure's own icon from the tracking menu, as square
 -- as an item icon.
+-- The spell's icon is the fallback, asked for once and kept, and retried no more often than
+-- item icons are.
+local treasureSpellIcon, treasureRetryAt
 local function TreasureIcon()
-	local icon = ns.Tracking.TreasureTexture()
+	local icon = ns.Tracking.TreasureTexture() or treasureSpellIcon
 	if icon then
 		return icon
 	end
+	local now = GetTime()
+	if treasureRetryAt and now < treasureRetryAt then
+		return nil
+	end
 	icon = C_Spell.GetSpellTexture(ns.Tracking.FIND_TREASURE)
 	if icon and not issecretvalue(icon) then
+		treasureSpellIcon = icon
 		return icon
 	end
+	treasureRetryAt = now + ICON_RETRY
 end
 
 function ForeverMinimapNodeIconMixin:SetNode(kind, item, gray, size)

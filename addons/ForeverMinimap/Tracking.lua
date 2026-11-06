@@ -2,8 +2,8 @@ local ADDON_NAME, ns = ...
 
 -- Whether Find Herbs, Find Minerals or Find Treasure is on. The herb and ore spell IDs are the
 -- ones Blizzard's own tracking menu gives the herb and ore icons (Blizzard_Minimap/Mainline/
--- Minimap.lua, TRACKING_SPELL_OVERRIDE_ATLAS); Find Treasure's is the Classic Era dwarf racial's
--- (a launch check: TRACK logs every tracking type with its spell ID).
+-- Minimap.lua, TRACKING_SPELL_OVERRIDE_ATLAS); Find Treasure's was confirmed in game (TRACK,
+-- 2026-11-06), and TRACK logs every tracking type with its spell ID.
 --
 -- Dev log tags: TRACK (the tracking types and which are on, each time that changes).
 ns.Tracking = {}

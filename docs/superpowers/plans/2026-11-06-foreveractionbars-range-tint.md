@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Superseded in part.** The spec's "Amended after the step review" section and `Wash.lua` replace this plan's clearing (`OnActionChanged` → `RegisterFrame`/`UnregisterFrame` hooks and a login refresh), button test, pet-button match (`button.bar`) and wash setters (nested `C_CurveUtil.EvaluateColorValueFromBoolean` into `SetAlpha`). The plan is kept as the record of what was planned.
+
 **Goal:** A new addon, ForeverActionBars, that puts a red wash and a red edge over every standard Blizzard action button that's out of range. Pet buttons only collect evidence.
 
 **Architecture:** One post-hook on the global `ActionButton_UpdateRangeIndicator(button, checksRange, inRange)`, which every bar calls. For standard action buttons it drives two textures the addon adds to the button, using the client's secret-safe setters, so Lua never branches on a range value. For pet buttons it records evidence through `Knowledge.lua` (ForeverDev only). `EventRegistry` `"ActionButton.OnActionChanged"` clears the wash when a slot's action changes.
@@ -112,10 +114,10 @@ git add addons/ForeverActionBars/Wash.lua addons/ForeverActionBars/ForeverAction
 
 **In-game checks for this task** (Phase 6, after `/rl`):
 1. `RANGE action secret false` logged both idle and in combat, or `true` in combat (the wash must still be correct then).
-3. Target dropped, target killed, slot dragged empty, bar paged, form or stance changed, talent or spec swapped: no wash remains.
-4. Out of range plus out of mana shows blue under red. Out of range plus unusable shows grey under red. In range looks exactly like Blizzard's.
-5. Cooldown swipe, proc glow, hotkey and charge count draw over the wash, and the wash follows the icon's rounded mask.
-6. `scripts/devlog.sh --errors`: nothing after a fight.
+2. Target dropped, target killed, slot dragged empty, bar paged, form or stance changed, talent or spec swapped: no wash remains.
+3. Out of range plus out of mana shows blue under red. Out of range plus unusable shows grey under red. In range looks exactly like Blizzard's.
+4. Cooldown swipe, proc glow, hotkey and charge count draw over the wash, and the wash follows the icon's rounded mask.
+5. `scripts/devlog.sh --errors`: nothing after a fight.
 
 ### Task 3: Pet range evidence
 
@@ -158,4 +160,4 @@ git add addons/ForeverActionBars/Knowledge.lua addons/ForeverActionBars/ForeverA
 ## After the PR (Phase 6/7)
 
 - A project memory, `foreveractionbars-launch-checks`, with the in-game checks above and the pet evidence rule, in case the user can't run everything before merge.
-- Spec amendment: the overlay is two textures on the button, AND-ed through vertex alpha × region alpha, not a nested frame (see Task 2, step 3).
+- Spec amendment: the overlay is two textures on the button, not a nested frame. The AND is nested `C_CurveUtil.EvaluateColorValueFromBoolean` into `SetAlpha` (vertex alpha × region alpha didn't work; see the spec's amended section).

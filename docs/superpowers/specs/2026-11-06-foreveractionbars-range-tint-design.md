@@ -70,6 +70,8 @@ the tint getting stuck (for example on a slot emptied by a talent swap) and bein
   alpha 1 vs alpha 0) and `inRange` through `SetAlphaFromBoolean` (0 vs the opacity). Vertex
   alpha and region alpha multiply, so the result is
   "shown only when checksRange and not inRange", with no comparison, negation or branch in Lua.
+  *Superseded after the in-game test:* the two setters write the same alpha, so the later one
+  wins (see "Amended after the step review").
   It works the same whether the values are secret or not, and it can't stick: every update
   overwrites both alphas. `issecretvalue` is still used, but only for the `RANGE` logging.
   If the game rejects a secret value even there, phase 2 below takes over.
@@ -177,7 +179,8 @@ inside `if ns.dev.enabled then`.
 
 - **No options and no SavedVariables in the first version.** Fixed look, fixed red.
 - **Red is `RED_FONT_COLOR`**, matching the hotkey, rather than a custom red.
-- **Secret range values:** drive the wash with `SetAlphaFromBoolean` so secret values still
+- **Secret range values:** drive the wash with secret-safe calls (now nested
+  `C_CurveUtil.EvaluateColorValueFromBoolean` into `SetAlpha`) so secret values still
   show correctly. Rejected alternatives: freezing the wash (it could stick for a whole fight,
   breaking goal 5) and clearing it (the wash would vanish exactly when it's needed).
 - **Phase 2 is a separate PR**, decided from the in-game logs.
@@ -213,6 +216,13 @@ Five reviewers read the finished step; these supersede the text above where they
 - **The edge copies Blizzard's `Border`:** same atlas, OVERLAY sublevel 0 and
   `SetAllPoints(button.Border)`, so it fits the smaller totem-bar buttons too. No desaturate:
   the atlas art is neutral, and Blizzard tints it green with a vertex colour.
+- **Visibility comes from one `SetAlpha`** (found in game, 2026-11-06). `SetVertexColorFromBoolean`
+  and `SetAlphaFromBoolean` set the same alpha, so `checksRange` was ignored: the wash stayed
+  after losing the target and showed on friendly-only spells with an enemy targeted. Each
+  texture now takes `SetAlpha(Pick(checksRange, Pick(inRange, 0, opacity), 0))`, with
+  `Pick = C_CurveUtil.EvaluateColorValueFromBoolean` (secret arguments allowed when tainted),
+  and its red is set once with a plain vertex colour. In game the range values were not secret,
+  in or out of combat.
 
 ## Untested
 

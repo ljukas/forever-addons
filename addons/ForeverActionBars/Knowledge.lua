@@ -48,7 +48,8 @@ end
 -- The pet bar reported a range result for one of its buttons.
 function ns.Knowledge.PetRange(button, checksRange, inRange)
 	local name, _, _, _, _, _, spellID = GetPetActionInfo(button:GetID())
-	if spellID == nil or issecretvalue(spellID) then
+	-- Tokens (Attack, Follow, stances) may report 0 rather than nil.
+	if spellID == nil or issecretvalue(spellID) or spellID == 0 then
 		return
 	end
 	local key = PetResult(checksRange, inRange) .. "/" .. PlayerMelee()

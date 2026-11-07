@@ -29,8 +29,13 @@ hooksecurefunc(bar, "SetStatusBarColor", function(self)
 end)
 bar:SetStatusBarColor(1, 1, 1)
 
+-- The border file is drawn for a 128px bar (TooltipStatusBarTemplate). Nine-sliced, its end caps keep
+-- their size on wide tooltips and only the middle stretches. Margins are in the file's pixels.
+local BORDER_SLICE = 5
+
 local border = bar:CreateTexture(nil, "OVERLAY")
 border:SetTexture(BORDER_FILE)
+border:SetTextureSliceMargins(BORDER_SLICE, BORDER_SLICE, BORDER_SLICE, BORDER_SLICE)
 border:SetPoint("TOPLEFT", -2, 2)
 border:SetPoint("BOTTOMRIGHT", 2, -2)
 

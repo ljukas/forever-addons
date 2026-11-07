@@ -5,7 +5,7 @@ local ADDON_NAME, ns = ...
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
 --   LOADED                   Core.lua
 --   SCAN DOT LINE MISS LOOT  Scanner.lua
---   SCALE                    UI/NodeIcons.lua
+--   SCALE DRAW               UI/NodeIcons.lua
 --   TRACK                    Tracking.lua
 --   ITEM                     Dev/NodeItems.lua
 --   BAG                      UI/BagButton.lua, ButtonBag.lua
@@ -30,6 +30,7 @@ end
 ns.L = {
 	SHOW_NODE_ICONS = "Show icons on tracked nodes",
 	SHOW_NODE_ICONS_TOOLTIP = "Show the herbs, ore and treasure chests your tracking finds as icons on the minimap. They follow the minimap's Icon Scale in Edit Mode.",
+	NODE_ICONS_BLOCKED = "Not available: since the game's update of 7 November 2026, addons can no longer read the herbs, ore and chests on the minimap.",
 	SHOW_BUTTON_BAG = "Gather addon minimap buttons",
 	SHOW_BUTTON_BAG_TOOLTIP = "Collect the minimap buttons other addons add into one button on the minimap edge.",
 	BUTTON_BAG_DIRECTION = "Open buttons towards",

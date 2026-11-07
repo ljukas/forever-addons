@@ -33,4 +33,5 @@ ButtonBagMenu.lua
 
 #@do-not-package@
 Dev/NodeItems.lua
+Dev/ProbeCoords.lua
 #@end-do-not-package@

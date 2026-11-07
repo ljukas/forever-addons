@@ -75,6 +75,10 @@ function ForeverProfessionsPinMixin:SetPin(pin)
 		end
 	end
 	self:RefreshSkillState()
+	-- A hovered minimap pin keeps its frame while its merged nodes change.
+	if GameTooltip:IsOwned(self) then
+		self:OnMouseEnter()
+	end
 end
 
 -- Too low to gather any of its nodes: the gold ring turns red and the icon greys out. Pins are

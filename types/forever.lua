@@ -87,6 +87,7 @@ WorldMapFrame = {}
 ---@field SetPosition fun(self: MapCanvasPinMixin, normalizedX: number, normalizedY: number, insetIndex: number?)
 ---@field SetScalingLimits fun(self: MapCanvasPinMixin, scaleFactor: number, startScale: number?, endScale: number?)
 ---@field UseFrameLevelType fun(self: MapCanvasPinMixin, pinFrameLevelType: string, index: number?)
+---@field ApplyCurrentScale fun(self: MapCanvasPinMixin)
 
 -- Blizzard_UnitFrame/Mainline/TargetFrame.xml: TargetFrame and FocusFrame (TargetFrameTemplate).
 -- Only the members our addons use.

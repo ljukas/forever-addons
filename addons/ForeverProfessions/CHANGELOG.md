@@ -7,6 +7,8 @@
   counts how many times each one has been gathered.
 - Shows known nodes on the world map and the minimap, each with the icon of what it gives,
   such as Copper Ore on a Copper Vein.
+- Nodes close enough to overlap share one pin with a count, which splits apart as you zoom
+  in. Hovering it lists the nodes and the skill each needs.
 - Remembers Poor Copper Veins too.
 - Nodes your current character can't gather yet get a red ring. Hovering a node shows the
   skill it requires, your current skill and how often it has been gathered.

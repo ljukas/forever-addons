@@ -3,11 +3,13 @@ local ADDON_NAME, ns = ...
 -- Merges nodes whose pins would overlap into one pin. Pure: no frames or API calls.
 ns.Clusters = {}
 
--- points: array of { x, y, weight } in units where two pins closer than size overlap. Returns
--- an array of groups { anchor = index, members = { index, ... } }, members including the
--- anchor. Points are taken heaviest first (then north to south, west to east): each joins the
--- nearest anchor closer than size, or anchors a group of its own. A group's pin goes on its
--- anchor, and anchors are never closer than size to each other, so no two pins overlap.
+-- points: array of { x, y, weight, tie } in units where two pins closer than size overlap; tie
+-- is a string that orders points of equal weight, and should not change as the view moves or
+-- turns, or a group's pin would jump between its nodes. Returns an array of groups
+-- { anchor = index, members = { index, ... } }, members including the anchor. Points are taken
+-- heaviest first (then by tie): each joins the nearest anchor closer than size, or anchors a
+-- group of its own. A group's pin goes on its anchor, and anchors are never closer than size
+-- to each other, so no two pins overlap.
 function ns.Clusters.Group(points, size)
 	local order = {}
 	for i = 1, #points do
@@ -17,6 +19,9 @@ function ns.Clusters.Group(points, size)
 		local pa, pb = points[a], points[b]
 		if pa.weight ~= pb.weight then
 			return pa.weight > pb.weight
+		end
+		if pa.tie ~= pb.tie then
+			return pa.tie < pb.tie
 		end
 		if pa.y ~= pb.y then
 			return pa.y < pb.y
@@ -56,11 +61,12 @@ end
 --               gathered, then the anchor's)
 --   nodes       the group's nodes, anchor first
 function ns.Clusters.Pins(nodes, points, size)
+	local weighted = {}
 	for i, point in ipairs(points) do
-		point.weight = nodes[i].count
+		weighted[i] = { x = point.x, y = point.y, weight = nodes[i].count, tie = nodes[i].key }
 	end
 	local pins = {}
-	for _, group in ipairs(ns.Clusters.Group(points, size)) do
+	for _, group in ipairs(ns.Clusters.Group(weighted, size)) do
 		local anchor = nodes[group.anchor]
 		local members, perName, gatheredPerName = {}, {}, {}
 		for _, index in ipairs(group.members) do

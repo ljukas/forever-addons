@@ -23,6 +23,7 @@ Tooltip.lua
 Options.lua
 Menus.lua
 Sources/GatherRecorder.lua
+Sources/CraftRecorder.lua
 UI/Pin.xml
 UI/WorldMapProvider.lua
 UI/WorldMapToggle.xml

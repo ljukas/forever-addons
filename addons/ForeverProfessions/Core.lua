@@ -5,6 +5,7 @@ local ADDON_NAME, ns = ...
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
 --   LOADED            Core.lua
 --   GATHER NEW AGAIN  Sources/GatherRecorder.lua
+--   CRAFTED SKILLUP SECRET LATE  Sources/CraftRecorder.lua
 --   SKILL UNLISTED    Knowledge.lua, which keeps the evidence
 --   CLUSTER           UI/WorldMapProvider.lua
 --   CRAFT             Dev/CraftProbe.lua

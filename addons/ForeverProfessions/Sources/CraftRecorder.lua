@@ -64,6 +64,11 @@ function handlers.UNIT_SPELLCAST_START(_, castGUID, spellID)
 	if not recipe then
 		return
 	end
+	-- relativeDifficulty is nilable; a craft without its colour says nothing about the odds.
+	if recipe.relativeDifficulty == nil then
+		ns.dev:LogOnce("no difficulty " .. spellID, "SECRET", "recipe", spellID, "has no difficulty, not recorded")
+		return
+	end
 	local info = C_TradeSkillUI.GetProfessionInfoByRecipeID(spellID)
 	if
 		not info

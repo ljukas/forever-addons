@@ -6,7 +6,8 @@ local ADDON_NAME, ns = ...
 --   nodes    = { [uiMapID] = { [profession] = { [nodeName] = { x1, y1, count1, x2, y2, count2, ... } } } }
 -- profession is the node's key in Professions.lua. x, y are normalized positions on that zone
 -- map, rounded to 4 decimals. count is how many times the node has been gathered.
---   crafts   = { [characterKey] = { [recipeID] = { made, gray, levels = { [skillRank] = row } } } }
+--   crafts   = { [characterKey] = { [recipeID] = { made, gray, levels = { [skillRank] = row } } } },
+--              written by Sources/CraftRecorder.lua
 -- characterKey is "Name-Realm". made counts the items the recipe produced; gray is the recipe's
 -- maxTrivialLevel, the rank it turns gray at. skillRank is the profession's base skill when the
 -- cast started (not counting racial or item bonuses), and row is

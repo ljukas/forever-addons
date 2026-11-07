@@ -73,6 +73,12 @@ WorldMapFrame = {}
 ---@field AcquirePin fun(self: MapCanvasFrame, pinTemplate: string, ...): MapCanvasPinMixin
 ---@field RemoveAllPinsByTemplate fun(self: MapCanvasFrame, pinTemplate: string)
 ---@field EnumeratePinsByTemplate fun(self: MapCanvasFrame, pinTemplate: string): fun(): Frame
+---@field GetCanvas fun(self: MapCanvasFrame): Frame
+---@field GetCanvasScale fun(self: MapCanvasFrame): number
+---@field GetGlobalPinScale fun(self: MapCanvasFrame): number
+---@field HasZoomLevels fun(self: MapCanvasFrame): boolean
+---@field GetScaleForMinZoom fun(self: MapCanvasFrame): number
+---@field GetScaleForMaxZoom fun(self: MapCanvasFrame): number
 
 ---@class MapCanvasDataProviderMixin
 ---@field GetMap fun(self: MapCanvasDataProviderMixin): MapCanvasFrame
@@ -81,6 +87,7 @@ WorldMapFrame = {}
 ---@field SetPosition fun(self: MapCanvasPinMixin, normalizedX: number, normalizedY: number, insetIndex: number?)
 ---@field SetScalingLimits fun(self: MapCanvasPinMixin, scaleFactor: number, startScale: number?, endScale: number?)
 ---@field UseFrameLevelType fun(self: MapCanvasPinMixin, pinFrameLevelType: string, index: number?)
+---@field ApplyCurrentScale fun(self: MapCanvasPinMixin)
 
 -- Blizzard_UnitFrame/Mainline/TargetFrame.xml: TargetFrame and FocusFrame (TargetFrameTemplate).
 -- Only the members our addons use.

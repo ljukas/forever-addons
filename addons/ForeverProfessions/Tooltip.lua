@@ -29,11 +29,71 @@ function ns.Tooltip.AddRequirement(tooltip, nodeName, withName)
 	end
 end
 
--- Full tooltip for one of our pins.
-function ns.Tooltip.ShowNode(tooltip, owner, anchor, nodeName, timesGathered)
+-- One line per kind of node in a merged pin: "2x Copper Vein" and the skill it requires, red
+-- when the player is too low; then the player's skill once per profession.
+local function AddMergedNodes(tooltip, nodes)
+	local names, perName = {}, {}
+	for _, node in ipairs(nodes) do
+		if not perName[node.name] then
+			perName[node.name] = 0
+			table.insert(names, node.name)
+		end
+		perName[node.name] = perName[node.name] + 1
+	end
+	table.sort(names, function(a, b)
+		if perName[a] ~= perName[b] then
+			return perName[a] > perName[b]
+		end
+		return a < b
+	end)
+
+	local skills, professions = {}, {}
+	for _, name in ipairs(names) do
+		local required, rank, profession, tooLow = ns.Professions.GetRequirement(name)
+		local left = L.NODE_COUNT:format(perName[name], name)
+		if required then
+			local color = tooLow and RED_FONT_COLOR or HIGHLIGHT_FONT_COLOR
+			GameTooltip_AddColoredDoubleLine(
+				tooltip,
+				left,
+				L.REQUIRES_SKILL:format(profession, required),
+				HIGHLIGHT_FONT_COLOR,
+				color
+			)
+			-- false: not learned, so only nil means the profession hasn't been listed yet.
+			if skills[profession] == nil then
+				skills[profession] = rank or false
+				table.insert(professions, profession)
+			end
+		else
+			GameTooltip_AddHighlightLine(tooltip, left)
+		end
+	end
+	for _, profession in ipairs(professions) do
+		local rank = skills[profession]
+		if rank then
+			GameTooltip_AddNormalLine(tooltip, L.CURRENT_SKILL:format(rank))
+		else
+			GameTooltip_AddNormalLine(tooltip, L.NOT_LEARNED:format(profession))
+		end
+	end
+end
+
+-- Full tooltip for one of our pins, which stands for one node or for several merged.
+---@param nodes ForeverProfessionsPinNode[]
+function ns.Tooltip.ShowNodes(tooltip, owner, anchor, nodes)
 	tooltip:SetOwner(owner, anchor)
-	GameTooltip_SetTitle(tooltip, nodeName)
-	ns.Tooltip.AddRequirement(tooltip, nodeName)
+	local timesGathered = 0
+	for _, node in ipairs(nodes) do
+		timesGathered = timesGathered + node.count
+	end
+	if #nodes == 1 then
+		GameTooltip_SetTitle(tooltip, nodes[1].name)
+		ns.Tooltip.AddRequirement(tooltip, nodes[1].name)
+	else
+		GameTooltip_SetTitle(tooltip, L.NODES_HERE:format(#nodes))
+		AddMergedNodes(tooltip, nodes)
+	end
 	GameTooltip_AddNormalLine(tooltip, L.TIMES_GATHERED:format(timesGathered))
 	tooltip:Show()
 end

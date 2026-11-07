@@ -34,7 +34,23 @@ border:SetTexture(BORDER_FILE)
 border:SetPoint("TOPLEFT", -2, 2)
 border:SetPoint("BOTTOMRIGHT", 2, -2)
 
+-- Logged on show: at load the bar is hidden and has no size yet.
 if ns.dev.enabled then
-	local fill = bar:GetStatusBarTexture()
-	ns.log("HEALTHBAR", "fill atlas", fill and fill:GetAtlas(), "size", bar:GetWidth(), bar:GetHeight())
+	bar:HookScript("OnShow", function(self)
+		local fill = self:GetStatusBarTexture()
+		local r, g, b = fill:GetVertexColor()
+		ns.dev:LogOnce(
+			"healthbar-shown",
+			"HEALTHBAR",
+			"fill atlas",
+			fill:GetAtlas(),
+			"colour",
+			r,
+			g,
+			b,
+			"size",
+			self:GetWidth(),
+			self:GetHeight()
+		)
+	end)
 end

@@ -86,6 +86,11 @@ function handlers.UNIT_SPELLCAST_START(_, castGUID, spellID)
 		ns.log("SECRET", "recipe", spellID, "not recorded")
 		return
 	end
+	-- An empty struct (profession data not loaded) would file a capped craft at rank 0.
+	if info.professionID == 0 or info.maxSkillLevel <= 0 then
+		ns.dev:LogOnce("no profession " .. spellID, "SECRET", "recipe", spellID, "has no profession info, not recorded")
+		return
+	end
 	snapshots[castGUID] = {
 		recipeID = spellID,
 		professionID = info.professionID,

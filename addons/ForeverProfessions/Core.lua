@@ -7,6 +7,7 @@ local ADDON_NAME, ns = ...
 --   GATHER NEW AGAIN  Sources/GatherRecorder.lua
 --   SKILL UNLISTED    Knowledge.lua, which keeps the evidence
 --   CLUSTER           UI/WorldMapProvider.lua
+--   CRAFT             Dev/CraftProbe.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.

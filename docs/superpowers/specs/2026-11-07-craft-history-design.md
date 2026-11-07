@@ -95,7 +95,8 @@ crafts = {
 2. **Cast succeeds** (`UNIT_SPELLCAST_SUCCEEDED`, same `castGUID`): add one attempt to the
    snapshot's `levels[skillRank]`, add the items made to `made`, and remember this craft as
    **the last finished craft** of its profession.
-3. **Cast fails or is interrupted**: drop the snapshot; nothing is counted.
+3. **Cast fails, is interrupted or stops without succeeding**: drop the snapshot; nothing is
+   counted.
 4. **Skill rises** (the profession's rank, re-read when the client reports skill lines changed,
    is higher than the last rank seen): credit the difference to that profession's **last
    finished craft**, in the `levels` row it was counted in. Never to a cast that has only
@@ -178,6 +179,22 @@ the design comes back for revision.
    `skillModifier` is ignored until a character with a bonus shows otherwise.
 6. **Plausible, unconfirmed.** `maxTrivialLevel` is 90 for Arclight Spanner, the wiki's gray
    level. Seeing the recipe turn gray at 90 would confirm it.
+
+### Builder's calls made during the build
+
+- **Credit window, 3 s** (`CREDIT_SECONDS`): a skill rise or crafted result is only credited
+  to a craft that finished at most 3 s before. The probe measured 0.10–0.18 s. A **gather ends
+  every craft's credit** (`NodesChanged` from the gather recorder), because Mining also rises
+  from veins and a vein's skill-up must not land on the smelt before it.
+- **STOP ends every cast** (probe: after SUCCEEDED, in the same frame). A snapshot still live at
+  STOP is dropped and logged `DROPPED`. This depends on SUCCEEDED arriving before STOP; if it
+  ever didn't, every attempt would show as `DROPPED` in the devlog.
+- **Skill-ups only credit an existing row** (`RecordSkillUp` returns false otherwise), so every
+  row has its difficulty. A rise that isn't credited is logged `UNCREDITED` with its age.
+- `lastKnownRank` is never lowered, so a late skill rise can't be booked twice.
+- Check 3 rests on one queued transition. Phase 6 runs a Create All of 5+, including crafts
+  that give no point, and expects one `CRAFTED` per success, `SKILLUP` on the right ranks and no
+  `LATE`.
 
 ## Left to the builder
 

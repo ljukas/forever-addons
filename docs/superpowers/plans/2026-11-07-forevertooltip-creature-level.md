@@ -5,8 +5,8 @@ One step, one PR. Builds on #30, which colours the level line of **player** tool
 
 ## Scope
 
-- The level line of every unit tooltip (creatures, NPCs, critters, players) takes the difficulty
-  colour: gray, green, yellow, orange, red (Blizzard's `GetCreatureDifficultyColor` scale, the one
+- The level line of player tooltips and of creatures/NPCs you can attack takes the difficulty
+  colour (friendly NPCs keep Blizzard's colour, as Blizzard's TargetFrameMixin:CheckLevel does): gray, green, yellow, orange, red (Blizzard's `GetCreatureDifficultyColor` scale, the one
   player tooltips already use).
 - A `??` (skull) level shows Blizzard's skull icon in place of `??`
   (`|TInterface\TargetingFrame\UI-TargetingFrame-Skull:0|t`, used by Forever's
@@ -39,8 +39,12 @@ Reviewers: core four + UI reviewer.
 
 ## In-game checks
 
-- Hover mobs below/at/above your level: level line gray/green/yellow/orange/red.
-  `LEVEL` tag: `level line by type at N` (type path found for creatures).
+- Hover hostile mobs below/at/above your level: level line gray/green/yellow/orange/red.
+  `LEVEL` tag: `level line by text at N` (#30 found player level lines by text, not by the
+  UnitLevel line type; expect the same for creatures). `level line text …` shows Blizzard's raw
+  text: a `||c` colour code in it would mean SetTextColor can't colour that part.
+- Hover a friendly vendor or guard: level line keeps Blizzard's colour (target-frame rule:
+  difficulty colour only when `UnitCanAttack`).
 - Hover a `??` mob (e.g. a high-level elite or boss): skull icon in place of `??`, red.
   `LEVEL` tag: `skull at line N`.
 - `scripts/devlog.sh --errors` clean.

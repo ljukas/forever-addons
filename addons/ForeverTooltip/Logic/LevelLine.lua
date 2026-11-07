@@ -15,7 +15,8 @@ local ADDON_NAME, ns = ...
 -- WithSkull swaps the "??" of a skull-level line for an icon (S is the skull's |T...|t string):
 --   WithSkull("Level ?? Elite", "Level %d", S) == "Level " .. S .. " Elite"
 --   WithSkull("|cffff0000Level ?? Boss|r", "Level %d", S) == "|cffff0000Level " .. S .. " Boss|r"
---   WithSkull("%d级 ??", "%d级", S) == nil                        (the line must start with "??级")
+--   WithSkull("??级 精英", "%d级", S) == S .. "级 精英"
+--   WithSkull("精英 ??级", "%d级", S) == nil                     (the line must start with "??级")
 --   WithSkull("Level 12 Beast", "Level %d", S) == nil
 ns.LevelLine = {}
 

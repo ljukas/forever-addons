@@ -1,7 +1,7 @@
 local ADDON_NAME, ns = ...
 
--- Colours unit tooltips. For every unit (players, creatures, NPCs) the level line by how its level
--- compares to yours (gray, green, yellow, orange, red: Blizzard's GetCreatureDifficultyColor, the
+-- Colours unit tooltips. For players and for creatures and NPCs you can attack, the level line by how
+-- its level compares to yours (gray, green, yellow, orange, red: Blizzard's GetCreatureDifficultyColor, the
 -- colours of quest and creature difficulty), with a skull icon in place of "??". For players also
 -- the name line in the player's class colour, and the Alliance/Horde
 -- line red for enemies, yellow for players you can attack who aren't hostile, green for allies, using
@@ -159,7 +159,19 @@ local function ShowSkull(line, index)
 	end
 end
 
-local function ColorLevelLine(tooltip, unit, data)
+-- Whether a unit's level line takes the difficulty colour. Players always do. Other units only when
+-- you can attack them, as Blizzard's TargetFrameMixin:CheckLevel colours the target's level: a
+-- friendly vendor's level says nothing about danger. False (Blizzard's colour stays) when unreadable.
+local function ShouldColorLevel(unit, isPlayer)
+	if isPlayer then
+		return true
+	end
+	local canAttack = UnitCanAttack("player", unit)
+	return not issecretvalue(canAttack) and canAttack == true
+end
+
+-- Colours the level line by difficulty when colorIt, and shows a skull for a ?? level either way.
+local function ColorLevelLine(tooltip, unit, data, colorIt)
 	local level = UnitLevel(unit)
 	if issecretvalue(level) or level == nil then
 		ns.dev:LogOnce("secret-level", "LEVEL", "level unreadable, level line left to Blizzard")
@@ -183,9 +195,20 @@ local function ColorLevelLine(tooltip, unit, data)
 	end
 	if index then
 		local line = tooltip:GetLeftLine(index)
-		line:SetTextColor(color.r, color.g, color.b)
+		if ns.dev.enabled then
+			-- Blizzard's own text, once per kind of line: shows whether it carries a colour code, which
+			-- SetTextColor can't override.
+			local raw = line:GetText()
+			if raw and not issecretvalue(raw) then
+				local key = "level-raw-" .. tostring(colorIt) .. tostring(level < 0)
+				ns.dev:LogOnce(key, "LEVEL", "level line text", (raw:gsub("|", "||")))
+			end
+		end
 		if level < 0 then
-			ShowSkull(line, index)
+			ShowSkull(line, index) -- before the colour, so SetText can't reset it
+		end
+		if colorIt then
+			line:SetTextColor(color.r, color.g, color.b)
 		end
 	end
 	if ns.dev.enabled then
@@ -236,8 +259,9 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tool
 	if not unit then
 		return
 	end
-	ColorLevelLine(tooltip, unit, data)
-	if IsPlayer(unit) then
+	local isPlayer = IsPlayer(unit)
+	ColorLevelLine(tooltip, unit, data, ShouldColorLevel(unit, isPlayer))
+	if isPlayer then
 		ColorName(tooltip, unit)
 		ColorFactionLine(tooltip, unit)
 	end

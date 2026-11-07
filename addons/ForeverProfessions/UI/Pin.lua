@@ -6,6 +6,7 @@ local ADDON_NAME, ns = ...
 ---@field Border Texture
 ---@field nodeName string
 ---@field timesGathered number
+---@field shownIcon (number|string)? the item icon or atlas the pin shows
 ForeverProfessionsPinMixin = {}
 
 -- Item icons carry a dark border; Blizzard crops it off round item icons the same way.
@@ -37,7 +38,14 @@ function ForeverProfessionsPinMixin:SetNode(layer, nodeName, timesGathered)
 	self.nodeName = nodeName
 	self.timesGathered = timesGathered
 	-- A node with no item, or an item whose icon the client can't give, keeps the tracking icon.
+	-- Minimap pins are set again every update while the player moves: only a change retextures.
 	local icon = NodeIcon(nodeName)
+	local shown = icon or layer.atlas
+	if self.shownIcon == shown then
+		self:RefreshSkillState()
+		return
+	end
+	self.shownIcon = shown
 	if icon then
 		self.Icon:SetTexture(icon)
 		self.Icon:SetTexCoord(ITEM_INSET, 1 - ITEM_INSET, ITEM_INSET, 1 - ITEM_INSET)

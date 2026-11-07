@@ -20,6 +20,26 @@ function DataProviderMixin:RemoveAllData()
 	self:GetMap():RemoveAllPinsByTemplate(PIN_TEMPLATE)
 end
 
+-- A pin's largest size in canvas units. A pin is SIZE times its scale, which goes from
+-- START_SCALE to END_SCALE divided by the canvas scale as the map zooms in
+-- (MapCanvasPinMixin:ApplyCurrentScale). Against the map that is largest at one end of the
+-- zoom range, fully out or fully in depending on the zone's zoom levels, so both ends are
+-- taken. The zoom levels exist once the map has laid out a zone; until then, the current scale.
+local function PinCanvasSize(map)
+	local pin = ns.WorldPin
+	local scale
+	if map:HasZoomLevels() then
+		local minZoom, maxZoom = map:GetScaleForMinZoom(), map:GetScaleForMaxZoom()
+		if minZoom > 0 and maxZoom > 0 then
+			scale = math.max(pin.START_SCALE / minZoom, pin.END_SCALE / maxZoom)
+		end
+	end
+	if not scale then
+		scale = pin.START_SCALE / map:GetCanvasScale()
+	end
+	return pin.SIZE * scale * map:GetGlobalPinScale()
+end
+
 function DataProviderMixin:RefreshAllData()
 	self:RemoveAllData()
 	if not ns.Options.Get("showWorldMap") then
@@ -32,23 +52,16 @@ function DataProviderMixin:RefreshAllData()
 		table.insert(nodes, { layer = layer, name = name, x = x, y = y, count = count })
 	end)
 
-	-- Stacked as they overlap fully zoomed out, where pins are largest against the map; zoomed
-	-- in, pins that no longer overlap keep their levels, which changes nothing. Positions are in
-	-- canvas units, where a pin is PIN_SIZE times its scale: at the least zoom that is
-	-- startScale divided by the canvas scale (MapCanvasPinMixin:ApplyCurrentScale).
+	-- Positions in canvas units, where pins are stacked as they overlap at their largest against
+	-- the map (PinCanvasSize); at other zooms, pins that no longer overlap keep their levels,
+	-- which changes nothing.
 	local canvas = map:GetCanvas()
 	local width, height = canvas:GetWidth(), canvas:GetHeight()
 	local points = {}
 	for i, node in ipairs(nodes) do
 		points[i] = { x = node.x * width, y = node.y * height }
 	end
-	-- The zoom levels exist once the map has laid out a zone; until then, the current scale.
-	local container = map:GetCanvasContainer()
-	local minZoomScale = container.zoomLevels and container.zoomLevels[1] and container:GetScaleForMinZoom()
-	if not minZoomScale or minZoomScale <= 0 then
-		minZoomScale = map:GetCanvasScale()
-	end
-	local size = ns.WorldPin.SIZE * ns.WorldPin.START_SCALE * map:GetGlobalPinScale() / minZoomScale
+	local size = PinCanvasSize(map)
 	local levels = ns.Stacking.Levels(points, size, ns.WorldPin.STACK_LEVELS)
 	if ns.dev.enabled then
 		local counts = {}
@@ -71,6 +84,11 @@ function DataProviderMixin:RefreshAllData()
 	for i, node in ipairs(nodes) do
 		map:AcquirePin(PIN_TEMPLATE, node.layer, node.name, node.count, levels[i]):SetPosition(node.x, node.y)
 	end
+end
+
+-- Maximizing or minimizing the map changes its zoom levels, and so which pins overlap.
+function DataProviderMixin:OnCanvasSizeChanged()
+	self:RefreshIfShown()
 end
 
 -- The canvas refreshes every provider when it is shown, so a hidden map can wait.

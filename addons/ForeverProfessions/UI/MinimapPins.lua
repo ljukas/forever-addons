@@ -86,7 +86,10 @@ local function Draw(mapID, px, py, facing, radius)
 	local levels = ns.Stacking.Levels(points, PIN_PIXELS, STACK_LEVELS)
 	local base = container:GetFrameLevel()
 	for i, pin in ipairs(shown) do
-		pin:SetFrameLevel(base + levels[i])
+		local level = base + levels[i]
+		if pin:GetFrameLevel() ~= level then
+			pin:SetFrameLevel(level)
+		end
 	end
 
 	for key, pin in pairs(pinsByKey) do

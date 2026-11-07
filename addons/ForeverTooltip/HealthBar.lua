@@ -1,9 +1,8 @@
 local ADDON_NAME, ns = ...
 
 -- Restyles the health bar under unit tooltips (GameTooltip.StatusBar) to match the player frame:
--- the same fill atlas as PlayerFrame's HealthBar, framed by Blizzard's own tooltip status bar border
--- (the one TooltipStatusBarTemplate uses), on a panel with the tooltip's own backdrop, joined to the
--- tooltip's bottom edge, so the bar reads as part of the tooltip.
+-- the same fill atlas as PlayerFrame's HealthBar, filling a panel with the tooltip's own backdrop
+-- (border and background), joined to the tooltip's bottom edge, so the bar reads as part of the tooltip.
 --
 -- Taint: Blizzard's GameTooltip.lua warns that addon customisations of this bar have tainted its
 -- OnUpdate, which then fails on secret health. So this only calls widget methods and hooks with
@@ -12,14 +11,13 @@ local ADDON_NAME, ns = ...
 -- is a frame of our own, so NineSliceUtil writes its pieces there, not on Blizzard's bar.
 
 local FILL_ATLAS = "UI-HUD-UnitFrame-Player-PortraitOn-Bar-Health" -- PlayerFrame.xml's HealthBar BarTexture
-local BORDER_FILE = "Interface\\Tooltips\\UI-StatusBar-Border" -- TooltipStatusBarTemplate's border
 local BACKDROP_LAYOUT = "TooltipDefaultLayout" -- the tooltip's own, as in SharedTooltip_SetBackdropStyle
 
--- TooltipStatusBarTemplate's height, the bar the border file is drawn for. Blizzard's 8px squashes both
--- the border and the fill atlas (drawn for PlayerFrame's 20px bar).
+-- Blizzard's 8px squashes the fill atlas, which is drawn for PlayerFrame's 20px bar.
 local BAR_HEIGHT = 12
--- Space between the backdrop's outer edge and the bar, on every side.
-local BACKDROP_PADDING = 6
+-- Space between the backdrop's outer edge and the bar, on every side: the width of the tooltip's
+-- border art, so the bar fills the inside of the border.
+local BACKDROP_PADDING = 4
 -- Vertical offset of the backdrop from the tooltip's bottom edge: 0 touches, negative leaves a gap.
 local BACKDROP_OFFSET = 0
 
@@ -63,18 +61,6 @@ hooksecurefunc(bar, "SetStatusBarColor", function(self)
 	resetting = false
 end)
 bar:SetStatusBarColor(1, 1, 1)
-
--- The border file is drawn for a 128px bar (TooltipStatusBarTemplate). Sliced at the ends, its end caps
--- keep their size on wide tooltips and only the middle stretches. Wider caps cover the fill's ends, as
--- the border sits only 2px outside the bar. No top/bottom slice: the height stretches as Blizzard's does.
--- Margins are in the file's pixels.
-local BORDER_CAP = 3
-
-local border = bar:CreateTexture(nil, "OVERLAY")
-border:SetTexture(BORDER_FILE)
-border:SetTextureSliceMargins(BORDER_CAP, 0, BORDER_CAP, 0)
-border:SetPoint("TOPLEFT", -2, 2)
-border:SetPoint("BOTTOMRIGHT", 2, -2)
 
 -- Logged on show: at load the bar is hidden and has no size yet.
 if ns.dev.enabled then

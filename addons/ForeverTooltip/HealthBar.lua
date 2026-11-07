@@ -29,13 +29,15 @@ hooksecurefunc(bar, "SetStatusBarColor", function(self)
 end)
 bar:SetStatusBarColor(1, 1, 1)
 
--- The border file is drawn for a 128px bar (TooltipStatusBarTemplate). Nine-sliced, its end caps keep
--- their size on wide tooltips and only the middle stretches. Margins are in the file's pixels.
-local BORDER_SLICE = 5
+-- The border file is drawn for a 128px bar (TooltipStatusBarTemplate). Sliced at the ends, its end caps
+-- keep their size on wide tooltips and only the middle stretches. Wider caps cover the fill's ends, as
+-- the border sits only 2px outside the bar. No top/bottom slice: the height stretches as Blizzard's does.
+-- Margins are in the file's pixels.
+local BORDER_CAP = 3
 
 local border = bar:CreateTexture(nil, "OVERLAY")
 border:SetTexture(BORDER_FILE)
-border:SetTextureSliceMargins(BORDER_SLICE, BORDER_SLICE, BORDER_SLICE, BORDER_SLICE)
+border:SetTextureSliceMargins(BORDER_CAP, 0, BORDER_CAP, 0)
 border:SetPoint("TOPLEFT", -2, 2)
 border:SetPoint("BOTTOMRIGHT", 2, -2)
 

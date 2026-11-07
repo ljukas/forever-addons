@@ -15,22 +15,23 @@ local BACKDROP_LAYOUT = "TooltipDefaultLayout" -- the tooltip's own, as in Share
 
 -- Blizzard's 8px squashes the fill atlas, which is drawn for PlayerFrame's 20px bar.
 local BAR_HEIGHT = 12
--- The width of the tooltip's border art. The bar is inset by it, so it fills the inside of the border,
--- and the backdrop overlaps the tooltip by it, so the two share one border line, as the player frame's
--- name and health bar do.
-local BORDER_WIDTH = 4
+-- The bar's inset from the backdrop's outer edge, on every side: the visible width of the tooltip's
+-- border line, so the bar fills everything inside it with no backdrop showing around the fill.
+local BAR_INSET = 2
+-- Vertical offset of the backdrop from the tooltip's bottom edge: 0 touches. (Overlapping them to share
+-- one border line looked worse in game.)
+local BACKDROP_OFFSET = 0
 
 local bar = GameTooltip.StatusBar
 
--- The tooltip-style panel the bar sits on, as wide as the tooltip, its top border on the tooltip's
--- bottom border.
+-- The tooltip-style panel the bar sits on, as wide as the tooltip, right under it.
 local backdrop = CreateFrame("Frame", nil, GameTooltip, "NineSliceCodeTemplate")
 NineSliceUtil.ApplyLayout(backdrop, NineSliceUtil.GetLayout(BACKDROP_LAYOUT))
 local bgR, bgG, bgB = TOOLTIP_DEFAULT_BACKGROUND_COLOR:GetRGB()
 backdrop:SetCenterColor(bgR, bgG, bgB, 1)
-backdrop:SetPoint("TOPLEFT", GameTooltip, "BOTTOMLEFT", 0, BORDER_WIDTH)
-backdrop:SetPoint("TOPRIGHT", GameTooltip, "BOTTOMRIGHT", 0, BORDER_WIDTH)
-backdrop:SetHeight(BAR_HEIGHT + 2 * BORDER_WIDTH)
+backdrop:SetPoint("TOPLEFT", GameTooltip, "BOTTOMLEFT", 0, BACKDROP_OFFSET)
+backdrop:SetPoint("TOPRIGHT", GameTooltip, "BOTTOMRIGHT", 0, BACKDROP_OFFSET)
+backdrop:SetHeight(BAR_HEIGHT + 2 * BAR_INSET)
 backdrop:Hide()
 
 -- Shown and hidden with the bar (Blizzard shows it for units, hides it in ClearWatch), and kept just
@@ -44,8 +45,8 @@ bar:HookScript("OnHide", function()
 end)
 
 bar:ClearAllPoints()
-bar:SetPoint("TOPLEFT", backdrop, "TOPLEFT", BORDER_WIDTH, -BORDER_WIDTH)
-bar:SetPoint("TOPRIGHT", backdrop, "TOPRIGHT", -BORDER_WIDTH, -BORDER_WIDTH)
+bar:SetPoint("TOPLEFT", backdrop, "TOPLEFT", BAR_INSET, -BAR_INSET)
+bar:SetPoint("TOPRIGHT", backdrop, "TOPRIGHT", -BAR_INSET, -BAR_INSET)
 bar:SetHeight(BAR_HEIGHT)
 bar:SetStatusBarTexture(FILL_ATLAS)
 

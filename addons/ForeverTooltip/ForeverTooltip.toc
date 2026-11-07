@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: ForeverTooltip
-## Notes: Colours hovered players' names by class and their level line by friend or foe, and can make tooltips follow the cursor.
+## Notes: Colours hovered players' names by class, their level by how it compares to yours and their faction line by friend or foe, and can make tooltips follow the cursor.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
@@ -15,6 +15,7 @@
 Core.lua
 Database.lua
 Logic/LevelLine.lua
+Logic/FactionLine.lua
 Logic/CursorAnchor.lua
 Options.lua
 Colors.lua

@@ -10,7 +10,7 @@ local ADDON_NAME, ns = ...
 --              written by Sources/CraftRecorder.lua
 -- characterKey is "Name-Realm". made counts the items the recipe produced; gray is the recipe's
 -- maxTrivialLevel, the rank it turns gray at. skillRank is the profession's base skill when the
--- cast started (not counting racial or item bonuses), and row is
+-- craft finished, before its own skill-up (not counting racial or item bonuses), and row is
 -- { attempts, skillUps, difficulty, capped }: completed casts at that rank, the skill points
 -- they gave, the recipe's Enum.TradeskillRelativeDifficulty there, and casts made at the skill
 -- cap, which can't give a point and so aren't attempts. Only this file knows the flat layouts.

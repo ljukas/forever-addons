@@ -45,8 +45,10 @@ Success: after some crafting, the saved data answers "Rough Copper Bomb at skill
 
 - **All professions**, including Cooking, First Aid, Smelting and Enchanting.
 - **Per character**, so each character has its own history.
-- **Snapshot at the start of each cast**, never once per Create press (the player's words:
-  "check at start of EACH craft").
+- **Sample each craft on its own**, never once per Create press (the player's words:
+  "check at start of EACH craft"). *Amended after the second in-game run:* the sample is taken
+  when each craft **succeeds**, not when it starts, because the start can still read the rank
+  from before the previous craft's skill-up (Probe results, check 3).
 - Aim: the player's own inference of skill-up % per craft.
 
 ## Design
@@ -173,12 +175,21 @@ the design comes back for revision.
    `TRADE_SKILL_CRAFT_BEGIN` (which fires before the skill-up). The in-flight correction is
    dropped; a dev-only `LATE` log line fires once if a skill rise ever arrives while a snapshot is
    still in flight. Interrupted casts end `INTERRUPTED` → `STOP`, no `SUCCEEDED`.
+
+   **Overturned by the second run** (Copper Tube ×6 and Crude Scope ×4, Engineering 62→72, plus
+   one interrupted craft): here the skill-up (`CHAT_MSG_SKILL`, `SKILL_LINES_CHANGED`) usually
+   arrived 0.2–0.3 s **after** `UNIT_SPELLCAST_START`(N+1), so START read the old rank and filed
+   crafts at 62, 62, 63, 65, 65, 67 instead of 62–67. The order varies with latency. By
+   `SUCCEEDED`(N+1), one cast time later, the rise has always arrived, and N+1's own rise comes
+   0.1–0.3 s after it. So the recorder now reads rank and colour on **`UNIT_SPELLCAST_SUCCEEDED`**,
+   which also needs no START/FAILED/STOP bookkeeping (failed casts never succeed). `LATE` now
+   logs any skill rise that doesn't start from the rank its craft was filed at.
 4. **Confirmed.** `TRADE_SKILL_ITEM_CRAFTED_RESULT` fires ~80 ms after `SUCCEEDED` with
    `quantity`; it carries no recipe, so it's credited to the last finished craft.
 5. **Unanswered** (modifier 0 on the test character). `skillRank` is the base `skillLevel`;
    `skillModifier` is ignored until a character with a bonus shows otherwise.
-6. **Plausible, unconfirmed.** `maxTrivialLevel` is 90 for Arclight Spanner, the wiki's gray
-   level. Seeing the recipe turn gray at 90 would confirm it.
+6. **Confirmed** (second run). Smelt Copper has `maxTrivialLevel` 70 and was recorded green (2)
+   at Mining 69 and gray (3) at 70.
 
 ### Builder's calls made during the build
 
@@ -186,9 +197,6 @@ the design comes back for revision.
   to a craft that finished at most 3 s before. The probe measured 0.10–0.18 s. A **gather ends
   every craft's credit** (`NodesChanged` from the gather recorder), because Mining also rises
   from veins and a vein's skill-up must not land on the smelt before it.
-- **STOP ends every cast** (probe: after SUCCEEDED, in the same frame). A snapshot still live at
-  STOP is dropped and logged `DROPPED`. This depends on SUCCEEDED arriving before STOP; if it
-  ever didn't, every attempt would show as `DROPPED` in the devlog.
 - **Skill-ups only credit an existing row** (`RecordSkillUp` returns false otherwise), so every
   row has its difficulty. A rise that isn't credited is logged `UNCREDITED` with its age.
 - `lastKnownRank` is never lowered, so a late skill rise can't be booked twice.

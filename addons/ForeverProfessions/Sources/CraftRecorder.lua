@@ -3,24 +3,20 @@ local ADDON_NAME, ns = ...
 -- Records every craft into ForeverProfessionsDB.crafts (Database.lua), for the player's own
 -- skill-up odds per recipe and skill level. Event order checked in game with Dev/CraftProbe.lua
 -- (docs/superpowers/specs/2026-11-07-craft-history-design.md, "Probe results"):
---   UNIT_SPELLCAST_START      snapshot the rank and colour for this cast. Each cast of a Create
---                             All queue gets its own. Not TRADE_SKILL_CRAFT_BEGIN: in a queue
---                             it fires before the previous craft's skill-up.
---   UNIT_SPELLCAST_SUCCEEDED  count the attempt; the craft becomes the last finished one
---   SKILL_LINES_CHANGED       a rank rise is credited to the profession's last finished craft,
---                             never to one only started. It arrives in the same frame as the
---                             next cast's START, before it.
+--   UNIT_SPELLCAST_SUCCEEDED  read the rank and colour and count the attempt; the craft becomes
+--                             the last finished one. Not on START: in a Create All queue the
+--                             previous craft's skill-up can arrive after the next cast starts,
+--                             so START may still read the old rank. By SUCCEEDED (a cast time
+--                             later) it has arrived, and the craft's own skill-up hasn't yet.
+--   SKILL_LINES_CHANGED       a rank rise is credited to the profession's last finished craft
 --   TRADE_SKILL_ITEM_CRAFTED_RESULT  items made, ~0.1s after SUCCEEDED, for the last craft
--- Failed and interrupted casts count for nothing.
+-- Failed and interrupted casts never succeed, so they count for nothing.
 
 -- A skill rise or crafted result this long after a craft finished isn't the craft's. Mining
 -- also rises from mining veins, which must not be credited to the last smelt.
 local CREDIT_SECONDS = 3
 
--- The craft in progress, per castGUID: { recipeID, professionID, skillRank, maxRank,
--- difficulty, gray }.
-local snapshots = {}
--- Per professionID, the last finished craft: a snapshot plus finishedAt (GetTime()).
+-- Per professionID, the last finished craft: { recipeID, professionID, skillRank, finishedAt }.
 local lastFinished = {}
 -- The last finished craft of any profession, for TRADE_SKILL_ITEM_CRAFTED_RESULT.
 local lastCraft
@@ -55,18 +51,13 @@ local function IsRecent(craft)
 	return craft ~= nil and GetTime() - craft.finishedAt <= CREDIT_SECONDS
 end
 
-local handlers = {}
-
-function handlers.UNIT_SPELLCAST_START(_, castGUID, spellID)
-	if AnySecret(castGUID, spellID) then
-		return
-	end
+-- Returns the recipe, its profession info and the character key, or nil (logged) when the
+-- craft can't be recorded.
+local function ReadCraft(spellID)
 	local recipe = C_TradeSkillUI.GetRecipeInfo(spellID)
 	if not recipe then
 		return
 	end
-	-- A craft that isn't recorded mustn't have its items credited to the craft before it.
-	lastCraft = nil
 	-- relativeDifficulty is nilable; a craft without its colour says nothing about the odds.
 	if recipe.relativeDifficulty == nil then
 		ns.dev:LogOnce("no difficulty " .. spellID, "SECRET", "recipe", spellID, "has no difficulty, not recorded")
@@ -91,54 +82,41 @@ function handlers.UNIT_SPELLCAST_START(_, castGUID, spellID)
 		ns.dev:LogOnce("no profession " .. spellID, "SECRET", "recipe", spellID, "has no profession info, not recorded")
 		return
 	end
-	snapshots[castGUID] = {
-		recipeID = spellID,
-		professionID = info.professionID,
-		skillRank = info.skillLevel,
-		maxRank = info.maxSkillLevel,
-		difficulty = recipe.relativeDifficulty,
-		gray = recipe.maxTrivialLevel,
-	}
-end
-
-function handlers.UNIT_SPELLCAST_SUCCEEDED(_, castGUID)
-	local craft = not issecretvalue(castGUID) and snapshots[castGUID]
-	if not craft then
-		return
-	end
-	snapshots[castGUID] = nil
 	local key = GetCharacterKey()
 	if not key then
-		ns.log("SECRET", "character name, recipe", craft.recipeID, "not recorded")
+		ns.log("SECRET", "character name, recipe", spellID, "not recorded")
+		return
+	end
+	return recipe, info, key
+end
+
+local handlers = {}
+
+function handlers.UNIT_SPELLCAST_SUCCEEDED(_, _, spellID)
+	if issecretvalue(spellID) then
+		return
+	end
+	local recipe, info, key = ReadCraft(spellID)
+	if not (recipe and info and key) then
+		-- Not a recorded craft: its items mustn't be credited to the craft before it.
+		lastCraft = nil
 		return
 	end
 
-	local capped = craft.skillRank >= craft.maxRank
-	ns.DB.RecordAttempt(key, craft.recipeID, craft.skillRank, craft.difficulty, craft.gray, capped)
-	craft.finishedAt = GetTime()
+	local skillRank = info.skillLevel
+	local capped = skillRank >= info.maxSkillLevel
+	ns.DB.RecordAttempt(key, spellID, skillRank, recipe.relativeDifficulty, recipe.maxTrivialLevel, capped)
+	local craft = {
+		recipeID = spellID,
+		professionID = info.professionID,
+		skillRank = skillRank,
+		finishedAt = GetTime(),
+	}
 	lastFinished[craft.professionID] = craft
 	lastCraft = craft
-	-- Never lowered: a snapshot taken before a late skill rise holds the old rank, and lowering
-	-- to it would book the rise a second time on this craft.
-	lastKnownRank[craft.professionID] = math.max(lastKnownRank[craft.professionID] or 0, craft.skillRank)
-	ns.log("CRAFTED", craft.recipeID, "rank", craft.skillRank, "difficulty", craft.difficulty, "capped", capped)
-end
-
-function handlers.UNIT_SPELLCAST_FAILED(_, castGUID)
-	if not issecretvalue(castGUID) then
-		snapshots[castGUID] = nil
-	end
-end
-handlers.UNIT_SPELLCAST_INTERRUPTED = handlers.UNIT_SPELLCAST_FAILED
-
--- Every cast ends with STOP, after SUCCEEDED, FAILED or INTERRUPTED (checked in game), so no
--- snapshot outlives its cast. One still here ended some other way and wasn't counted.
-function handlers.UNIT_SPELLCAST_STOP(_, castGUID)
-	local craft = not issecretvalue(castGUID) and snapshots[castGUID]
-	if craft then
-		snapshots[castGUID] = nil
-		ns.log("DROPPED", craft.recipeID, "cast stopped without succeeding")
-	end
+	-- Never lowered, so a rise already seen can't be booked a second time.
+	lastKnownRank[craft.professionID] = math.max(lastKnownRank[craft.professionID] or 0, skillRank)
+	ns.log("CRAFTED", spellID, "rank", skillRank, "difficulty", recipe.relativeDifficulty, "capped", capped)
 end
 
 function handlers.TRADE_SKILL_ITEM_CRAFTED_RESULT(data)
@@ -149,21 +127,13 @@ function handlers.TRADE_SKILL_ITEM_CRAFTED_RESULT(data)
 	ns.DB.AddMade(characterKey, lastCraft.recipeID, quantity)
 end
 
-local function IsInFlight(professionID)
-	for _, craft in pairs(snapshots) do
-		if craft.professionID == professionID then
-			return true
-		end
-	end
-	return false
-end
-
 function handlers.SKILL_LINES_CHANGED()
 	for professionID, craft in pairs(lastFinished) do
 		local info = C_TradeSkillUI.GetProfessionInfoByRecipeID(craft.recipeID)
 		local rank = info and info.skillLevel
 		if rank and not issecretvalue(rank) and rank ~= lastKnownRank[professionID] then
-			local points = rank - lastKnownRank[professionID]
+			local from = lastKnownRank[professionID]
+			local points = rank - from
 			if
 				points > 0
 				and IsRecent(craft)
@@ -171,8 +141,10 @@ function handlers.SKILL_LINES_CHANGED()
 				and ns.DB.RecordSkillUp(characterKey, craft.recipeID, craft.skillRank, points)
 			then
 				ns.log("SKILLUP", craft.recipeID, "rank", craft.skillRank, "points", points)
-				if ns.dev.enabled and IsInFlight(professionID) then
-					ns.dev:LogOnce("late " .. professionID, "LATE", "skill rise with a craft in flight", professionID)
+				-- The rise should start from the rank the craft was filed at; otherwise that rank
+				-- was stale and the row is wrong.
+				if from ~= craft.skillRank then
+					ns.log("LATE", craft.recipeID, "filed at", craft.skillRank, "but the rise is from", from)
 				end
 			elseif points > 0 then
 				ns.log("UNCREDITED", craft.recipeID, "points", points, "age", GetTime() - craft.finishedAt)
@@ -185,14 +157,6 @@ function handlers.SKILL_LINES_CHANGED()
 	end
 end
 
-local UNIT_EVENTS = {
-	UNIT_SPELLCAST_START = true,
-	UNIT_SPELLCAST_SUCCEEDED = true,
-	UNIT_SPELLCAST_FAILED = true,
-	UNIT_SPELLCAST_INTERRUPTED = true,
-	UNIT_SPELLCAST_STOP = true,
-}
-
 -- A gather ends every craft's credit: Mining rises from veins as well as from smelting, and a
 -- vein's skill-up must not land on the smelt before it. GatherRecorder announces each gather.
 local function OnGathered()
@@ -204,7 +168,7 @@ ns.OnInitialize(function()
 	ns.callbacks:RegisterCallback("NodesChanged", OnGathered)
 	local frame = CreateFrame("Frame")
 	for event in pairs(handlers) do
-		if UNIT_EVENTS[event] then
+		if event:find("^UNIT_") then
 			frame:RegisterUnitEvent(event, "player")
 		else
 			frame:RegisterEvent(event)

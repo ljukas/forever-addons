@@ -12,8 +12,13 @@ local ADDON_NAME, ns = ...
 local FILL_ATLAS = "UI-HUD-UnitFrame-Player-PortraitOn-Bar-Health" -- PlayerFrame.xml's HealthBar BarTexture
 local BORDER_FILE = "Interface\\Tooltips\\UI-StatusBar-Border" -- TooltipStatusBarTemplate's border
 
+-- TooltipStatusBarTemplate's height, the bar the border file is drawn for. Blizzard's 8px squashes both
+-- the border and the fill atlas (drawn for PlayerFrame's 20px bar).
+local BAR_HEIGHT = 12
+
 local bar = GameTooltip.StatusBar
 
+bar:SetHeight(BAR_HEIGHT)
 bar:SetStatusBarTexture(FILL_ATLAS)
 
 -- HealthBar_OnValueChanged tints the bar green on every change. The atlas has its own colour, so

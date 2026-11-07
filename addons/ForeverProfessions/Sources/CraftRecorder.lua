@@ -3,6 +3,7 @@ local ADDON_NAME, ns = ...
 -- Records every craft into ForeverProfessionsDB.crafts (Database.lua), for the player's own
 -- skill-up odds per recipe and skill level. Event order checked in game with Dev/CraftProbe.lua
 -- (docs/superpowers/specs/2026-11-07-craft-history-design.md, "Probe results"):
+--   TRADE_SKILL_CRAFT_BEGIN   marks the recipe as a real craft; nothing else counts
 --   UNIT_SPELLCAST_SUCCEEDED  read the rank and colour and count the attempt; the craft becomes
 --                             the last finished one. Not on START: in a Create All queue the
 --                             previous craft's skill-up can arrive after the next cast starts,
@@ -90,12 +91,25 @@ local function ReadCraft(spellID)
 	return recipe, info, key
 end
 
+-- Recipes the client has started crafting, per recipeID. The profession spells themselves
+-- (Engineering, Smelting: cast to open the window) are accepted by GetRecipeInfo and succeed
+-- like a craft, but never begin one.
+local begun = {}
+
 local handlers = {}
 
+function handlers.TRADE_SKILL_CRAFT_BEGIN(recipeSpellID)
+	if not issecretvalue(recipeSpellID) then
+		begun[recipeSpellID] = true
+	end
+end
+
 function handlers.UNIT_SPELLCAST_SUCCEEDED(_, _, spellID)
-	if issecretvalue(spellID) then
+	if issecretvalue(spellID) or not begun[spellID] then
 		return
 	end
+	-- A queue's next craft begins after this one succeeds, so clearing here loses nothing.
+	begun[spellID] = nil
 	local recipe, info, key = ReadCraft(spellID)
 	if not (recipe and info and key) then
 		-- Not a recorded craft: its items mustn't be credited to the craft before it.

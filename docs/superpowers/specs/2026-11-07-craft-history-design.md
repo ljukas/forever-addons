@@ -184,6 +184,14 @@ the design comes back for revision.
    0.1–0.3 s after it. So the recorder now reads rank and colour on **`UNIT_SPELLCAST_SUCCEEDED`**,
    which also needs no START/FAILED/STOP bookkeeping (failed casts never succeed). `LATE` now
    logs any skill rise that doesn't start from the rank its craft was filed at.
+
+   **Third run** (Smelting, Engineering, Mining 72→78, Engineering 72→75): every craft filed at its
+   true rank, every skill-up on the craft that earned it, no `LATE`. It also showed that the
+   profession spells themselves (2656 Smelting, 4036 Engineering, cast to open the window) are
+   instant, succeed without a START, and are accepted by `GetRecipeInfo` (difficulty 0, gray 0),
+   so a SUCCEEDED-only recorder saved each window opening as an orange attempt. Every real craft
+   fires `TRADE_SKILL_CRAFT_BEGIN` with its recipe ID first, and the profession spells never do,
+   so a success only counts after a CRAFT_BEGIN for that recipe.
 4. **Confirmed.** `TRADE_SKILL_ITEM_CRAFTED_RESULT` fires ~80 ms after `SUCCEEDED` with
    `quantity`; it carries no recipe, so it's credited to the last finished craft.
 5. **Unanswered** (modifier 0 on the test character). `skillRank` is the base `skillLevel`;

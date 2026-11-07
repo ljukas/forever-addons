@@ -1,8 +1,9 @@
 local ADDON_NAME, ns = ...
 
--- Colours a hovered player's tooltip: the name line in the player's class colour; the level line by
--- how their level compares to yours (gray, green, yellow, orange, red: Blizzard's
--- GetCreatureDifficultyColor, the colours of quest and creature difficulty); and the Alliance/Horde
+-- Colours unit tooltips. For every unit (players, creatures, NPCs) the level line by how its level
+-- compares to yours (gray, green, yellow, orange, red: Blizzard's GetCreatureDifficultyColor, the
+-- colours of quest and creature difficulty), with a skull icon in place of "??". For players also
+-- the name line in the player's class colour, and the Alliance/Horde
 -- line red for enemies, yellow for players you can attack who aren't hostile, green for allies, using
 -- the same FACTION_BAR_COLORS entries Blizzard's GameTooltip_UnitColor uses for players. (Blizzard's
 -- own function gives ordinary allies white, so it isn't reused.)
@@ -25,8 +26,8 @@ local function IsReadableTable(t)
 	return type(t) == "table" and canaccesstable(t)
 end
 
--- The player unit token this unit tooltip shows, or nil when it isn't a player or can't be read.
-local function GetPlayerUnit(data)
+-- The unit token this unit tooltip shows (a player, creature or NPC), or nil when it can't be read.
+local function GetUnit(data)
 	if not IsReadableTable(data) then
 		return nil
 	end
@@ -38,11 +39,13 @@ local function GetPlayerUnit(data)
 	if issecretvalue(unit) or unit == nil then
 		return nil
 	end
-	local isPlayer = UnitIsPlayer(unit)
-	if issecretvalue(isPlayer) or not isPlayer then
-		return nil
-	end
 	return unit
+end
+
+-- Whether unit is a player; false when that can't be read.
+local function IsPlayer(unit)
+	local isPlayer = UnitIsPlayer(unit)
+	return not issecretvalue(isPlayer) and isPlayer == true
 end
 
 local function ColorName(tooltip, unit)
@@ -130,6 +133,32 @@ local function GetLevelColor(level)
 	return GetCreatureDifficultyColor(level)
 end
 
+-- Blizzard's skull icon, sized to the line's font, as Forever's own PaperDollFrameStats shows it.
+local SKULL = "|TInterface\\TargetingFrame\\UI-TargetingFrame-Skull:0|t"
+
+-- Shows the skull icon in place of the "??" of a skull-level line.
+local function ShowSkull(line, index)
+	local text = line:GetText()
+	if issecretvalue(text) or text == nil then
+		ns.dev:LogOnce("secret-skull", "LEVEL", "skull line text unreadable, ?? left to Blizzard")
+		return
+	end
+	local withSkull = ns.LevelLine.WithSkull(text, UNIT_LEVEL_TEMPLATE, SKULL)
+	if withSkull then
+		line:SetText(withSkull)
+	end
+	if ns.dev.enabled then
+		ns.dev:LogChanged(
+			"skull",
+			tostring(withSkull ~= nil) .. text,
+			"LEVEL",
+			"skull at line",
+			index,
+			withSkull ~= nil
+		)
+	end
+end
+
 local function ColorLevelLine(tooltip, unit, data)
 	local level = UnitLevel(unit)
 	if issecretvalue(level) or level == nil then
@@ -153,7 +182,11 @@ local function ColorLevelLine(tooltip, unit, data)
 		end
 	end
 	if index then
-		tooltip:GetLeftLine(index):SetTextColor(color.r, color.g, color.b)
+		local line = tooltip:GetLeftLine(index)
+		line:SetTextColor(color.r, color.g, color.b)
+		if level < 0 then
+			ShowSkull(line, index)
+		end
 	end
 	if ns.dev.enabled then
 		ns.dev:LogChanged("level-index", how .. " " .. tostring(index), "LEVEL", "level line by", how, "at", index)
@@ -199,11 +232,13 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tool
 	if tooltip ~= GameTooltip then
 		return
 	end
-	local unit = GetPlayerUnit(data)
+	local unit = GetUnit(data)
 	if not unit then
 		return
 	end
-	ColorName(tooltip, unit)
 	ColorLevelLine(tooltip, unit, data)
-	ColorFactionLine(tooltip, unit)
+	if IsPlayer(unit) then
+		ColorName(tooltip, unit)
+		ColorFactionLine(tooltip, unit)
+	end
 end)

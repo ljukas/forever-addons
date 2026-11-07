@@ -4,7 +4,7 @@ local ADDON_NAME, ns = ...
 -- scripts/devlog.sh). Without ForeverDev, ns.dev is inert: ns.dev.enabled is false and every
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
 --   LOADED        Core.lua
---   COLOR LEVEL   Colors.lua
+--   COLOR LEVEL FACTION   Colors.lua
 --   ANCHOR        Anchor.lua
 local function Nop() end
 

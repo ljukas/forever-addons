@@ -12,6 +12,12 @@ local ADDON_NAME, ns = ...
 --   Find({ [2] = "Level 60 Orc" }, "Level 6", 2, 2) == nil       (a digit may not follow)
 --   Find({ [2] = "|cffffffffLevel 6 Orc|r" }, "Level 6", 2, 2) == 2   (colour code skipped)
 --   Find({ [2] = "A", [3] = "B" }, "Level 1", 2, 3) == nil
+-- WithSkull swaps the "??" of a skull-level line for an icon (S is the skull's |T...|t string):
+--   WithSkull("Level ?? Elite", "Level %d", S) == "Level " .. S .. " Elite"
+--   WithSkull("|cffff0000Level ?? Boss|r", "Level %d", S) == "|cffff0000Level " .. S .. " Boss|r"
+--   WithSkull("??级 精英", "%d级", S) == S .. "级 精英"
+--   WithSkull("精英 ??级", "%d级", S) == nil                     (the line must start with "??级")
+--   WithSkull("Level 12 Beast", "Level %d", S) == nil
 ns.LevelLine = {}
 
 -- The level part of the line for a unit of this level. template is a %d format string.
@@ -30,6 +36,18 @@ local function StartsWithLevel(text, levelText)
 		return false
 	end
 	return not text:sub(start + #levelText, start + #levelText):match("%d")
+end
+
+-- text with its leading skull-level text ("Level ??") shown as "Level <skull>", or nil when text
+-- doesn't start with it (after an optional colour code). Only that leading part changes.
+function ns.LevelLine.WithSkull(text, template, skull)
+	local levelText = ns.LevelLine.LevelText(template, -1)
+	local start = text:match("^|c%x%x%x%x%x%x%x%x()") or 1
+	if text:sub(start, start + #levelText - 1) ~= levelText then
+		return nil
+	end
+	local skullText = template:gsub("%%d", (skull:gsub("%%", "%%%%")))
+	return text:sub(1, start - 1) .. skullText .. text:sub(start + #levelText)
 end
 
 -- Index of the first of texts[first..last] that starts with levelText, or nil. Entries may be nil.

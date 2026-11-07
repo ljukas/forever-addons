@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: ForeverTooltip
-## Notes: Colours hovered players' names by class, their level by how it compares to yours and their faction line by friend or foe, and can make tooltips follow the cursor.
+## Notes: Colours the level of hovered players and creatures by how it compares to yours (a skull for ?? levels), players' names by class and their faction line by friend or foe, and can make tooltips follow the cursor.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@

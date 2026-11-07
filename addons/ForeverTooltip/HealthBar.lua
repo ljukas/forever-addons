@@ -34,6 +34,17 @@ backdrop:SetPoint("TOPRIGHT", GameTooltip, "BOTTOMRIGHT", 0, BACKDROP_OFFSET)
 backdrop:SetHeight(BAR_HEIGHT + 2 * BAR_INSET)
 backdrop:Hide()
 
+ns.TooltipHealthBar = {}
+
+-- How far the health bar panel hangs below GameTooltip's bottom edge while it shows, else 0. The
+-- cursor anchor (Anchor.lua) counts it as part of the tooltip.
+function ns.TooltipHealthBar.HeightBelow()
+	if not backdrop:IsShown() then
+		return 0
+	end
+	return backdrop:GetHeight() - BACKDROP_OFFSET
+end
+
 -- Shown and hidden with the bar (Blizzard shows it for units, hides it in ClearWatch), and kept just
 -- below the bar's frame level so the bar draws on top.
 bar:HookScript("OnShow", function(self)

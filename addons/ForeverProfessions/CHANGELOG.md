@@ -16,3 +16,6 @@
 - A button on the world map shows or hides known nodes there.
 - Toggles for herbs and minerals in the minimap tracking menu, the world map filter menu
   and Options → AddOns → ForeverProfessions.
+- Remembers every item you craft, in every profession and for each character: how often you
+  crafted each recipe, at which skill level, the recipe's colour then, and which crafts gave
+  you a skill point. Recipe statistics in the professions window will build on this.

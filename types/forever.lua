@@ -186,3 +186,9 @@ PetActionBar = {}
 ---@field RegisterFrame fun(self: ActionBarButtonRangeCheckFrame, action: number, frame: Button)
 ---@field UnregisterFrame fun(self: ActionBarButtonRangeCheckFrame, action: number, frame: Button)
 ActionBarButtonRangeCheckFrame = {}
+
+-- GameTooltipTemplate's unit health bar: Blizzard_GameTooltip/Mainline/GameTooltip.xml
+-- (<StatusBar parentKey="StatusBar" name="$parentStatusBar" ...>).
+
+---@class GameTooltip
+---@field StatusBar StatusBar

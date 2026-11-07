@@ -37,7 +37,8 @@ local function PinToCursor()
 		GameTooltip:GetWidth(),
 		GameTooltip:GetHeight(),
 		UIParent:GetWidth() * screenScale,
-		UIParent:GetHeight() * screenScale
+		UIParent:GetHeight() * screenScale,
+		ns.TooltipHealthBar.HeightBelow()
 	)
 	GameTooltip:ClearAllPoints()
 	GameTooltip:SetPoint(point, UIParent, "BOTTOMLEFT", x, y)

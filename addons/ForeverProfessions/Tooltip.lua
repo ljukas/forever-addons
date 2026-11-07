@@ -60,7 +60,8 @@ local function AddMergedNodes(tooltip, nodes)
 				HIGHLIGHT_FONT_COLOR,
 				color
 			)
-			if not skills[profession] then
+			-- false: not learned, so only nil means the profession hasn't been listed yet.
+			if skills[profession] == nil then
 				skills[profession] = rank or false
 				table.insert(professions, profession)
 			end

@@ -118,6 +118,9 @@ to the last finished craft, every snapshot of that profession still in progress 
 `skillRank` raised by the same amount and its colour re-read. Whether this case happens at all is
 in-game check 3. If it never does, the correction is dead code and can be dropped.
 
+**Superseded by the probe (check 3):** the skill rise arrives before the next cast's START, so
+there is no correction; a dev-only `LATE` line flags any counterexample.
+
 ### Secret values
 
 Each value read (cast payload, recipe info, rank) is checked with `issecretvalue`. If any value
@@ -154,6 +157,27 @@ the design comes back for revision.
 5. Which rank feeds the colour: base rank, or rank plus racial/item modifier.
 6. `maxTrivialLevel` is the rank at which the recipe turns gray (compare it with the colour the
    window shows at that rank).
+
+## Probe results (7 November 2026, client 70862, Engineering 60→62, `Dev/CraftProbe.lua`)
+
+1. **Confirmed.** The cast's `spellID` (7430) is the recipe ID `GetRecipeInfo` accepts.
+2. **Confirmed.** Cast payloads, `relativeDifficulty`, `maxTrivialLevel` and
+   `GetProfessionInfoByRecipeID`'s `skillLevel` / `skillModifier` / `maxSkillLevel` are all
+   readable out of combat. `professionID` is Forever's own (2941 for Engineering), not the
+   Classic skill line (202).
+3. **Skill-up before the next START.** In a queue the order is: `SUCCEEDED`(N) → `STOP`(N) →
+   `TRADE_SKILL_CRAFT_BEGIN`(N+1) → `TRADE_SKILL_ITEM_CRAFTED_RESULT`(N) → `CHAT_MSG_SKILL` →
+   `SKILL_LINES_CHANGED` → `UNIT_SPELLCAST_START`(N+1), the last three in the same frame. N+1's
+   start already reads the new rank. So the snapshot is taken on `UNIT_SPELLCAST_START`, **not**
+   `TRADE_SKILL_CRAFT_BEGIN` (which fires before the skill-up). The in-flight correction is
+   dropped; a dev-only `LATE` log line fires once if a skill rise ever arrives while a snapshot is
+   still in flight. Interrupted casts end `INTERRUPTED` → `STOP`, no `SUCCEEDED`.
+4. **Confirmed.** `TRADE_SKILL_ITEM_CRAFTED_RESULT` fires ~80 ms after `SUCCEEDED` with
+   `quantity`; it carries no recipe, so it's credited to the last finished craft.
+5. **Unanswered** (modifier 0 on the test character). `skillRank` is the base `skillLevel`;
+   `skillModifier` is ignored until a character with a bonus shows otherwise.
+6. **Plausible, unconfirmed.** `maxTrivialLevel` is 90 for Arclight Spanner, the wiki's gray
+   level. Seeing the recipe turn gray at 90 would confirm it.
 
 ## Left to the builder
 

@@ -60,7 +60,7 @@ Answers the spec's in-game checks 1–6. Ships nothing to players.
 **Files:** Modify `addons/ForeverProfessions/Database.lua` (layout comment, `DB_VERSION = 2`, `migrations[2]`, and the write functions below).
 
 **Interfaces:**
-- Produces: `ns.DB.RecordAttempt(characterKey, recipeID, skillRank, difficulty, gray, made, capped)` (adds 1 to `attempts`, or to `capped` when `capped`; sets `difficulty` and `gray`; adds `made`), and `ns.DB.RecordSkillUp(characterKey, recipeID, skillRank, points)`.
+- Produces: `ns.DB.RecordAttempt(characterKey, recipeID, skillRank, difficulty, gray, capped)` (adds 1 to `attempts`, or to `capped` when `capped`; sets `difficulty` and `gray`), `ns.DB.AddMade(characterKey, recipeID, quantity)`, and `ns.DB.RecordSkillUp(characterKey, recipeID, skillRank, points)`.
 - Layout exactly as the spec's "Saved layout", with rows `{ attempts, skillUps, difficulty, capped }`.
 
 - [ ] Implement; lint; commit `feat(foreverprofessions): store craft history`.
@@ -72,7 +72,14 @@ Answers the spec's in-game checks 1–6. Ships nothing to players.
 
 **Interfaces:**
 - Consumes: Task 2's `ns.DB.RecordAttempt`, `ns.DB.RecordSkillUp`.
-- Behaviour: the spec's "Recording a craft", "Crafts at the skill cap" and "Late skill-ups", using the skill-rise signal, the rank (base or effective) and the items-made source the probe chose. In-flight snapshot correction is kept only if the probe showed a skill-up arriving after the next START.
+- Behaviour, fixed by the spec's "Probe results":
+  - Snapshot on `UNIT_SPELLCAST_START` (player) when `C_TradeSkillUI.GetRecipeInfo(spellID)` returns info: `{ recipeID, professionID, skillRank = info.skillLevel, maxRank = info.maxSkillLevel, difficulty = recipe.relativeDifficulty, gray = recipe.maxTrivialLevel }` from `GetProfessionInfoByRecipeID`. Any of those secret → don't snapshot, `ns.log("SECRET", ...)`.
+  - `UNIT_SPELLCAST_SUCCEEDED` with the snapshot's `castGUID` → `ns.DB.RecordAttempt(...)` with `made = 0`, `capped = skillRank >= maxRank`; the snapshot becomes `lastFinished[professionID]`, and `lastKnownRank[professionID] = skillRank`.
+  - `UNIT_SPELLCAST_FAILED` / `INTERRUPTED` → drop the snapshot.
+  - `TRADE_SKILL_ITEM_CRAFTED_RESULT` → add `data.quantity` to the most recently finished craft's `made` (new `ns.DB.AddMade(characterKey, recipeID, quantity)` in Task 2).
+  - `SKILL_LINES_CHANGED` → for each `lastFinished` profession, re-read `skillLevel` by its recipe; if higher than `lastKnownRank`, `ns.DB.RecordSkillUp` the difference on that craft's row, then update `lastKnownRank`. If a snapshot of that profession is in flight at that moment, `ns.dev:LogOnce("late", "LATE", ...)`; no correction.
+  - Character key: `UnitName("player") .. "-" .. GetNormalizedRealmName()`; verify both in the Forever source first.
+  - Tags: `CRAFTED`, `SKILLUP`, `SECRET`, `LATE`.
 
 - [ ] Implement; lint; commit `feat(foreverprofessions): record every craft and its skill-ups`.
 

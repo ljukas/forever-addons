@@ -34,7 +34,8 @@ local function GetCharacterKey()
 	if not characterKey then
 		local name = UnitName("player")
 		local realm = GetNormalizedRealmName()
-		if name and realm and not issecretvalue(name) and not issecretvalue(realm) then
+		-- The realm can still be empty early in a session; the key would then be wrong for good.
+		if name and realm and not issecretvalue(name) and not issecretvalue(realm) and name ~= "" and realm ~= "" then
 			characterKey = name .. "-" .. realm
 		end
 	end
@@ -64,6 +65,8 @@ function handlers.UNIT_SPELLCAST_START(_, castGUID, spellID)
 	if not recipe then
 		return
 	end
+	-- A craft that isn't recorded mustn't have its items credited to the craft before it.
+	lastCraft = nil
 	-- relativeDifficulty is nilable; a craft without its colour says nothing about the odds.
 	if recipe.relativeDifficulty == nil then
 		ns.dev:LogOnce("no difficulty " .. spellID, "SECRET", "recipe", spellID, "has no difficulty, not recorded")
@@ -110,7 +113,9 @@ function handlers.UNIT_SPELLCAST_SUCCEEDED(_, castGUID)
 	craft.finishedAt = GetTime()
 	lastFinished[craft.professionID] = craft
 	lastCraft = craft
-	lastKnownRank[craft.professionID] = craft.skillRank
+	-- Never lowered: a snapshot taken before a late skill rise holds the old rank, and lowering
+	-- to it would book the rise a second time on this craft.
+	lastKnownRank[craft.professionID] = math.max(lastKnownRank[craft.professionID] or 0, craft.skillRank)
 	ns.log("CRAFTED", craft.recipeID, "rank", craft.skillRank, "difficulty", craft.difficulty, "capped", capped)
 end
 
@@ -120,8 +125,16 @@ function handlers.UNIT_SPELLCAST_FAILED(_, castGUID)
 	end
 end
 handlers.UNIT_SPELLCAST_INTERRUPTED = handlers.UNIT_SPELLCAST_FAILED
--- Every cast ends with STOP, after SUCCEEDED, so no snapshot outlives its cast.
-handlers.UNIT_SPELLCAST_STOP = handlers.UNIT_SPELLCAST_FAILED
+
+-- Every cast ends with STOP, after SUCCEEDED, FAILED or INTERRUPTED (checked in game), so no
+-- snapshot outlives its cast. One still here ended some other way and wasn't counted.
+function handlers.UNIT_SPELLCAST_STOP(_, castGUID)
+	local craft = not issecretvalue(castGUID) and snapshots[castGUID]
+	if craft then
+		snapshots[castGUID] = nil
+		ns.log("DROPPED", craft.recipeID, "cast stopped without succeeding")
+	end
+end
 
 function handlers.TRADE_SKILL_ITEM_CRAFTED_RESULT(data)
 	local quantity = data.quantity
@@ -146,12 +159,18 @@ function handlers.SKILL_LINES_CHANGED()
 		local rank = info and info.skillLevel
 		if rank and not issecretvalue(rank) and rank ~= lastKnownRank[professionID] then
 			local points = rank - lastKnownRank[professionID]
-			if points > 0 and IsRecent(craft) and GetCharacterKey() then
-				ns.DB.RecordSkillUp(characterKey, craft.recipeID, craft.skillRank, points)
+			if
+				points > 0
+				and IsRecent(craft)
+				and GetCharacterKey()
+				and ns.DB.RecordSkillUp(characterKey, craft.recipeID, craft.skillRank, points)
+			then
 				ns.log("SKILLUP", craft.recipeID, "rank", craft.skillRank, "points", points)
-				if IsInFlight(professionID) then
+				if ns.dev.enabled and IsInFlight(professionID) then
 					ns.dev:LogOnce("late " .. professionID, "LATE", "skill rise with a craft in flight", professionID)
 				end
+			elseif points > 0 then
+				ns.log("UNCREDITED", craft.recipeID, "points", points, "age", GetTime() - craft.finishedAt)
 			end
 			lastKnownRank[professionID] = rank
 		end
@@ -169,7 +188,15 @@ local UNIT_EVENTS = {
 	UNIT_SPELLCAST_STOP = true,
 }
 
+-- A gather ends every craft's credit: Mining rises from veins as well as from smelting, and a
+-- vein's skill-up must not land on the smelt before it. GatherRecorder announces each gather.
+local function OnGathered()
+	wipe(lastFinished)
+	lastCraft = nil
+end
+
 ns.OnInitialize(function()
+	ns.callbacks:RegisterCallback("NodesChanged", OnGathered)
 	local frame = CreateFrame("Frame")
 	for event in pairs(handlers) do
 		if UNIT_EVENTS[event] then

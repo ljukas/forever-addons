@@ -19,6 +19,21 @@ local ADDON_NAME, ns = ...
 -- name that isn't a known node), LOOT (what gathering removed).
 ns.Scanner = {}
 
+-- Client 1.60.1.70862 (7 November 2026) stopped Minimap:UpdateMouseoverAtPoint from moving the
+-- minimap's mouseover for addons: every probe then reads an empty tooltip, or, after the player's
+-- own mouse has been on a dot, that dot at every point, which filled the minimap with false icons
+-- at up to 350 ms a frame. Tried in game and ruled out: other coordinate spaces, reading a frame
+-- later, probing from frames outside the minimap (Dev/ProbeCoords.lua). NodeSight's author
+-- reports the same. From that build on nothing is probed and the option is greyed out; the code
+-- stays for a client that allows it again.
+local BLOCKED_FROM_BUILD = 70862
+local blocked = (tonumber((select(2, GetBuildInfo()))) or 0) >= BLOCKED_FROM_BUILD
+
+-- Whether this client keeps addons from probing the minimap, so no node icons can be found.
+function ns.Scanner.Blocked()
+	return blocked
+end
+
 local PROBES_PER_FRAME = 30
 local INTERVAL_MOVING = 0.5 -- seconds between sweeps while the player moves or turns
 -- And while standing still: doubling each sweep the player stays put, up to the longest. The
@@ -97,7 +112,7 @@ local sweeps = 0 -- dev only: sweeps since login
 -- lines (players don't pay for that), worst the slowest frame.
 local stats
 local function ResetStats()
-	stats = { sweeps = 0, coarse = 0, fine = 0, reused = 0, dots = 0, ms = 0, client = 0, dev = 0, worst = 0 }
+	stats = { sweeps = 0, coarse = 0, fine = 0, reused = 0, dots = 0, read = 0, ms = 0, client = 0, dev = 0, worst = 0 }
 	stats.since = GetTime()
 end
 ResetStats()
@@ -231,6 +246,7 @@ local function ReadPoint(rect, ox, oy)
 	local data = C_TooltipInfo.GetMinimapMouseover()
 	if started then
 		stats.client = stats.client + debugprofilestop() - started
+		stats.read = stats.read + (data and 1 or 0)
 	end
 	if not data then
 		return nil
@@ -491,7 +507,7 @@ local function Settle()
 			ns.log(
 				"SCAN",
 				(
-					"sweeps %d, per sweep of the last %d: %.0f+%.0f probes (grid %d/%d px) %.1f dots "
+					"sweeps %d, per sweep of the last %d: %.0f+%.0f probes (%.1f with a tooltip, grid %d/%d px) %.1f dots "
 					.. "%.1f groups reused %.2f ms (client %.2f, dev %.2f); worst frame %.2f ms; dot radius %.1f px; "
 					.. "%.2f ms per second over %.0f s"
 				):format(
@@ -499,6 +515,7 @@ local function Settle()
 					n,
 					stats.coarse / n,
 					stats.fine / n,
+					stats.read / n,
 					sweep.coarseStep,
 					sweep.fineStep,
 					stats.dots / n,
@@ -664,6 +681,10 @@ end
 events.ZONE_CHANGED_NEW_AREA = events.PLAYER_ENTERING_WORLD
 
 ns.OnInitialize(function()
+	if blocked then
+		ns.log("SCAN", "client build", (select(2, GetBuildInfo())), "blocks probing: no sweeps")
+		return
+	end
 	local frame = CreateFrame("Frame", nil, Minimap)
 	for event in pairs(events) do
 		frame:RegisterEvent(event)

@@ -289,5 +289,8 @@ local function DrawTimed(_, elapsed)
 	end
 end
 
--- Only runs while the minimap is shown, since the container is its child.
-container:SetScript("OnUpdate", ns.dev.enabled and DrawTimed or Draw)
+-- Only runs while the minimap is shown, since the container is its child; not at all on a client
+-- that blocks the scanner, since no marker can appear there.
+if not ns.Scanner.Blocked() then
+	container:SetScript("OnUpdate", ns.dev.enabled and DrawTimed or Draw)
+end

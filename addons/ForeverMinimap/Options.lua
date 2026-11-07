@@ -54,8 +54,14 @@ ns.OnInitialize(function()
 	end
 
 	-- No size option: the icons follow Edit Mode's minimap icon scale (UI/NodeIcons.lua).
+	-- Greyed out, with the reason, on a client that keeps addons from finding the nodes (Scanner.lua).
+	local blocked = ns.Scanner.Blocked()
 	local show = Register("showNodeIcons", Settings.VarType.Boolean, L.SHOW_NODE_ICONS)
-	Settings.CreateCheckbox(category, show, L.SHOW_NODE_ICONS_TOOLTIP)
+	local showInitializer =
+		Settings.CreateCheckbox(category, show, blocked and L.NODE_ICONS_BLOCKED or L.SHOW_NODE_ICONS_TOOLTIP)
+	showInitializer:AddModifyPredicate(function()
+		return not blocked
+	end)
 
 	local bag = Register("showButtonBag", Settings.VarType.Boolean, L.SHOW_BUTTON_BAG)
 	local bagInitializer = Settings.CreateCheckbox(category, bag, L.SHOW_BUTTON_BAG_TOOLTIP)

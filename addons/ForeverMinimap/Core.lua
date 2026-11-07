@@ -30,6 +30,7 @@ end
 ns.L = {
 	SHOW_NODE_ICONS = "Show icons on tracked nodes",
 	SHOW_NODE_ICONS_TOOLTIP = "Show the herbs, ore and treasure chests your tracking finds as icons on the minimap. They follow the minimap's Icon Scale in Edit Mode.",
+	NODE_ICONS_BLOCKED = "Not available: since the game's update of 7 November 2026, addons can no longer read the herbs, ore and chests on the minimap.",
 	SHOW_BUTTON_BAG = "Gather addon minimap buttons",
 	SHOW_BUTTON_BAG_TOOLTIP = "Collect the minimap buttons other addons add into one button on the minimap edge.",
 	BUTTON_BAG_DIRECTION = "Open buttons towards",

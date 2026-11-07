@@ -1,7 +1,9 @@
 local ADDON_NAME, ns = ...
 
--- Colours a hovered player's tooltip: the name line in the player's class colour, the level line
--- red for enemies, yellow for players you can attack who aren't hostile, green for allies, using
+-- Colours a hovered player's tooltip: the name line in the player's class colour; the level line by
+-- how their level compares to yours (gray, green, yellow, orange, red: Blizzard's
+-- GetCreatureDifficultyColor, the colours of quest and creature difficulty); and the Alliance/Horde
+-- line red for enemies, yellow for players you can attack who aren't hostile, green for allies, using
 -- the same FACTION_BAR_COLORS entries Blizzard's GameTooltip_UnitColor uses for players. (Blizzard's
 -- own function gives ordinary allies white, so it isn't reused.)
 --
@@ -90,21 +92,27 @@ local function FindLevelLineByType(data)
 	return nil
 end
 
--- Fallback: the first line after the name that starts with the client's level text.
-local function FindLevelLineByText(tooltip, unit)
-	local level = UnitLevel(unit)
-	if issecretvalue(level) or level == nil then
-		return nil
-	end
+-- The texts of the left lines after the name, indexed by line, and the line count; nil when any is
+-- secret. tag names the line the caller is looking for, for the log.
+local function ReadLineTexts(tooltip, tag)
 	local numLines = tooltip:NumLines()
 	local texts = {}
 	for i = 2, numLines do
 		local text = tooltip:GetLeftLine(i):GetText()
 		if issecretvalue(text) then
-			ns.dev:LogOnce("secret-text", "LEVEL", "secret line text, level line left to Blizzard")
+			ns.dev:LogOnce("secret-text-" .. tag, tag, "secret line text, line left to Blizzard")
 			return nil
 		end
 		texts[i] = text or "" -- an empty line has no text
+	end
+	return texts, numLines
+end
+
+-- Fallback: the first line after the name that starts with the client's level text.
+local function FindLevelLineByText(tooltip, level)
+	local texts, numLines = ReadLineTexts(tooltip, "LEVEL")
+	if not texts then
+		return nil
 	end
 	local index = ns.LevelLine.Find(texts, ns.LevelLine.LevelText(UNIT_LEVEL_TEMPLATE, level), 2, numLines)
 	if not index and ns.dev.enabled then
@@ -113,18 +121,28 @@ local function FindLevelLineByText(tooltip, unit)
 	return index
 end
 
+-- The difficulty colour of a unit of this level for you: gray, green, yellow, orange or red.
+-- Blizzard's GetCreatureDifficultyColor reads a skull level (-1) as far below you, so that's red here.
+local function GetLevelColor(level)
+	if level < 0 then
+		return QuestDifficultyColors.impossible
+	end
+	return GetCreatureDifficultyColor(level)
+end
+
 local function ColorLevelLine(tooltip, unit, data)
-	local color = GetReactionColor(unit)
-	if not color then
-		ns.dev:LogOnce("secret-reaction", "LEVEL", "reaction unreadable, level line left to Blizzard")
+	local level = UnitLevel(unit)
+	if issecretvalue(level) or level == nil then
+		ns.dev:LogOnce("secret-level", "LEVEL", "level unreadable, level line left to Blizzard")
 		return
 	end
+	local color = GetLevelColor(level)
 
 	local index = FindLevelLineByType(data)
 	local how = "type"
 	if not index then
 		how = "text"
-		index = FindLevelLineByText(tooltip, unit)
+		index = FindLevelLineByText(tooltip, level)
 		if ns.dev.enabled then
 			local types = {}
 			for i, lineData in ipairs(IsReadableTable(data.lines) and data.lines or {}) do
@@ -135,10 +153,45 @@ local function ColorLevelLine(tooltip, unit, data)
 		end
 	end
 	if index then
-		tooltip:GetLeftLine(index):SetTextColor(color:GetRGB())
+		tooltip:GetLeftLine(index):SetTextColor(color.r, color.g, color.b)
 	end
 	if ns.dev.enabled then
 		ns.dev:LogChanged("level-index", how .. " " .. tostring(index), "LEVEL", "level line by", how, "at", index)
+	end
+end
+
+-- The line that is exactly the player's faction name ("Alliance", "Horde"), coloured by reaction.
+local function ColorFactionLine(tooltip, unit)
+	local color = GetReactionColor(unit)
+	if not color then
+		ns.dev:LogOnce("secret-reaction", "FACTION", "reaction unreadable, faction line left to Blizzard")
+		return
+	end
+	local _, factionName = UnitFactionGroup(unit)
+	if issecretvalue(factionName) or factionName == nil or factionName == "" then
+		ns.dev:LogOnce("no-faction", "FACTION", "faction name unreadable or empty, faction line left to Blizzard")
+		return
+	end
+	local texts, numLines = ReadLineTexts(tooltip, "FACTION")
+	if not texts then
+		return
+	end
+	local index = ns.FactionLine.Find(texts, factionName, 2, numLines)
+	if index then
+		tooltip:GetLeftLine(index):SetTextColor(color:GetRGB())
+	end
+	if ns.dev.enabled then
+		if not index then
+			ns.dev:LogOnce(
+				"faction-miss",
+				"FACTION",
+				"no",
+				factionName,
+				"line in",
+				table.concat(texts, " | ", 2, numLines)
+			)
+		end
+		ns.dev:LogChanged("faction-index", tostring(index), "FACTION", "faction line at", index)
 	end
 end
 
@@ -152,4 +205,5 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tool
 	end
 	ColorName(tooltip, unit)
 	ColorLevelLine(tooltip, unit, data)
+	ColorFactionLine(tooltip, unit)
 end)

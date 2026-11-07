@@ -20,3 +20,4 @@ Logic/CursorAnchor.lua
 Options.lua
 Colors.lua
 Anchor.lua
+HealthBar.lua

@@ -6,6 +6,7 @@ local ADDON_NAME, ns = ...
 --   LOADED            Core.lua
 --   GATHER NEW AGAIN  Sources/GatherRecorder.lua
 --   SKILL UNLISTED    Knowledge.lua, which keeps the evidence
+--   STACK             UI/WorldMapProvider.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.

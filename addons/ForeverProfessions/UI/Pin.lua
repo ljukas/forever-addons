@@ -88,14 +88,31 @@ end
 ---@class ForeverProfessionsWorldPinMixin : ForeverProfessionsPinMixin, MapCanvasPinMixin
 ForeverProfessionsWorldPinMixin = CreateFromMixins(MapCanvasPinMixin, ForeverProfessionsPinMixin)
 
+-- World pin sizes and stacking, shared with UI/WorldMapProvider.lua.
+ns.WorldPin = {
+	SIZE = 32, -- the template's size
+	START_SCALE = 0.5, -- the pin's scale fully zoomed out, relative to the map
+	END_SCALE = 0.75,
+	-- Overlapping pins are stacked on separate frame levels (Stacking.lua). The world map has
+	-- one level for dig sites, and below it four for its debug pins, which only GMs see
+	-- (Blizzard_WorldMap.lua, WM_DebugDataProvider.lua): five levels in a row under dungeon
+	-- entrances, flight points, quests, POIs and vignettes.
+	STACK_LEVELS = 5,
+}
+local DEBUG_LEVELS = ns.WorldPin.STACK_LEVELS - 1
+
 function ForeverProfessionsWorldPinMixin:OnLoad()
-	self:SetScalingLimits(1, 0.5, 0.75)
+	self:SetScalingLimits(1, ns.WorldPin.START_SCALE, ns.WorldPin.END_SCALE)
 end
 
--- Arguments after the template name in AcquirePin.
-function ForeverProfessionsWorldPinMixin:OnAcquired(layer, nodeName, timesGathered)
-	-- Alongside archaeology dig sites, below quests, POIs and vignettes.
-	self:UseFrameLevelType("PIN_FRAME_LEVEL_DIG_SITE")
+-- Arguments after the template name in AcquirePin. stackLevel is from 1 (back) to STACK_LEVELS
+-- (front); the canvas applies it when the pin is positioned.
+function ForeverProfessionsWorldPinMixin:OnAcquired(layer, nodeName, timesGathered, stackLevel)
+	if stackLevel and stackLevel <= DEBUG_LEVELS then
+		self:UseFrameLevelType("PIN_FRAME_LEVEL_DEBUG", stackLevel)
+	else
+		self:UseFrameLevelType("PIN_FRAME_LEVEL_DIG_SITE")
+	end
 	self:SetNode(layer, nodeName, timesGathered)
 end
 

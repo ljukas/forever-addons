@@ -9,6 +9,10 @@ local UPDATE_INTERVAL = 0.1
 local PIN_SCALE = 0.5
 -- Keeps whole pins inside the round minimap.
 local PIN_RADIUS_PIXELS = 8
+-- A pin's size on the minimap, in minimap pixels, for stacking overlapping pins (Stacking.lua),
+-- and how many frame levels above the container they may take.
+local PIN_PIXELS = 32 * PIN_SCALE
+local STACK_LEVELS = 5
 
 local container = CreateFrame("Frame", nil, Minimap)
 container:SetAllPoints()
@@ -50,6 +54,7 @@ local function Draw(mapID, px, py, facing, radius)
 	local sin, cos = math.sin(facing), math.cos(facing)
 
 	generation = generation + 1
+	local shown, points = {}, {}
 	ns.Layers.ForEachShownNode(mapID, function(layer, name, index, x, y, count)
 		-- Yards east and north of the player. Map y grows southwards.
 		local dx = (x - px) * width
@@ -73,7 +78,16 @@ local function Draw(mapID, px, py, facing, radius)
 		local offsetX = (dx * cos + dy * sin) * pixelsPerYard / PIN_SCALE
 		local offsetY = (dy * cos - dx * sin) * pixelsPerYard / PIN_SCALE
 		pin:SetPoint("CENTER", Minimap, "CENTER", offsetX, offsetY)
+		-- In minimap pixels, y growing southwards (down the minimap).
+		table.insert(shown, pin)
+		table.insert(points, { x = offsetX * PIN_SCALE, y = -offsetY * PIN_SCALE })
 	end)
+
+	local levels = ns.Stacking.Levels(points, PIN_PIXELS, STACK_LEVELS)
+	local base = container:GetFrameLevel()
+	for i, pin in ipairs(shown) do
+		pin:SetFrameLevel(base + levels[i])
+	end
 
 	for key, pin in pairs(pinsByKey) do
 		if pin.generation ~= generation then

@@ -16,6 +16,7 @@ Core.lua
 Data/GatherNodes.lua
 Database.lua
 Layers.lua
+Stacking.lua
 Professions.lua
 Knowledge.lua
 Tooltip.lua

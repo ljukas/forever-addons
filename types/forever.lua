@@ -61,7 +61,7 @@ WorldFrame = {}
 ---@class WorldMapFrame : MapCanvasFrame
 ---@field AddDataProvider fun(self: WorldMapFrame, dataProvider: table)
 ---@field AddOverlayFrame fun(self: WorldMapFrame, templateName: string, templateType: string, anchorPoint: string?, relativeFrame: Frame?, relativePoint: string?, offsetX: number?, offsetY: number?): Frame
----@field GetCanvasContainer fun(self: WorldMapFrame): Frame
+---@field GetCanvasContainer fun(self: WorldMapFrame): MapCanvasScrollContainer
 ---@field WorldMapTrackingPinButton Button?
 WorldMapFrame = {}
 
@@ -73,6 +73,16 @@ WorldMapFrame = {}
 ---@field AcquirePin fun(self: MapCanvasFrame, pinTemplate: string, ...): MapCanvasPinMixin
 ---@field RemoveAllPinsByTemplate fun(self: MapCanvasFrame, pinTemplate: string)
 ---@field EnumeratePinsByTemplate fun(self: MapCanvasFrame, pinTemplate: string): fun(): Frame
+---@field GetCanvas fun(self: MapCanvasFrame): Frame
+---@field GetCanvasContainer fun(self: MapCanvasFrame): MapCanvasScrollContainer
+---@field GetCanvasScale fun(self: MapCanvasFrame): number
+---@field GetGlobalPinScale fun(self: MapCanvasFrame): number
+
+-- MapCanvasScrollControllerMixin (MapCanvas_ScrollContainerMixin.lua). zoomLevels is set once
+-- the map has laid out a zone.
+---@class MapCanvasScrollContainer : Frame
+---@field zoomLevels { scale: number }[]?
+---@field GetScaleForMinZoom fun(self: MapCanvasScrollContainer): number
 
 ---@class MapCanvasDataProviderMixin
 ---@field GetMap fun(self: MapCanvasDataProviderMixin): MapCanvasFrame

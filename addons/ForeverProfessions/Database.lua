@@ -112,21 +112,19 @@ local function GetRecipe(characterKey, recipeID)
 	return recipe
 end
 
-local function GetRow(recipe, skillRank)
-	local row = recipe.levels[skillRank]
-	if not row then
-		row = { 0, 0, nil, 0 }
-		recipe.levels[skillRank] = row
-	end
-	return row
-end
-
 -- Records a completed craft started at skillRank, with the recipe's difficulty and gray level
 -- at that moment. A capped craft (made at the skill cap) is counted apart from the attempts.
+-- Rows are only created here, so every row has its difficulty.
 function ns.DB.RecordAttempt(characterKey, recipeID, skillRank, difficulty, gray, capped)
 	local recipe = GetRecipe(characterKey, recipeID)
-	recipe.gray = gray
-	local row = GetRow(recipe, skillRank)
+	if gray then
+		recipe.gray = gray
+	end
+	local row = recipe.levels[skillRank]
+	if not row then
+		row = { 0, 0, difficulty, 0 }
+		recipe.levels[skillRank] = row
+	end
 	if capped then
 		row[CAPPED] = row[CAPPED] + 1
 	else
@@ -141,8 +139,15 @@ function ns.DB.AddMade(characterKey, recipeID, quantity)
 	recipe.made = recipe.made + quantity
 end
 
--- Credits skill points to the craft of the recipe started at skillRank.
+-- Credits skill points to the craft of the recipe started at skillRank, which RecordAttempt
+-- has recorded. Returns false, and records nothing, when there is no such craft.
 function ns.DB.RecordSkillUp(characterKey, recipeID, skillRank, points)
-	local row = GetRow(GetRecipe(characterKey, recipeID), skillRank)
+	local character = ns.db.crafts[characterKey]
+	local recipe = character and character[recipeID]
+	local row = recipe and recipe.levels[skillRank]
+	if not row then
+		return false
+	end
 	row[SKILL_UPS] = row[SKILL_UPS] + points
+	return true
 end

@@ -6,7 +6,7 @@ local ADDON_NAME, ns = ...
 --   LOADED            Core.lua
 --   GATHER NEW AGAIN  Sources/GatherRecorder.lua
 --   SKILL UNLISTED    Knowledge.lua, which keeps the evidence
---   STACK             UI/WorldMapProvider.lua
+--   CLUSTER           UI/WorldMapProvider.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.
@@ -42,6 +42,8 @@ ns.L = {
 	CURRENT_SKILL = "Your skill: %d",
 	NOT_LEARNED = "You have not learned %s.",
 	TIMES_GATHERED = "Times gathered: %d",
+	NODES_HERE = "%d nodes",
+	NODE_COUNT = "%dx %s",
 }
 
 -- Internal events between the modules. Callbacks are called as func(owner, ...).

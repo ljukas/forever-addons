@@ -44,6 +44,15 @@
 					</Anchors>
 				</Texture>
 			</Layer>
+			<!-- How many nodes a merged pin stands for, on the icon's lower right like a stack
+			     count on an item button. -->
+			<Layer level="OVERLAY" textureSubLevel="2">
+				<FontString parentKey="Count" inherits="NumberFontNormalLarge" justifyH="RIGHT" hidden="true">
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" x="4" y="-3"/>
+					</Anchors>
+				</FontString>
+			</Layer>
 			<Layer level="HIGHLIGHT">
 				<Texture file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight" alphaMode="ADD" setAllPoints="true"/>
 			</Layer>

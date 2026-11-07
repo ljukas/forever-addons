@@ -20,73 +20,87 @@ function DataProviderMixin:RemoveAllData()
 	self:GetMap():RemoveAllPinsByTemplate(PIN_TEMPLATE)
 end
 
--- A pin's largest size in canvas units. A pin is SIZE times its scale, which goes from
--- START_SCALE to END_SCALE divided by the canvas scale as the map zooms in
--- (MapCanvasPinMixin:ApplyCurrentScale). Against the map that is largest at one end of the
--- zoom range, fully out or fully in depending on the zone's zoom levels, so both ends are
--- taken. The zoom levels exist once the map has laid out a zone; until then, the current scale.
+-- A pin's size in canvas units at the map's current zoom: SIZE times the pin's scale, which
+-- the canvas sets to Lerp(START_SCALE, END_SCALE, zoom percent) times the global pin scale,
+-- divided by the canvas scale (MapCanvasPinMixin:ApplyCurrentScale).
 local function PinCanvasSize(map)
 	local pin = ns.WorldPin
-	local scale
-	if map:HasZoomLevels() then
-		local minZoom, maxZoom = map:GetScaleForMinZoom(), map:GetScaleForMaxZoom()
-		if minZoom > 0 and maxZoom > 0 then
-			scale = math.max(pin.START_SCALE / minZoom, pin.END_SCALE / maxZoom)
-		end
+	local zoom = map:HasZoomLevels() and math.min(1, math.max(0, map:GetCanvasZoomPercent())) or 0
+	local scale = pin.START_SCALE + (pin.END_SCALE - pin.START_SCALE) * zoom
+	local size = pin.SIZE * scale * map:GetGlobalPinScale() / map:GetCanvasScale()
+	if ns.dev.enabled then
+		local summary = ("canvas scale %.3f, zoom %.2f (scales %s to %s), pin scale %.2f: %.1f canvas units"):format(
+			map:GetCanvasScale(),
+			zoom,
+			map:HasZoomLevels() and ("%.3f"):format(map:GetScaleForMinZoom()) or "-",
+			map:HasZoomLevels() and ("%.3f"):format(map:GetScaleForMaxZoom()) or "-",
+			map:GetGlobalPinScale(),
+			size
+		)
+		ns.dev:LogChanged("size " .. map:GetMapID(), summary, "CLUSTER", "map", map:GetMapID(), summary)
 	end
-	if not scale then
-		scale = pin.START_SCALE / map:GetCanvasScale()
-	end
-	return pin.SIZE * scale * map:GetGlobalPinScale()
+	return size
 end
 
-function DataProviderMixin:RefreshAllData()
-	self:RemoveAllData()
-	if not ns.Options.Get("showWorldMap") then
-		return
-	end
-
-	local map = self:GetMap()
+-- The map's shown nodes as pins, those that would overlap at the current zoom merged
+-- (Clusters.lua), and a string that changes when the merging does.
+local function BuildPins(map)
+	local mapID = map:GetMapID()
 	local nodes = {}
-	ns.Layers.ForEachShownNode(map:GetMapID(), function(layer, name, _, x, y, count)
-		table.insert(nodes, { layer = layer, name = name, x = x, y = y, count = count })
+	ns.Layers.ForEachShownNode(mapID, function(layer, name, index, x, y, count)
+		table.insert(nodes, { layer = layer, name = name, key = name .. index, x = x, y = y, count = count })
 	end)
-
-	-- Positions in canvas units, where pins are stacked as they overlap at their largest against
-	-- the map (PinCanvasSize); at other zooms, pins that no longer overlap keep their levels,
-	-- which changes nothing.
+	-- In canvas units, where the pin size is.
 	local canvas = map:GetCanvas()
 	local width, height = canvas:GetWidth(), canvas:GetHeight()
 	local points = {}
 	for i, node in ipairs(nodes) do
 		points[i] = { x = node.x * width, y = node.y * height }
 	end
-	local size = PinCanvasSize(map)
-	local levels = ns.Stacking.Levels(points, size, ns.WorldPin.STACK_LEVELS)
-	if ns.dev.enabled then
-		local counts = {}
-		for level = 1, ns.WorldPin.STACK_LEVELS do
-			counts[level] = 0
-		end
-		for _, level in ipairs(levels) do
-			counts[level] = counts[level] + 1
-		end
-		local summary = ("%d pins, size %.1f of canvas %.0fx%.0f, per level %s"):format(
-			#levels,
-			size,
-			width,
-			height,
-			table.concat(counts, "/")
-		)
-		ns.dev:LogChanged("stack " .. map:GetMapID(), summary, "STACK", "map", map:GetMapID(), summary)
+	local pins = ns.Clusters.Pins(nodes, points, PinCanvasSize(map))
+
+	local signature = { mapID }
+	for _, pin in ipairs(pins) do
+		table.insert(signature, pin.key .. "=" .. #pin.nodes)
+	end
+	return pins, table.concat(signature, ";")
+end
+
+function DataProviderMixin:RefreshAllData()
+	self:RemoveAllData()
+	self.signature = nil
+	if not ns.Options.Get("showWorldMap") then
+		return
 	end
 
-	for i, node in ipairs(nodes) do
-		map:AcquirePin(PIN_TEMPLATE, node.layer, node.name, node.count, levels[i]):SetPosition(node.x, node.y)
+	local map = self:GetMap()
+	local pins, signature = BuildPins(map)
+	self.signature = signature
+	if ns.dev.enabled then
+		local merged = 0
+		for _, pin in ipairs(pins) do
+			merged = merged + (#pin.nodes > 1 and 1 or 0)
+		end
+		local summary = ("%d pins, %d of them merged"):format(#pins, merged)
+		ns.dev:LogChanged("pins " .. map:GetMapID(), summary, "CLUSTER", "map", map:GetMapID(), summary)
+	end
+	for _, pin in ipairs(pins) do
+		map:AcquirePin(PIN_TEMPLATE, pin):SetPosition(pin.x, pin.y)
 	end
 end
 
--- Maximizing or minimizing the map changes its zoom levels, and so which pins overlap.
+-- Zooming changes which pins overlap; the pins are only rebuilt when that changes which merge.
+function DataProviderMixin:OnCanvasScaleChanged()
+	if not self.signature or not self:GetMap():IsShown() then
+		return
+	end
+	local _, signature = BuildPins(self:GetMap())
+	if signature ~= self.signature then
+		self:RefreshAllData()
+	end
+end
+
+-- Maximizing or minimizing the map changes its scale, and so which pins overlap.
 function DataProviderMixin:OnCanvasSizeChanged()
 	self:RefreshIfShown()
 end

@@ -8,10 +8,43 @@ local ADDON_NAME, ns = ...
 ---@field timesGathered number
 ForeverProfessionsPinMixin = {}
 
+-- Item icons carry a dark border; Blizzard crops it off round item icons the same way.
+local ITEM_INSET = 0.08
+
+local itemIcons = {} -- [itemID] = icon file, once the client gave one
+
+-- The icon of the item the node gives (Data/GatherNodes.lua), or nil: from the client's own
+-- item data, so no server query is needed. Kept once given, since minimap pins are set again
+-- whenever the player moves; one the client couldn't give yet is asked for on the next set.
+local function NodeIcon(nodeName)
+	local node = ns.GatherNodes[nodeName]
+	local item = node and node.item
+	if not item then
+		return nil
+	end
+	local icon = itemIcons[item]
+	if not icon then
+		icon = C_Item.GetItemIconByID(item)
+		if not icon or issecretvalue(icon) then
+			return nil
+		end
+		itemIcons[item] = icon
+	end
+	return icon
+end
+
 function ForeverProfessionsPinMixin:SetNode(layer, nodeName, timesGathered)
 	self.nodeName = nodeName
 	self.timesGathered = timesGathered
-	self.Icon:SetAtlas(layer.atlas)
+	-- A node with no item, or an item whose icon the client can't give, keeps the tracking icon.
+	local icon = NodeIcon(nodeName)
+	if icon then
+		self.Icon:SetTexture(icon)
+		self.Icon:SetTexCoord(ITEM_INSET, 1 - ITEM_INSET, ITEM_INSET, 1 - ITEM_INSET)
+	else
+		self.Icon:SetTexCoord(0, 1, 0, 1) -- pins are pooled; SetAtlas's own reset is not documented
+		self.Icon:SetAtlas(layer.atlas)
+	end
 	self:RefreshSkillState()
 end
 

@@ -7,7 +7,7 @@ local L = ns.L
 --   key         unique layer key
 --   profession  the profession whose nodes it shows, a key in Professions.lua
 --   label       shown in the menus and the options panel
---   atlas       pin icon; the same atlases Blizzard's tracking menu uses
+--   atlas       pin icon for a node with no item icon; the atlases Blizzard's tracking menu uses
 --   setting     ForeverProfessionsDB.settings key that toggles the layer
 -- Register adds tooltip, the description used by the menus and the options panel.
 ns.Layers = {}

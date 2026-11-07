@@ -3,7 +3,8 @@
 	<Script file="Pin.lua"/>
 
 	<!-- Node pin, laid out like Blizzard's round tracking button (WorldMapTrackingPinButtonTemplate):
-	     dark minimap background, the profession tracking atlas and the gold tracking ring.
+	     dark minimap background, the node's item icon (or the profession tracking atlas) made round
+	     with the mask Blizzard uses on round icons (Blizzard_PVPUI.xml), and the gold tracking ring.
 	     Mouse motion only, so clicks still reach the map and the minimap. -->
 	<Frame name="ForeverProfessionsPinTemplate" mixin="ForeverProfessionsPinMixin" enableMouseMotion="true" virtual="true">
 		<Size x="32" y="32"/>
@@ -25,6 +26,17 @@
 				</Texture>
 			</Layer>
 			<Layer level="OVERLAY">
+				<MaskTexture parentKey="Mask" atlas="CircleMaskScalable" hWrapMode="CLAMPTOBLACKADDITIVE" vWrapMode="CLAMPTOBLACKADDITIVE">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Icon"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon"/>
+					</Anchors>
+					<MaskedTextures>
+						<MaskedTexture childKey="Icon"/>
+					</MaskedTextures>
+				</MaskTexture>
+			</Layer>
+			<Layer level="OVERLAY" textureSubLevel="1">
 				<Texture parentKey="Border" file="Interface\Minimap\MiniMap-TrackingBorder">
 					<Size x="54" y="54"/>
 					<Anchors>

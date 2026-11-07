@@ -6,6 +6,7 @@ local ADDON_NAME, ns = ...
 --   LOADED                Core.lua
 --   COLOR LEVEL FACTION   Colors.lua
 --   ANCHOR                Anchor.lua
+--   HEALTHBAR             HealthBar.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.

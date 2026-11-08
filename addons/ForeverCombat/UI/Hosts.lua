@@ -18,6 +18,9 @@ local MAX_SEGMENTS = 6
 -- Remaining amounts drop with every tick and the cue follows the health, so a host showing
 -- effects refreshes this often.
 local REFRESH_INTERVAL = 0.2
+-- The health bar's width as Blizzard sets it on the target and focus frames, for when the
+-- game hides the real one before the segments got any (see HostMixin:UpdateWidth).
+local FALLBACK_BAR_WIDTH = 126
 
 local hosts = {}
 local hostsByFrame = {}
@@ -28,6 +31,7 @@ local hostsByFrame = {}
 ---@field setting string? ForeverCombatDB.settings key that turns the host on, if it has one
 ---@field healthBar TargetFrameHealthBar
 ---@field mask MaskTexture
+---@field width number? the width the segments last got
 local HostMixin = {}
 
 ---@param container TargetFrameHealthBarsContainer
@@ -96,13 +100,19 @@ end
 -- GetWidth is SecretWhenAnchoringSecret: while anything the bar is anchored through is secret,
 -- the width is too, and SetWidth refuses a secret from addon code. Blizzard sets the bar's
 -- width itself (126 on target and focus, 124 on the player), so a secret reading keeps the
--- segments at the last width they got.
+-- segments at the last width they got, or Blizzard's width if they never got one.
 function HostMixin:UpdateWidth()
 	local width = self.healthBar:GetWidth()
 	if issecretvalue(width) then
-		ns.dev:LogOnce("secret width " .. self.unit, "HOST", self.unit, "bar width secret, kept the last one")
-		return
+		if ns.dev.enabled then
+			ns.dev:LogOnce("secret width " .. self.unit, "HOST", self.unit, "bar width secret, kept", self.width)
+		end
+		if self.width then
+			return
+		end
+		width = FALLBACK_BAR_WIDTH
 	end
+	self.width = width
 	for _, meter in pairs(self.meters) do
 		for _, segment in ipairs(meter.segments) do
 			segment:SetWidth(width)

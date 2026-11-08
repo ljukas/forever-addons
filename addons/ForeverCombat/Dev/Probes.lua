@@ -103,7 +103,9 @@ local function LogProbe(step, cue, overlay)
 	local portrait = TargetContainer().Portrait
 	local function rect(region)
 		local left, bottom, width, height = region:GetRect()
-		if not left then
+		if issecretvalue(left) then
+			return "secret rect"
+		elseif not left then
 			return "no rect"
 		end
 		return string.format("%.1f,%.1f %.1fx%.1f", left, bottom, width, height)

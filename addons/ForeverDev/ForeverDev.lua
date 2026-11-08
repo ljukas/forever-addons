@@ -11,8 +11,9 @@
 --
 -- ForeverDevDB layout:
 --   entries  = list of { kind = "error"|"blocked"|"log", session, time, message, addon?, tag?,
---              stack?, count? }, oldest first, the last MAX_ENTRIES_PER_ADDON of each addon's
---              (bucketOf), so a chatty addon only pushes out its own lines
+--              stack?, count? }, oldest first, the last MAX_ENTRIES_PER_ADDON (up to
+--              TRIM_SLACK more between trims) of each addon's (bucketOf), so a chatty addon
+--              only pushes out its own lines
 --   observed = { [addonName] = { ... } }, evidence the addons keep across sessions (Observed)
 --   session, sessionStarted, client = { build, interface }
 
@@ -45,14 +46,24 @@ local function safeToString(value)
 	return tostring(value)
 end
 
--- The addon an entry counts against: its addon, or for an error the addon whose file it names
--- (Interface/AddOns/<Name>/...) in its message or else its stack, or "" when there is none.
-local function bucketOf(entry)
-	if entry.addon then
-		return entry.addon
+local ADDON_PATH = "[Aa][Dd][Dd][Oo][Nn][Ss][/\\]([^/\\]+)[/\\]"
+
+-- The first addon other than Blizzard's (and except, if given, skip) whose file
+-- (Interface/AddOns/<Name>/...) text names.
+local function namedAddon(text, skip)
+	for name in (text or ""):gmatch(ADDON_PATH) do
+		if name ~= skip and not name:find("^Blizzard_") then
+			return name
+		end
 	end
-	local pattern = "AddOns[/\\]([^/\\]+)[/\\]"
-	return (entry.message or ""):match(pattern) or (entry.stack or ""):match(pattern) or ""
+end
+
+-- The addon an entry counts against: its addon, or for an error the addon its message names,
+-- else the first in its stack, so an error our hook causes inside Blizzard code counts against
+-- our addon. The stack skips ForeverDev, whose error handler it starts in. Errors that name no
+-- addon share the "" bucket. scripts/devlog.lua attributes errors the same way.
+local function bucketOf(entry)
+	return entry.addon or namedAddon(entry.message) or namedAddon(entry.stack, ADDON_NAME) or ""
 end
 
 -- Drops bucket's oldest entries until it has keep left, in one pass that keeps the order.
@@ -311,20 +322,25 @@ end
 -- Drops an addon's log entries (not its evidence) and what LogOnce and LogChanged remember for
 -- it, so its lines show up again. The name ignores case.
 local function clearAddon(addonName)
-	local cleared = 0
+	local cleared, shownName = 0, addonName
 	for bucket, size in pairs(bucketSizes) do
 		if bucket:lower() == addonName then
-			cleared = cleared + size
+			cleared, shownName = cleared + size, bucket
 			trimBucket(bucket, 0)
 		end
 	end
 	for name, logger in pairs(loggers) do
 		if name:lower() == addonName then
+			shownName = name
 			wipe(logger.once)
 			wipe(logger.last)
 		end
 	end
-	print(("ForeverDev: cleared %d log entries of %s."):format(cleared, addonName))
+	if cleared == 0 then
+		print(("ForeverDev: no log entries of %s to clear."):format(shownName))
+	else
+		print(("ForeverDev: cleared %d log entries of %s."):format(cleared, shownName))
+	end
 end
 
 -- Drops an addon's evidence, e.g. after its data was corrected. The name ignores case.

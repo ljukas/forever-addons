@@ -41,10 +41,14 @@ while (($#)); do
 done
 
 file="$(latest_saved_variables ForeverDev)"
-if [[ -z "$addon" ]] && ! $all_addons && [[ "$ROOT" != "$(main_checkout)" ]]; then
+main_root="$(main_checkout)"
+if [[ -z "$addon" ]] && ! $all_addons && [[ "$ROOT" != "$main_root" ]]; then
 	addon="$(held_addons "$ROOT" | paste -sd, -)"
 	if [[ -n "$addon" ]]; then
-		echo "Showing ${addon//,/, }: the addons this worktree holds in game (--all-addons for every addon)."
+		echo "Showing ${addon//,/, } (the addons this worktree holds in game) and errors that name no addon;" \
+			"--all-addons shows every addon."
+	else
+		echo "This worktree holds no addon in game ('scripts/worktree.sh game'), so showing every addon."
 	fi
 fi
 lua="$(lua51)"

@@ -18,10 +18,11 @@ is_windows() {
 	[[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]
 }
 
+# pwd keeps the case and the symlinks the path was typed with, but links are compared against
+# git's paths, which have the real case and resolve symlinks.
+ROOT="$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || echo "$ROOT")"
 if is_windows; then
-	# pwd keeps the case the path was typed in, but links are compared against git's paths, which
-	# have the real case.
-	ROOT="$(cygpath -u "$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || echo "$ROOT")")"
+	ROOT="$(cygpath -u "$ROOT")"
 	# Through cygpath, since Cygwin mounts C: at /cygdrive/c where Git Bash uses /c.
 	WOW_DIR="${WOW_DIR:-$(cygpath -u 'C:\Program Files (x86)\World of Warcraft\_forever_')}"
 else
@@ -66,7 +67,10 @@ link_path() {
 
 # The main checkout: the parent of the .git directory all worktrees share.
 main_checkout() {
-	shell_path "$(dirname "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir)")"
+	local common
+	common="$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir)" ||
+		die "can't find the main checkout: git failed in $ROOT"
+	shell_path "$(dirname "$common")"
 }
 
 # Prints the addons whose game link points into <checkout>, one per line.

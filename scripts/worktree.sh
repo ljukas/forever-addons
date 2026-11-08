@@ -8,7 +8,8 @@
 #                                              the addons this branch changed against origin/main)
 #        scripts/worktree.sh restore           point this checkout's links back at the main checkout
 #        scripts/worktree.sh reset             point every link back at the main checkout (from any
-#                                              checkout), dropping links into removed worktrees
+#                                              checkout), dropping links into worktrees removed from
+#                                              .claude/worktrees
 #        scripts/worktree.sh status            show which checkout each AddOns link points to
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
@@ -22,7 +23,7 @@ while IFS= read -r checkout; do
 done < <(git -C "$ROOT" worktree list --porcelain | sed -n 's/^worktree //p')
 
 # Prints the checkout of this repo that <link> points into, or nothing for a link (or folder) that
-# isn't ours. A link into a removed worktree still prints that worktree's path.
+# isn't ours. A link into a removed worktree under the main checkout still prints its path.
 holder_of() {
 	local link="$1" dest checkout known
 	[[ -L "$link" ]] || return 0
@@ -33,7 +34,7 @@ holder_of() {
 		echo "$checkout"
 		return 0
 	fi
-	for known in "${checkouts[@]}"; do
+	for known in ${checkouts[@]+"${checkouts[@]}"}; do
 		if [[ "$checkout" == "$known" ]]; then
 			echo "$checkout"
 			return 0
@@ -46,16 +47,32 @@ label() {
 	if [[ "$1" == "$MAIN_ROOT" ]]; then echo main; else basename "$1"; fi
 }
 
-# The addons this branch changed against origin/main: committed, staged, unstaged or untracked,
-# and still present here.
-changed_addons() {
-	local base="$1" name
-	{
-		git -C "$ROOT" diff --name-only "$base" -- addons
-		git -C "$ROOT" ls-files --others --exclude-standard -- addons
-	} | sed -n 's#^addons/\([^/]*\)/.*#\1#p' | sort -u | while IFS= read -r name; do
-		if [[ -f "$ADDONS_DIR/$name/$name.toc" ]]; then echo "$name"; fi
+lower() {
+	tr '[:upper:]' '[:lower:]' <<<"$1"
+}
+
+# Prints <name> as this checkout's addon folder spells it. Windows and macOS file systems ignore
+# case, so "forevertooltip" would otherwise replace another worktree's ForeverTooltip link unseen.
+addon_folder() {
+	local wanted dir
+	wanted="$(lower "$1")"
+	for dir in "$ADDONS_DIR"/*/; do
+		dir="$(basename "$dir")"
+		if [[ "$(lower "$dir")" == "$wanted" && -f "$ADDONS_DIR/$dir/$dir.toc" ]]; then
+			echo "$dir"
+			return 0
+		fi
 	done
+	die "no addon $1 in $ADDONS_DIR"
+}
+
+# The addons under addons/ that this branch touched against <base>: committed, staged, unstaged
+# or untracked.
+touched_addons() {
+	{
+		git -C "$ROOT" diff --name-only "$1" -- addons
+		git -C "$ROOT" ls-files --others --exclude-standard -- addons
+	} | sed -n 's#^addons/\([^/]*\)/.*#\1#p' | sort -u
 }
 
 # Dies unless the main checkout's link.sh, which reads its own .env.local, links into the same game.
@@ -70,9 +87,10 @@ require_same_game_as_main() {
 }
 
 # Removes the links that <holder> holds (every non-main holder when <holder> is "any"), then has
-# the main checkout link those addons again, or every addon it has when <all> is "all".
+# the main checkout link every addon it has (<all> is "all"), or only those plus any of its
+# addons with no link at all, such as one 'game' unlinked because the branch renames it.
 hand_back_to_main() {
-	local holder="$1" all="$2" link held names=()
+	local holder="$1" all="$2" link held name names=()
 	for link in "$target_dir"/*; do
 		held="$(holder_of "$link")"
 		[[ -n "$held" && "$held" != "$MAIN_ROOT" ]] || continue
@@ -85,10 +103,19 @@ hand_back_to_main() {
 		"$MAIN_ROOT/scripts/link.sh"
 		return
 	fi
-	local name main_names=()
+	if ((${#names[@]} == 0)); then
+		echo "This worktree holds no links in game."
+	fi
+	local main_names=()
 	for name in ${names[@]+"${names[@]}"}; do
 		# An addon that only exists in the worktree stays unlinked.
 		if [[ -f "$MAIN_ROOT/addons/$name/$name.toc" ]]; then main_names+=("$name"); fi
+	done
+	for link in "$MAIN_ROOT"/addons/*/; do
+		name="$(basename "$link")"
+		if [[ -f "$MAIN_ROOT/addons/$name/$name.toc" && ! -e "$target_dir/$name" && ! -L "$target_dir/$name" ]]; then
+			main_names+=("$name")
+		fi
 	done
 	if ((${#main_names[@]})); then
 		"$MAIN_ROOT/scripts/link.sh" "${main_names[@]}"
@@ -118,18 +145,23 @@ setup)
 game)
 	require_game
 	shift
-	names=("$@")
-	if ((${#names[@]} == 0)); then
+	names=()
+	removed=()
+	if (($#)); then
+		for name in "$@"; do
+			folder="$(addon_folder "$name")"
+			names+=("$folder")
+		done
+	else
 		base="$(git -C "$ROOT" merge-base origin/main HEAD)" || die "no merge base with origin/main; name the addons: $0 game <Addon...>"
 		while IFS= read -r name; do
-			names+=("$name")
-		done < <(changed_addons "$base")
+			if [[ -f "$ADDONS_DIR/$name/$name.toc" ]]; then names+=("$name"); else removed+=("$name"); fi
+		done < <(touched_addons "$base")
 		((${#names[@]})) || die "this branch changes no addon yet; name the ones to test: $0 game <Addon...>"
 	fi
 	# Check every addon before touching any link, so a refusal leaves the game as it was.
 	conflicts=()
 	for name in "${names[@]}"; do
-		[[ -f "$ADDONS_DIR/$name/$name.toc" ]] || die "$ADDONS_DIR/$name/$name.toc not found"
 		held="$(holder_of "$target_dir/$name")"
 		# A link into a removed worktree (it no longer resolves) is free to take.
 		if [[ -n "$held" && "$held" != "$ROOT" && "$held" != "$MAIN_ROOT" && -e "$target_dir/$name" ]]; then
@@ -139,7 +171,20 @@ game)
 	if ((${#conflicts[@]})); then
 		die "another worktree holds ${conflicts[*]}; run 'scripts/worktree.sh restore' there first (or 'reset')"
 	fi
+	# An addon this branch deletes or renames would otherwise still load from main beside the new one.
+	for name in ${removed[@]+"${removed[@]}"}; do
+		held="$(holder_of "$target_dir/$name")"
+		if [[ "$held" == "$MAIN_ROOT" || "$held" == "$ROOT" ]]; then
+			rm "$target_dir/$name"
+			echo "unlinked $name: this branch removes or renames it ('restore' links it again)"
+		fi
+	done
 	"$ROOT/scripts/link.sh" "${names[@]}"
+	missed=()
+	for name in "${names[@]}"; do
+		[[ "$(holder_of "$target_dir/$name")" == "$ROOT" ]] || missed+=("$name")
+	done
+	((${#missed[@]} == 0)) || die "not linked: ${missed[*]} (see above)"
 	echo "The game now loads ${names[*]} from $ROOT. /reload in game; run 'scripts/worktree.sh restore' when done."
 	;;
 restore)

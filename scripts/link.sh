@@ -23,6 +23,11 @@ else
 fi
 
 names=("$@")
+main_root="$(main_checkout)"
+if ((${#names[@]} == 0)) && ! $unlink && [[ "$ROOT" != "$main_root" ]]; then
+	# Linking every addon from a worktree would take over the links other worktrees are testing.
+	die "in a worktree, link with 'scripts/worktree.sh game [Addon...]' (or name the addons here)"
+fi
 if ((${#names[@]} == 0)); then
 	for dir in "$ADDONS_DIR"/*/; do
 		names+=("$(basename "$dir")")

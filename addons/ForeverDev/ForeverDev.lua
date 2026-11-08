@@ -11,13 +11,17 @@
 --
 -- ForeverDevDB layout:
 --   entries  = list of { kind = "error"|"blocked"|"log", session, time, message, addon?, tag?,
---              stack?, count? }, the last MAX_ENTRIES of them
+--              stack?, count? }, oldest first, the last MAX_ENTRIES_PER_ADDON of each addon's
+--              (bucketOf), so a chatty addon only pushes out its own lines
 --   observed = { [addonName] = { ... } }, evidence the addons keep across sessions (Observed)
 --   session, sessionStarted, client = { build, interface }
 
 local ADDON_NAME = ...
 
-local MAX_ENTRIES = 500
+local MAX_ENTRIES_PER_ADDON = 500
+-- Trimming an addon's entries is a pass over all of them, so it waits until the addon is this
+-- many over its cap.
+local TRIM_SLACK = 50
 local MAX_LOG_LENGTH = 2000
 
 BINDING_HEADER_FOREVERDEV = ADDON_NAME
@@ -31,11 +35,50 @@ local pending = {}
 -- Identical errors within a session are counted instead of stored again.
 local errorsBySignature = {}
 
+-- How many stored entries count against each addon: { [bucketOf(entry)] = count }.
+local bucketSizes = {}
+
 local function safeToString(value)
 	if issecretvalue and issecretvalue(value) then
 		return "<secret>"
 	end
 	return tostring(value)
+end
+
+-- The addon an entry counts against: its addon, or for an error the addon whose file it names
+-- (Interface/AddOns/<Name>/...) in its message or else its stack, or "" when there is none.
+local function bucketOf(entry)
+	if entry.addon then
+		return entry.addon
+	end
+	local pattern = "AddOns[/\\]([^/\\]+)[/\\]"
+	return (entry.message or ""):match(pattern) or (entry.stack or ""):match(pattern) or ""
+end
+
+-- Drops bucket's oldest entries until it has keep left, in one pass that keeps the order.
+local function trimBucket(bucket, keep)
+	local drop = (bucketSizes[bucket] or 0) - keep
+	if drop <= 0 then
+		return
+	end
+	local entries = ForeverDevDB.entries
+	local count, kept = #entries, 0
+	for i = 1, count do
+		local entry = entries[i]
+		if drop > 0 and bucketOf(entry) == bucket then
+			drop = drop - 1
+			if errorsBySignature[entry.message] == entry then
+				errorsBySignature[entry.message] = nil
+			end
+		else
+			kept = kept + 1
+			entries[kept] = entry
+		end
+	end
+	for i = count, kept + 1, -1 do
+		entries[i] = nil
+	end
+	bucketSizes[bucket] = keep > 0 and keep or nil
 end
 
 local function addEntry(entry)
@@ -45,13 +88,11 @@ local function addEntry(entry)
 		return
 	end
 	entry.session = session
-	local entries = ForeverDevDB.entries
-	table.insert(entries, entry)
-	while #entries > MAX_ENTRIES do
-		local removed = table.remove(entries, 1)
-		if removed.kind == "error" then
-			errorsBySignature[removed.message] = nil
-		end
+	table.insert(ForeverDevDB.entries, entry)
+	local bucket = bucketOf(entry)
+	bucketSizes[bucket] = (bucketSizes[bucket] or 0) + 1
+	if bucketSizes[bucket] > MAX_ENTRIES_PER_ADDON + TRIM_SLACK then
+		trimBucket(bucket, MAX_ENTRIES_PER_ADDON)
 	end
 end
 
@@ -101,7 +142,7 @@ function LoggerMixin:Log(tag, ...)
 	addEntry({ kind = "log", addon = self.addonName, tag = safeToString(tag), message = message })
 end
 
--- Logs only the first time key comes up this session (or since /fdev clear).
+-- Logs only the first time key comes up this session (or since /fdev clear clears the addon).
 function LoggerMixin:LogOnce(key, tag, ...)
 	if not self.once[key] then
 		self.once[key] = true
@@ -231,6 +272,10 @@ EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
 	ForeverDevDB.observed = ForeverDevDB.observed or {}
 	ForeverDevDB.session = (ForeverDevDB.session or 0) + 1
 	session = ForeverDevDB.session
+	for _, entry in ipairs(ForeverDevDB.entries) do
+		local bucket = bucketOf(entry)
+		bucketSizes[bucket] = (bucketSizes[bucket] or 0) + 1
+	end
 
 	local _, build, _, interface = GetBuildInfo()
 	ForeverDevDB.sessionStarted = time()
@@ -263,6 +308,25 @@ local function printErrors()
 	print(("ForeverDev: %d error(s)/blocked action(s) this session."):format(count))
 end
 
+-- Drops an addon's log entries (not its evidence) and what LogOnce and LogChanged remember for
+-- it, so its lines show up again. The name ignores case.
+local function clearAddon(addonName)
+	local cleared = 0
+	for bucket, size in pairs(bucketSizes) do
+		if bucket:lower() == addonName then
+			cleared = cleared + size
+			trimBucket(bucket, 0)
+		end
+	end
+	for name, logger in pairs(loggers) do
+		if name:lower() == addonName then
+			wipe(logger.once)
+			wipe(logger.last)
+		end
+	end
+	print(("ForeverDev: cleared %d log entries of %s."):format(cleared, addonName))
+end
+
 -- Drops an addon's evidence, e.g. after its data was corrected. The name ignores case.
 local function forget(addonName)
 	for name in pairs(ForeverDevDB.observed) do
@@ -283,9 +347,12 @@ end
 SLASH_FOREVERDEV1 = "/fdev"
 SlashCmdList.FOREVERDEV = function(input)
 	local command, argument = strsplit(" ", strtrim(input or ""):lower(), 2)
-	if command == "clear" then
+	if command == "clear" and argument then
+		clearAddon(strtrim(argument))
+	elseif command == "clear" then
 		wipe(ForeverDevDB.entries)
 		wipe(errorsBySignature)
+		wipe(bucketSizes)
 		-- So LogOnce and LogChanged lines show up again.
 		for _, logger in pairs(loggers) do
 			wipe(logger.once)
@@ -299,6 +366,6 @@ SlashCmdList.FOREVERDEV = function(input)
 	else
 		print("ForeverDev: session " .. session .. ", " .. #ForeverDevDB.entries .. " stored entries.")
 		print("  /rl - reload UI   /fdev errors - list this session's errors   /fdev clear - clear the log")
-		print("  /fdev forget <addon> - drop what that addon observed")
+		print("  /fdev clear <addon> - clear that addon's lines   /fdev forget <addon> - drop what it observed")
 	end
 end

@@ -67,10 +67,10 @@ addon_folder() {
 }
 
 # The addons under addons/ that this branch touched against <base>: committed, staged, unstaged
-# or untracked.
+# or untracked. A rename lists both names, so the old one can be unlinked.
 touched_addons() {
 	{
-		git -C "$ROOT" diff --name-only "$1" -- addons
+		git -C "$ROOT" diff --name-only --no-renames "$1" -- addons
 		git -C "$ROOT" ls-files --others --exclude-standard -- addons
 	} | sed -n 's#^addons/\([^/]*\)/.*#\1#p' | sort -u
 }

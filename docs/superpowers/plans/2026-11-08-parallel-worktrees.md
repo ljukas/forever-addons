@@ -21,8 +21,9 @@ once.
      removes links dangling into a removed worktree.
    - `status` labels each link's checkout (`main` or the worktree's folder name).
 2. **ForeverDev: per-addon log caps.** `MAX_ENTRIES` becomes a cap per addon (log and blocked
-   entries by `entry.addon`, errors by the `AddOns/<Name>/` in their message, else one shared
-   bucket), so a chatty addon only drops its own oldest lines. Same flat `entries` layout, so no
+   entries by `entry.addon`, errors by the `AddOns/<Name>/` in their message, else the first
+   non-Blizzard addon in their stack after ForeverDev's own handler, else one bucket for errors
+   that name no addon), so a chatty addon only drops its own oldest lines. Same flat `entries` layout, so no
    SavedVariables change. Eviction compacts in one pass once a bucket runs a slack over its cap,
    not on every line. `/fdev clear <addon>` clears one addon's entries and LogOnce/LogChanged
    memory; bare `/fdev clear` still clears all.

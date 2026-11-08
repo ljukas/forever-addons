@@ -10,7 +10,7 @@
 # Usage: scripts/devlog.sh [--all] [--errors] [--addon NAME[,NAME...]] [--all-addons] [--tag TAG]
 #   --all         include every stored session, not just the latest
 #   --errors      hide log lines; show only errors and blocked actions
-#   --addon NAME  only those addons' lines, and errors whose message or stack mention them
+#   --addon NAME  only those addons' lines, errors attributed to them and errors that name no addon
 #   --all-addons  every addon's lines, also in a worktree
 #   --tag TAG     only log lines with that tag (TICK, GATHER, PROBE, ...)
 # NAME and TAG ignore case.

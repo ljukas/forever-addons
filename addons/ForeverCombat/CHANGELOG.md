@@ -20,3 +20,5 @@
 - Tracks the base class spells and talents of every class. Each segment shrinks as your ticks
   land. The game keeps tick sizes hidden, so amounts are the spell tooltip's, without your spell
   or attack power.
+- No more "bad argument to SetWidth" errors from the target and focus frames when the game
+  hides their size.

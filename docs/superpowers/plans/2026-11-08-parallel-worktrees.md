@@ -45,6 +45,14 @@ once.
 Core reviewers plus the shell reviewer (`scripts/`). No SavedVariables layout change, so no
 `savedvariables-guard` (the `/fdev` slash command only gains an argument).
 
+## Rollout
+
+Each worktree runs its own branch's `worktree.sh`. Worktrees cut before this merges still run the
+old `game`/`restore`, which unlink every other checkout's links, so they must rebase onto (or merge)
+main before they use `game` again. After merging, run `scripts/worktree.sh reset` once to clear the
+old all-addons claims. Until then, the second worktree of the first check must be cut from this
+branch.
+
 ## In-game checks
 
 - `scripts/worktree.sh game` in two worktrees with different addons: `status` shows both; both

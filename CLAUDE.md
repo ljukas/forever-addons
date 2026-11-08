@@ -70,7 +70,7 @@ grep -rn 'function EventUtil\.' .cache/wow-ui-source/Interface/AddOns/Blizzard_S
 scripts/new-addon.sh MyAddon        # scaffold addons/MyAddon from the template and link it into the game
 scripts/lint.sh                     # StyLua check + LuaLS diagnostics + TOC checks. Run after every change.
 stylua addons template types        # auto-format
-scripts/link.sh                     # (re)link every addon into _forever_/Interface/AddOns
+scripts/link.sh [Name...]           # (re)link the main checkout's addons into _forever_/Interface/AddOns (worktrees: worktree.sh game)
 scripts/devlog.sh [--errors] [--all] [--addon NAME,...] [--all-addons] [--tag TAG]  # print what ForeverDev captured in game (errors, taint, logs); a worktree sees only the addons it holds
 scripts/observed.sh [Addon] [filter] # print the evidence addons keep through ForeverDev (e.g. ForeverProfessions' gathers)
 scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about DoTs/HoTs (IDs, ticks, intervals, misses)
@@ -141,8 +141,9 @@ ones named) at the current worktree for in-game testing, and refuses an addon an
 holds; worktrees on different addons are live in game side by side. `scripts/worktree.sh restore`
 hands this worktree's links back; run it before removing the worktree. `scripts/worktree.sh reset`
 (any checkout) points every link back at main. In a worktree, `scripts/devlog.sh` shows only the
-addons it holds, and ForeverDev caps its log per addon, so one addon's lines never push out
-another's.
+addons it holds (plus errors that name no addon), and ForeverDev caps its log per addon, so one
+addon's lines never push out another's. ForeverDev itself is shared: whichever checkout holds it
+logs for every addon, so claim it only on a branch that changes it, and hand it back soon.
 
 ## Code conventions
 

@@ -81,6 +81,11 @@ function handlers.UNIT_SPELLCAST_START(_, castGUID, spellID)
 		ns.dev:LogOnce("not a recipe " .. spellID, "CRAFT", "not a recipe", spellID)
 		return
 	end
+	-- Seen in game: a recipe START with no castGUID while another cast of it was live.
+	if castGUID == nil then
+		Log("startNoGUID", "spellID", spellID, "lastRecipeID", lastRecipeID)
+		return
+	end
 	liveCasts[castGUID] = true
 	lastRecipeID = spellID
 	lastRecipeTime = GetTime()

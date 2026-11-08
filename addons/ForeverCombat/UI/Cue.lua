@@ -126,8 +126,9 @@ end
 function ns.Cue.CreatePortrait(container)
 	local portrait = container.Portrait
 	-- The template sizes it explicitly, so this is valid before the first layout.
+	-- GetWidth is secret while the portrait's anchoring is (see HostMixin:UpdateWidth).
 	local width = portrait:GetWidth()
-	if width <= 0 then
+	if issecretvalue(width) or width <= 0 then
 		width = PORTRAIT_SIZE
 	end
 	local cue = NewCue(container, width)

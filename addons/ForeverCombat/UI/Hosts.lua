@@ -93,8 +93,16 @@ function HostMixin:Init(frame, unit, container, setting)
 	end
 end
 
+-- GetWidth is SecretWhenAnchoringSecret: while anything the bar is anchored through is secret,
+-- the width is too, and SetWidth refuses a secret from addon code. Blizzard sets the bar's
+-- width itself (126 on target and focus, 124 on the player), so a secret reading keeps the
+-- segments at the last width they got.
 function HostMixin:UpdateWidth()
 	local width = self.healthBar:GetWidth()
+	if issecretvalue(width) then
+		ns.dev:LogOnce("secret width " .. self.unit, "HOST", self.unit, "bar width secret, kept the last one")
+		return
+	end
 	for _, meter in pairs(self.meters) do
 		for _, segment in ipairs(meter.segments) do
 			segment:SetWidth(width)

@@ -18,20 +18,23 @@ On Windows, run the scripts from Git Bash. They link folders with NTFS junctions
 `ln -s` would silently copy them), so neither admin rights nor Developer Mode is needed.
 
 The game loads the main checkout's addons, so `git pull` there updates what's in game. To try a
-branch before it's merged, run `scripts/worktree.sh game` in its worktree, `/rl` in game, and
-`scripts/worktree.sh restore` when done.
+branch before it's merged, run `scripts/worktree.sh game` in its worktree (it takes over only the
+addons that branch changed), `/rl` in game, and `scripts/worktree.sh restore` when done.
+`scripts/worktree.sh reset` points every addon back at the main checkout at once.
 
 In game, enable **ForeverDev**. It gives you:
 
 - `/rl` to reload the UI. There's also a "Reload UI" keybind (Key Bindings → AddOns) and a
   click target in the minimap addon compartment.
 - Lua errors and blocked actions captured to disk, with the addons' log lines. Read them with
-  `scripts/devlog.sh` (`--addon ForeverProfessions`, `--tag GATHER` to narrow it down).
+  `scripts/devlog.sh` (`--addon ForeverProfessions`, `--tag GATHER` to narrow it down). In a
+  worktree it shows only the addons that worktree has in game.
 - Evidence the addons keep across sessions, such as gathering spell IDs or DoT tick intervals.
   Read it with `scripts/observed.sh [Addon]` or `scripts/combat-knowledge.sh`.
 - Probes of what the client restricts where (restriction states, secret unit values), logged
   on login, zone changes and target changes.
-- `/fdev errors` lists this session's errors in chat. `/fdev clear` empties the log.
+- `/fdev errors` lists this session's errors in chat. `/fdev clear` empties the log, and
+  `/fdev clear <Addon>` only that addon's lines (each addon keeps its own last 500).
   `/fdev forget <Addon>` drops that addon's evidence.
 
 ## Day to day
@@ -47,7 +50,9 @@ the AddOns list.
 Claude works through `/feature-workflow`, `/bugfix-workflow` and `/refactor-workflow` (the
 process is in [docs/](docs/feature-workflow.md)), each in its own worktree under
 `.claude/worktrees/`. To try a worktree's version in game, run `scripts/worktree.sh game` from it
-and `/rl`. `scripts/worktree.sh restore` points the game back at the main checkout.
+and `/rl`. Each worktree takes over only its own addons, so two sessions on different addons can
+both be live in game. `scripts/worktree.sh restore` hands a worktree's addons back to the main
+checkout, and `scripts/worktree.sh reset` hands back all of them.
 
 VS Code: install the recommended extensions (LuaLS, StyLua). `.luarc.json` already points LuaLS
 at the WoW API annotations in `.cache/`.

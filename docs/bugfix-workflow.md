@@ -23,7 +23,7 @@ Companions — one hat per commit:
 ## The phases
 
 ### 0. Isolate — always, first
-**What:** A fresh worktree from `origin/main` before the first edit; `ns.log` probes are edits too. Same steps as [feature-workflow.md → Phase 0](./feature-workflow.md#0-isolate--always-first), with a `fix/<slug>` branch. To reproduce in game, `scripts/worktree.sh game` points the game at the worktree; `scripts/worktree.sh restore` before it's removed.
+**What:** A fresh worktree from `origin/main` before the first edit; `ns.log` probes are edits too. Same steps as [feature-workflow.md → Phase 0](./feature-workflow.md#0-isolate--always-first), with a `fix/<slug>` branch. To reproduce in game, `scripts/worktree.sh game` points the game's links for the addons the branch changed (or `game <Addon>`) at the worktree; `scripts/worktree.sh restore` before it's removed.
 
 ### 1. Confirm it's a bug, and gather evidence
 **What:** A bug is behavior that contradicts something already decided: a spec, an ADR, a CLAUDE.md convention, or plain correctness. If nobody decided what *should* happen, it's a product decision, so switch to the feature workflow.

@@ -13,8 +13,7 @@
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
-# The main checkout is the parent of the .git directory all worktrees share.
-MAIN_ROOT="$(shell_path "$(dirname "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir)")")"
+MAIN_ROOT="$(main_checkout)"
 target_dir="$WOW_DIR/Interface/AddOns"
 
 checkouts=()

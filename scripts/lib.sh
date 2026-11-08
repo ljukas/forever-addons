@@ -64,6 +64,21 @@ link_path() {
 		'cmd /c mklink /J "$env:JUNCTION_LINK" "$env:JUNCTION_TARGET" > $null; exit $LASTEXITCODE'
 }
 
+# The main checkout: the parent of the .git directory all worktrees share.
+main_checkout() {
+	shell_path "$(dirname "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir)")"
+}
+
+# Prints the addons whose game link points into <checkout>, one per line.
+held_addons() {
+	local link
+	for link in "$WOW_DIR/Interface/AddOns"/*; do
+		if [[ -L "$link" && "$(readlink "$link")" == "$1/addons/$(basename "$link")" ]]; then
+			basename "$link"
+		fi
+	done
+}
+
 # Convert a client version like 1.60.1 to its TOC interface number (16001).
 interface_from_version() {
 	local major minor patch

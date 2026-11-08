@@ -70,14 +70,14 @@ grep -rn 'function EventUtil\.' .cache/wow-ui-source/Interface/AddOns/Blizzard_S
 scripts/new-addon.sh MyAddon        # scaffold addons/MyAddon from the template and link it into the game
 scripts/lint.sh                     # StyLua check + LuaLS diagnostics + TOC checks. Run after every change.
 stylua addons template types        # auto-format
-scripts/link.sh                     # (re)link every addon into _forever_/Interface/AddOns
-scripts/devlog.sh [--errors] [--all] [--addon NAME] [--tag TAG]  # print what ForeverDev captured in game (errors, taint, logs)
+scripts/link.sh [Name...]           # (re)link the main checkout's addons into _forever_/Interface/AddOns (worktrees: worktree.sh game)
+scripts/devlog.sh [--errors] [--all] [--addon NAME,...] [--all-addons] [--tag TAG]  # print what ForeverDev captured in game (errors, taint, logs); a worktree sees only the addons it holds
 scripts/observed.sh [Addon] [filter] # print the evidence addons keep through ForeverDev (e.g. ForeverProfessions' gathers)
 scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about DoTs/HoTs (IDs, ticks, intervals, misses)
 scripts/package.sh MyAddon [v1.0.0] # build the release zip locally into .release/MyAddon/
 scripts/check-pr-title.sh "<title>" # check a PR title is a Conventional Commit (CI runs it on every PR)
 scripts/setup.sh                    # refresh .cache/ (run after a game patch)
-scripts/worktree.sh <command>       # setup, game, restore or status: share .cache/ with a worktree, move the game's addon links to it and back
+scripts/worktree.sh <command>       # setup, game [Addon...], restore, reset or status: share .cache/ with a worktree, move its addons' game links to it and back
 ```
 
 `WOW_DIR` defaults to `/Applications/World of Warcraft/_forever_` (macOS) or
@@ -135,9 +135,15 @@ do nothing and return nil when ForeverDev isn't loaded (`ns.dev.enabled` is fals
 Several Claude sessions work in this repo at once, so all work happens in a worktree, never in
 the main checkout: `EnterWorktree` (creates `.claude/worktrees/<name>` from `origin/main`), rename
 the branch to `<type>/<slug>`, then `scripts/worktree.sh setup` to link `.cache/` and `.env.local`
-from the main checkout. The game's AddOns links point at one checkout at a time, the main one by
-default. `scripts/worktree.sh game` points them at the current worktree for in-game testing, and
-`scripts/worktree.sh restore` hands them back. Run `restore` before removing the worktree.
+from the main checkout. Each of the game's AddOns links points at one checkout, the main one by
+default. `scripts/worktree.sh game` points the links of the addons this branch changed (or the
+ones named) at the current worktree for in-game testing, and refuses an addon another worktree
+holds; worktrees on different addons are live in game side by side. `scripts/worktree.sh restore`
+hands this worktree's links back; run it before removing the worktree. `scripts/worktree.sh reset`
+(any checkout) points every link back at main. In a worktree, `scripts/devlog.sh` shows only the
+addons it holds (plus errors that name no addon), and ForeverDev caps its log per addon, so one
+addon's lines never push out another's. ForeverDev itself is shared: whichever checkout holds it
+logs for every addon, so claim it only on a branch that changes it, and hand it back soon.
 
 ## Code conventions
 

@@ -18,10 +18,11 @@ is_windows() {
 	[[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]
 }
 
+# pwd keeps the case and the symlinks the path was typed with, but links are compared against
+# git's paths, which have the real case and resolve symlinks.
+ROOT="$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || echo "$ROOT")"
 if is_windows; then
-	# pwd keeps the case the path was typed in, but links are compared against git's paths, which
-	# have the real case.
-	ROOT="$(cygpath -u "$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || echo "$ROOT")")"
+	ROOT="$(cygpath -u "$ROOT")"
 	# Through cygpath, since Cygwin mounts C: at /cygdrive/c where Git Bash uses /c.
 	WOW_DIR="${WOW_DIR:-$(cygpath -u 'C:\Program Files (x86)\World of Warcraft\_forever_')}"
 else
@@ -62,6 +63,24 @@ link_path() {
 	JUNCTION_LINK="$(cygpath -w "$link")" JUNCTION_TARGET="$(cygpath -w "$target")" \
 		powershell.exe -NoProfile -NonInteractive -Command \
 		'cmd /c mklink /J "$env:JUNCTION_LINK" "$env:JUNCTION_TARGET" > $null; exit $LASTEXITCODE'
+}
+
+# The main checkout: the parent of the .git directory all worktrees share.
+main_checkout() {
+	local common
+	common="$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir)" ||
+		die "can't find the main checkout: git failed in $ROOT"
+	shell_path "$(dirname "$common")"
+}
+
+# Prints the addons whose game link points into <checkout>, one per line.
+held_addons() {
+	local link
+	for link in "$WOW_DIR/Interface/AddOns"/*; do
+		if [[ -L "$link" && "$(readlink "$link")" == "$1/addons/$(basename "$link")" ]]; then
+			basename "$link"
+		fi
+	done
 }
 
 # Convert a client version like 1.60.1 to its TOC interface number (16001).

@@ -41,7 +41,8 @@ function ns.Quests.Collect()
 			if not haveData and now - requestedAt[questID] < REWARD_WAIT then
 				pending = true
 			else
-				local reward = GetQuestLogRewardXP(questID)
+				-- Returns totalXp, baseXp (QuestUtils.lua); the total is what the quest log shows.
+				local reward, base = GetQuestLogRewardXP(questID)
 				if issecretvalue(reward) then
 					secret = true
 				else
@@ -51,10 +52,11 @@ function ns.Quests.Collect()
 					end
 				end
 				if parts then
-					parts[#parts + 1] = questID
-						.. "="
-						.. (issecretvalue(reward) and "secret" or reward)
-						.. (haveData and "" or "(nodata)")
+					local text = issecretvalue(reward) and "secret" or tostring(reward)
+					if not issecretvalue(base) and not issecretvalue(reward) and base ~= reward then
+						text = text .. "(base " .. tostring(base) .. ")"
+					end
+					parts[#parts + 1] = questID .. "=" .. text .. (haveData and "" or "(nodata)")
 				end
 			end
 		end
@@ -67,6 +69,8 @@ function ns.Quests.Collect()
 	if parts then
 		local unitXPSecret = issecretvalue(UnitXP("player"))
 		local maxSecret = issecretvalue(UnitXPMax("player"))
+		-- Sorted: the log reorders itself (by distance), which isn't a change worth a line.
+		table.sort(parts)
 		local quests = table.concat(parts, ",")
 		ns.dev:LogChanged(
 			"collect",

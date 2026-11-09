@@ -9,7 +9,9 @@ local _, ns = ...
 
 ns.ExpBar = {}
 
-local FILL_ATLAS = "UI-HUD-ExperienceBar-Fill-Prediction"
+-- Blizzard's own bar fills, in colours that can't be mistaken for rested XP (blue/purple).
+local FILL_ATLAS = "UI-HUD-ExperienceBar-Fill-Reputation-Faction-Yellow"
+local LEVEL_UP_ATLAS = "UI-HUD-ExperienceBar-Fill-Reputation-Faction-Green"
 local PIP_ATLAS = "UI-HUD-ExperienceBar-Frame-Pip"
 local PIP_WIDTH, PIP_HEIGHT = 10, 14
 local EDGE_HIDE = 0.99 -- like Blizzard's hideAtBarEdge: no pip right at the bar's end
@@ -18,7 +20,8 @@ local bars = {} -- hooked exp bars; each gets bar.ForeverQuestsFill and bar.Fore
 
 -- The state shared by every bar and the tooltip. Fields:
 --   quests = ns.Quests.Collect() result,
---   cur, max, level = the player's XP, the XP the level needs, the level (nil when secret),
+--   cur, max, level = the player's XP, the XP the level needs, the level (nil when not drawn),
+--   xpSecret = UnitXP or UnitXPMax came back secret,
 --   proj = ns.Project(...) result, or nil when nothing is drawn.
 ns.ExpBar.lastResult = nil
 
@@ -30,6 +33,7 @@ local function Compute()
 	end
 	local cur, max = UnitXP("player"), UnitXPMax("player")
 	if issecretvalue(cur) or issecretvalue(max) then
+		result.xpSecret = true
 		return result
 	end
 	result.cur, result.max, result.level = cur, max, UnitLevel("player")
@@ -51,32 +55,44 @@ local function Draw(bar, result)
 
 	local startFraction = math.min(result.cur / result.max, 1)
 	local fillWidth = (proj.fraction - startFraction) * width
-	if fillWidth < 1 then
+	if fillWidth >= 1 then
+		fill:SetAtlas(proj.levelsUp and LEVEL_UP_ATLAS or FILL_ATLAS)
+		fill:ClearAllPoints()
+		fill:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", startFraction * width, 0)
+		-- As tall as Blizzard's rested fill, so the two line up.
+		local rested = bar.ExhaustionLevelFillBar
+		fill:SetSize(fillWidth, rested and rested:GetHeight() or bar:GetHeight())
+		fill:SetTexCoord(startFraction, proj.fraction, 0, 1)
+		fill:Show()
+	else
 		fill:Hide()
-		pip:Hide()
-		return
 	end
-
-	local color = proj.levelsUp and GREEN_FONT_COLOR or QUEST_OBJECTIVE_FONT_COLOR
-	fill:SetVertexColor(color:GetRGB())
-	fill:ClearAllPoints()
-	fill:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", startFraction * width, 0)
-	fill:SetSize(fillWidth, bar:GetHeight())
-	fill:SetTexCoord(startFraction, proj.fraction, 0, 1)
-	fill:Show()
 
 	pip:ClearAllPoints()
 	pip:SetPoint("CENTER", bar, "LEFT", proj.fraction * width, 0)
 	pip:SetShown(not proj.levelsUp and proj.fraction <= EDGE_HIDE)
 end
 
--- Recomputes the result and redraws every hooked bar. Returns the result.
-function ns.ExpBar.Refresh()
-	local result = Compute()
-	ns.ExpBar.lastResult = result
+local function DrawAll()
+	local result = ns.ExpBar.lastResult
+	if not result then
+		return
+	end
 	for _, bar in ipairs(bars) do
 		Draw(bar, result)
 	end
+end
+
+-- Recomputes the result and redraws every hooked bar. While the player's XP reads as secret
+-- the bars keep what they last drew rather than blinking out. Returns the result.
+function ns.ExpBar.Refresh()
+	local result = Compute()
+	local previous = ns.ExpBar.lastResult
+	ns.ExpBar.lastResult = result
+	if result.xpSecret and previous and previous.proj then
+		result.cur, result.max, result.level, result.proj = previous.cur, previous.max, previous.level, previous.proj
+	end
+	DrawAll()
 
 	if ns.dev.enabled then
 		local proj = result.proj
@@ -94,6 +110,8 @@ function ns.ExpBar.Refresh()
 			proj and proj.fraction,
 			"levelsUp",
 			proj and proj.levelsUp,
+			"xpSecret",
+			result.xpSecret,
 			"bars",
 			#bars
 		)
@@ -102,28 +120,26 @@ function ns.ExpBar.Refresh()
 end
 
 local function Hook(bar)
-	if not bar or bar.ForeverQuestsFill then
+	if not bar or not bar.StatusBar or bar.ForeverQuestsFill then
 		return
 	end
-	-- Above Blizzard's rested fill (ARTWORK, sublevel -1).
+	-- Above Blizzard's rested fill (ARTWORK, sublevel -1). Like it, it shows through the
+	-- status bar's translucent background and under the current-XP fill.
 	local fill = bar:CreateTexture(nil, "ARTWORK", nil, 0)
-	fill:SetAtlas(FILL_ATLAS)
 	fill:Hide()
 	bar.ForeverQuestsFill = fill
 
-	-- On its own frame above the status bar, so the pip draws over the XP fill.
-	local overlay = CreateFrame("Frame", nil, bar)
-	overlay:SetAllPoints(bar)
-	overlay:SetFrameLevel(bar.StatusBar:GetFrameLevel() + 2)
-	local pip = overlay:CreateTexture(nil, "OVERLAY")
+	-- On the status bar itself, above its fill, so it keeps its place when frame levels change.
+	local pip = bar.StatusBar:CreateTexture(nil, "OVERLAY")
 	pip:SetAtlas(PIP_ATLAS)
 	pip:SetSize(PIP_WIDTH, PIP_HEIGHT)
+	pip:SetVertexColor(NORMAL_FONT_COLOR:GetRGB())
 	pip:Hide()
 	bar.ForeverQuestsPip = pip
 
 	bars[#bars + 1] = bar
-	bar:HookScript("OnShow", ns.ExpBar.Refresh)
-	bar:HookScript("OnSizeChanged", ns.ExpBar.Refresh)
+	bar:HookScript("OnShow", DrawAll)
+	bar:HookScript("OnSizeChanged", DrawAll)
 	ns.Tooltip.Attach(bar)
 end
 

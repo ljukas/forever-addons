@@ -124,9 +124,7 @@ local function Hook(bar)
 	bars[#bars + 1] = bar
 	bar:HookScript("OnShow", ns.ExpBar.Refresh)
 	bar:HookScript("OnSizeChanged", ns.ExpBar.Refresh)
-	if ns.ExpBar.OnHooked then
-		ns.ExpBar.OnHooked(bar)
-	end
+	ns.Tooltip.Attach(bar)
 end
 
 EventUtil.ContinueOnAddOnLoaded("Blizzard_StatusTrackingBar", function()

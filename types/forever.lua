@@ -50,6 +50,11 @@ INT_SPELL_DURATION_SEC = ""
 ---@type string
 UNIT_LEVEL_TEMPLATE = ""
 
+-- Blizzard_StatusTrackingBar/Mainline/ExpBarOverrides formats it with the
+-- player's XP, the XP the level needs and the percent, as the experience bar tooltip's title.
+---@type string
+XP_TEXT = ""
+
 -- Frames created by Blizzard XML.
 
 -- The frame the 3D world renders in, created by the client; the mouse focus while the cursor is over

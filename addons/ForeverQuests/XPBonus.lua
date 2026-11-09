@@ -22,22 +22,29 @@ function ns.XPBonus.Update()
 	if InCombatLockdown() then
 		return false
 	end
-	local percent, names = 0, {}
+	-- UNIT_AURA fires constantly: add up the percent first and build nothing unless it changed.
+	local percent = 0
 	for spellID, perStack in pairs(BUFFS) do
 		local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
-		if aura and not issecretvalue(aura.applications) and not issecretvalue(aura.name) then
-			local stacks = math.max(aura.applications or 0, 1)
-			percent = percent + perStack * stacks
+		if aura and not issecretvalue(aura.applications) then
+			percent = percent + perStack * math.max(aura.applications or 0, 1)
+		end
+	end
+	if percent == current.percent then
+		return false
+	end
+
+	local names = {}
+	for spellID in pairs(BUFFS) do
+		local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
+		if aura and not issecretvalue(aura.name) then
 			names[#names + 1] = aura.name
 		end
 	end
 	table.sort(names)
-	local changed = percent ~= current.percent or table.concat(names, ",") ~= table.concat(current.names, ",")
 	current = { percent = percent, names = names }
-	if changed then
-		ns.log("BONUS", "percent", percent, "buffs", table.concat(names, ","))
-	end
-	return changed
+	ns.log("BONUS", "percent", percent, "buffs", table.concat(names, ","))
+	return true
 end
 
 -- The XP a quest reporting `reward` pays with the current buffs (the server rounds down).

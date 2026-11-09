@@ -41,6 +41,10 @@ local function Lines(result)
 	if quests.count == 0 then
 		return nil
 	end
+	-- Max level or XP gain disabled: Compute read no XP, and it isn't because it was secret.
+	if not result.cur and not result.xpSecret then
+		return nil
+	end
 	if quests.pending then
 		return { { L.COMPLETED:format(quests.count) }, { L.LOADING, GRAY_FONT_COLOR } }
 	end

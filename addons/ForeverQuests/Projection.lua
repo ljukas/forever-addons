@@ -23,7 +23,9 @@ function ns.Project(curXP, maxXP, level, gain)
 	return {
 		levelsUp = false,
 		fraction = fraction,
-		percent = math.floor(fraction * 100),
+		-- Multiply first: (29 / 100) * 100 is 28.999... and would floor to 28. XP values are
+		-- small integers, so total * 100 / maxXP is exact whenever the percent is whole.
+		percent = math.max(math.floor(total * 100 / maxXP), 0),
 		nextLevel = level,
 		overflow = 0,
 	}

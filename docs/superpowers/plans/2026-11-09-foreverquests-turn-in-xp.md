@@ -16,6 +16,13 @@ hooks. There is no test framework: the pure logic is checked by reading, the res
 
 **Spec:** `docs/superpowers/specs/2026-11-09-foreverquests-turn-in-xp-design.md`
 
+> **As built (after the step review):** the tooltip code lives in its own `Tooltip.lua`
+> (loaded before `ExpBar.lua`, which calls `ns.Tooltip.Attach(bar)`). Reward data is requested
+> with `C_TaskQuest.RequestPreloadRewardData`, once per quest, with a 5 s wait.
+> `ns.Quests.Collect` is cached until `ns.Quests.Invalidate()`. `ns.Project` returns nil for
+> `maxXP <= 0`. The fill uses Blizzard's yellow and green bar fill atlases, and the strings are
+> ASCII. The spec records each amendment.
+
 ## Global Constraints
 
 - One PR: `feat(foreverquests): show turn-in XP on the experience bar`.

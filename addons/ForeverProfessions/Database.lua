@@ -132,6 +132,7 @@ function ns.DB.RecordAttempt(characterKey, recipeID, skillRank, difficulty, gray
 		row[ATTEMPTS] = row[ATTEMPTS] + 1
 	end
 	row[DIFFICULTY] = difficulty
+	ns.callbacks:TriggerEvent("CraftsChanged", recipeID)
 end
 
 -- Adds items a craft of the recipe produced.
@@ -150,5 +151,42 @@ function ns.DB.RecordSkillUp(characterKey, recipeID, skillRank, points)
 		return false
 	end
 	row[SKILL_UPS] = row[SKILL_UPS] + points
+	ns.callbacks:TriggerEvent("CraftsChanged", recipeID)
 	return true
+end
+
+-- Returns how many times the character crafted the recipe (capped crafts included) and the
+-- skill points those crafts gave; 0, 0 when it never has.
+function ns.DB.GetCraftTotals(characterKey, recipeID)
+	local character = ns.db.crafts[characterKey]
+	local recipe = character and character[recipeID]
+	local crafts, skillUps = 0, 0
+	if recipe then
+		for _, row in pairs(recipe.levels) do
+			crafts = crafts + row[ATTEMPTS] + row[CAPPED]
+			skillUps = skillUps + row[SKILL_UPS]
+		end
+	end
+	return crafts, skillUps
+end
+
+-- Returns every character's rows of the recipe as a list of
+-- { rank, attempts, skillUps, difficulty }, for the skill-up odds (Odds.lua). Capped crafts
+-- aren't attempts and so aren't included.
+function ns.DB.GetCraftRows(recipeID)
+	local rows = {}
+	for _, character in pairs(ns.db.crafts) do
+		local recipe = character[recipeID]
+		if recipe then
+			for rank, row in pairs(recipe.levels) do
+				table.insert(rows, {
+					rank = rank,
+					attempts = row[ATTEMPTS],
+					skillUps = row[SKILL_UPS],
+					difficulty = row[DIFFICULTY],
+				})
+			end
+		end
+	end
+	return rows
 end

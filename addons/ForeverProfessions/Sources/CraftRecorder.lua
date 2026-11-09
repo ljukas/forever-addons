@@ -24,21 +24,6 @@ local lastCraft
 -- Per professionID, the rank last seen, for detecting a rise.
 local lastKnownRank = {}
 
-local characterKey
-
--- "Name-Realm", or nil while the client keeps the name secret.
-local function GetCharacterKey()
-	if not characterKey then
-		local name = UnitName("player")
-		local realm = GetNormalizedRealmName()
-		-- The realm can still be empty early in a session; the key would then be wrong for good.
-		if name and realm and not issecretvalue(name) and not issecretvalue(realm) and name ~= "" and realm ~= "" then
-			characterKey = name .. "-" .. realm
-		end
-	end
-	return characterKey
-end
-
 local function AnySecret(...)
 	for i = 1, select("#", ...) do
 		if issecretvalue((select(i, ...))) then
@@ -83,7 +68,7 @@ local function ReadCraft(spellID)
 		ns.dev:LogOnce("no profession " .. spellID, "SECRET", "recipe", spellID, "has no profession info, not recorded")
 		return
 	end
-	local key = GetCharacterKey()
+	local key = ns.GetCharacterKey()
 	if not key then
 		ns.log("SECRET", "character name, recipe", spellID, "not recorded")
 		return
@@ -135,10 +120,10 @@ end
 
 function handlers.TRADE_SKILL_ITEM_CRAFTED_RESULT(data)
 	local quantity = data.quantity
-	if not IsRecent(lastCraft) or AnySecret(quantity) or not GetCharacterKey() then
+	if not IsRecent(lastCraft) or AnySecret(quantity) or not ns.GetCharacterKey() then
 		return
 	end
-	ns.DB.AddMade(characterKey, lastCraft.recipeID, quantity)
+	ns.DB.AddMade(ns.GetCharacterKey(), lastCraft.recipeID, quantity)
 end
 
 function handlers.SKILL_LINES_CHANGED()
@@ -151,8 +136,8 @@ function handlers.SKILL_LINES_CHANGED()
 			if
 				points > 0
 				and IsRecent(craft)
-				and GetCharacterKey()
-				and ns.DB.RecordSkillUp(characterKey, craft.recipeID, craft.skillRank, points)
+				and ns.GetCharacterKey()
+				and ns.DB.RecordSkillUp(ns.GetCharacterKey(), craft.recipeID, craft.skillRank, points)
 			then
 				ns.log("SKILLUP", craft.recipeID, "rank", craft.skillRank, "points", points)
 				-- The rise should start from the rank the craft was filed at; otherwise that rank

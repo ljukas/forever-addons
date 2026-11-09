@@ -8,6 +8,7 @@ local ADDON_NAME, ns = ...
 --   CRAFTED SKILLUP UNCREDITED SECRET LATE  Sources/CraftRecorder.lua
 --   SKILL UNLISTED    Knowledge.lua, which keeps the evidence
 --   CLUSTER           UI/WorldMapProvider.lua
+--   ODDS              UI/RecipeOdds.lua
 --   CRAFT             Dev/CraftProbe.lua
 local function Nop() end
 
@@ -46,15 +47,47 @@ ns.L = {
 	TIMES_GATHERED = "Times gathered: %d",
 	NODES_HERE = "%d nodes",
 	NODE_COUNT = "%dx %s",
+	-- Skill-up odds under a recipe's reagents and in the recipe list (UI/RecipeOdds.lua).
+	NOT_CRAFTED = "Not crafted yet",
+	CRAFTED_ONCE = "Crafted once",
+	CRAFTED_TIMES = "Crafted %d times",
+	SKILL_UP_ONE = "1 skill-up",
+	SKILL_UPS = "%d skill-ups",
+	CHANCE_AT = "Chance at %d:",
+	AT_SKILL_CAP = "At skill cap",
+	ODDS_YOURS = "%d%% (yours, %s)",
+	ODDS_WIKI = "%s (wiki)",
+	ONE_CRAFT = "1 craft",
+	CRAFTS = "%d crafts",
+	ODDS_PERCENT = "%d%%",
+	ODDS_RANGE = "%d–%d%%",
+	ODDS_ABOUT = "~%d%%",
+	ODDS_UNKNOWN = "?",
 }
 
 -- Internal events between the modules. Callbacks are called as func(owner, ...).
 --   NodesChanged(mapID) a node was recorded or gathered again on that map
 --   OptionChanged()     a ForeverProfessionsDB.settings value changed
 --   SkillsChanged()     the player's profession ranks may have changed
+--   CraftsChanged(recipeID) a craft of the recipe, or its skill-up, was recorded
 ns.callbacks = CreateFromMixins(CallbackRegistryMixin)
 ns.callbacks:OnLoad()
-ns.callbacks:GenerateCallbackEvents({ "NodesChanged", "OptionChanged", "SkillsChanged" })
+ns.callbacks:GenerateCallbackEvents({ "NodesChanged", "OptionChanged", "SkillsChanged", "CraftsChanged" })
+
+local characterKey
+
+-- "Name-Realm", or nil while the client keeps the name secret.
+function ns.GetCharacterKey()
+	if not characterKey then
+		local name = UnitName("player")
+		local realm = GetNormalizedRealmName()
+		-- The realm can still be empty early in a session; the key would then be wrong for good.
+		if name and realm and not issecretvalue(name) and not issecretvalue(realm) and name ~= "" and realm ~= "" then
+			characterKey = name .. "-" .. realm
+		end
+	end
+	return characterKey
+end
 
 -- Returns the player's map ID and normalized x, y on it, or nil where the client has
 -- no map position (instances, for example).

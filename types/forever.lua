@@ -197,3 +197,22 @@ ActionBarButtonRangeCheckFrame = {}
 
 ---@class GameTooltip
 ---@field StatusBar StatusBar
+
+-- Blizzard_Professions/Camelot/Blizzard_ProfessionsFrame.xml (load-on-demand). Only the members
+-- our addons use: the crafting page's recipe list and schematic form
+-- (Blizzard_ProfessionsTemplates/Blizzard_ProfessionsRecipeSchematicForm.lua).
+
+---@class ProfessionsRecipeSchematicForm : Frame
+---@field Reagents Frame
+---@field OptionalReagents Frame
+---@field Init fun(self: ProfessionsRecipeSchematicForm, recipeInfo: table, isRecraftOverride: boolean?)
+---@field GetRecipeInfo fun(self: ProfessionsRecipeSchematicForm): table?
+
+---@class ProfessionsCraftingPage : Frame
+---@field SchematicForm ProfessionsRecipeSchematicForm
+---@field RecipeList Frame|{ ScrollBox: table }
+
+---@class ProfessionsFrame : Frame
+---@field CraftingPage ProfessionsCraftingPage
+---@type ProfessionsFrame?
+ProfessionsFrame = nil

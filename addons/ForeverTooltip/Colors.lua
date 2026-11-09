@@ -118,6 +118,10 @@ local function FindLevelLineByText(tooltip, level)
 		return nil
 	end
 	local index = ns.LevelLine.Find(texts, ns.LevelLine.LevelText(UNIT_LEVEL_TEMPLATE, level), 2, numLines)
+	if not index and level >= 0 then
+		-- The client shows "??" for a mob far above you even when UnitLevel returns its real level.
+		index = ns.LevelLine.Find(texts, ns.LevelLine.LevelText(UNIT_LEVEL_TEMPLATE, -1), 2, numLines)
+	end
 	if not index and ns.dev.enabled then
 		ns.dev:LogOnce("level-miss", "LEVEL", "no level line in", table.concat(texts, " | ", 2, numLines))
 	end
@@ -136,27 +140,34 @@ end
 -- Blizzard's skull icon, sized to the line's font, as Forever's own PaperDollFrameStats shows it.
 local SKULL = "|TInterface\\TargetingFrame\\UI-TargetingFrame-Skull:0|t"
 
--- Shows the skull icon in place of the "??" of a skull-level line.
-local function ShowSkull(line, index)
+-- Shows the skull icon in place of the "??" of a skull-level line. True when the line was one.
+-- The line's own text decides, not UnitLevel: the client shows "??" for a mob far above you even
+-- when UnitLevel returns its real level.
+local function ShowSkull(line, unit, level)
 	local text = line:GetText()
 	if issecretvalue(text) or text == nil then
-		ns.dev:LogOnce("secret-skull", "LEVEL", "skull line text unreadable, ?? left to Blizzard")
-		return
+		ns.dev:LogOnce("secret-skull", "LEVEL", "level line text unreadable, ?? left to Blizzard")
+		return false
 	end
 	local withSkull = ns.LevelLine.WithSkull(text, UNIT_LEVEL_TEMPLATE, SKULL)
-	if withSkull then
-		line:SetText(withSkull)
+	if not withSkull then
+		return false
 	end
+	line:SetText(withSkull)
 	if ns.dev.enabled then
 		ns.dev:LogChanged(
 			"skull",
-			tostring(withSkull ~= nil) .. text,
+			text,
 			"LEVEL",
-			"skull at line",
-			index,
-			withSkull ~= nil
+			"skull for",
+			text,
+			"UnitLevel",
+			level,
+			"effective",
+			UnitEffectiveLevel(unit)
 		)
 	end
+	return true
 end
 
 -- Whether a unit's level line takes the difficulty colour. Players always do. Other units only when
@@ -204,8 +215,8 @@ local function ColorLevelLine(tooltip, unit, data, colorIt)
 				ns.dev:LogOnce(key, "LEVEL", "level line text", (raw:gsub("|", "||")))
 			end
 		end
-		if level < 0 then
-			ShowSkull(line, index) -- before the colour, so SetText can't reset it
+		if ShowSkull(line, unit, level) then -- before the colour, so SetText can't reset it
+			color = GetLevelColor(-1)
 		end
 		if colorIt then
 			line:SetTextColor(color.r, color.g, color.b)

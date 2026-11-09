@@ -22,4 +22,5 @@
 - The professions window shows, under a recipe's reagents, how often you've crafted it and the
   skill points it gave, and your chance to skill up from it at your current skill: your own,
   learned from every character's crafts nearby, next to the usual wiki formula. The recipe list
-  shows that chance at the end of each recipe that can still give skill points.
+  shows a chance at the end of each recipe that can still give skill points: yours in the
+  recipe's colour once you've crafted it often enough nearby, otherwise the wiki's, dimmed.

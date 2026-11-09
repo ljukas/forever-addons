@@ -111,8 +111,11 @@ line includes `skillModifier`, so in-game check 3 shows whether any displayed ch
 
 A font string of our own, a child of `ProfessionsFrame.CraftingPage.SchematicForm`, anchored
 below the form's `Reagents` container (below `OptionalReagents` instead when that is shown),
-left-aligned, wrapping within the reagent columns' width. Hidden when `Reagents` is hidden or
-the recipe isn't learned. Blizzard's colours: labels in `NORMAL_FONT_COLOR` (the gold of the
+left-aligned, wrapping within the reagent columns' width, in `GameFontHighlightSmall2` like
+Blizzard's description text. Hidden when `Reagents` is hidden (recipes without reagents, such as
+Basic Campfire, get only the list %), the recipe isn't learned, the crafting view is minimized,
+or the window shows someone else's profession. A recipe the client says can't skill up
+(`canSkillUp` false) shows 0% (wiki) and no estimate of ours. *(Amended in review.)* Blizzard's colours: labels in `NORMAL_FONT_COLOR` (the gold of the
 "Reagents:" header), values in `HIGHLIGHT_FONT_COLOR`. Two lines, e.g.:
 
 ```
@@ -131,9 +134,15 @@ selection, `OnShow` and `Refresh`), and when a craft is recorded (below).
 A right-aligned font string of our own on each recipe row of
 `ProfessionsFrame.CraftingPage.RecipeList.ScrollBox`, created on first sight of the row and
 kept in an addon-side table keyed by the row frame. Set from
-`ScrollUtil.AddInitializedFrameCallback(scrollBox, ..., owner, true)` after Blizzard's own row
-`Init`. Category rows (no `recipeInfo` in the element data) get nothing. Shown only for recipes
-where Blizzard shows skill-up arrows (`recipeInfo.canSkillUp` and a non-gray colour). Our
+`ScrollUtil.AddInitializedFrameCallback(scrollBox, ..., owner)` after Blizzard's own row
+`Init`, plus one `ScrollBox:ForEachFrame` pass over rows that already exist *(amended in review:
+the helper's `iterateExisting` calls back without the owner argument)*. Category rows (no `recipeInfo` in the element data) get nothing. Shown only for recipes
+where Blizzard shows skill-up arrows: the rank Blizzard's row shows
+(`Professions.GetHighestLearnedRecipe`), not disabled (the lock icon sits at the row's end),
+`canSkillUp`, a non-gray colour, and the player's own profession (not linked, guild, NPC
+crafting or runeforging). *(Amended in review.)* **Where the name and its `[count]` leave no
+room**, the % is left out of that row: Blizzard sizes the name without knowing about our text,
+and re-sizing Blizzard's label is off limits (anti-goals). Our
 estimate in the recipe's difficulty colour (`DIFFICULT_DIFFICULTY_COLOR` etc., as Blizzard's
 arrow text), the wiki % in `DISABLED_FONT_COLOR`. How a wiki range fits the narrow column is
 left to the builder.

@@ -33,6 +33,14 @@ Confirmed in game (5 November 2026), where the docs alone would mislead:
 - `C_UnitAuras.GetUnitAuraBySpellID` / `GetAuraDataBySpellName` can't read auras on hostile
   targets, but can read the player's own HoT on themselves out of combat.
 
+Confirmed in game (9 November 2026):
+
+- `UnitXP` / `UnitXPMax("player")` and `GetQuestLogRewardXP` are not secret, in or out of
+  combat.
+- `GetQuestLogRewardXP` (and so the quest log) leaves out XP buffs: Well-Rested (spell 429959,
+  +1% per stack, up to 3, no `points`) made a 650 XP quest pay 669. ForeverQuests' `XPBonus.lua`
+  holds the known buffs.
+
 ## Looking up the API (do this before using any API you haven't verified)
 
 `scripts/setup.sh` fetches reference material into `.cache/` (gitignored; lint runs it if missing):

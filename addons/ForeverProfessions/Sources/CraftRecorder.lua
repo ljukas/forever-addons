@@ -163,7 +163,7 @@ function handlers.SKILL_LINES_CHANGED()
 			elseif points > 0 then
 				ns.log("UNCREDITED", craft.recipeID, "points", points, "age", GetTime() - craft.finishedAt)
 			end
-			lastKnownRank[professionID] = rank
+			lastKnownRank[professionID] = math.max(from, rank)
 		end
 		if not IsRecent(craft) then
 			lastFinished[professionID] = nil

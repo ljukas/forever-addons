@@ -90,19 +90,22 @@ crafts = {
 
 ### Recording a craft
 
-1. **Cast starts** (`UNIT_SPELLCAST_START` for the player): if `spellID` is a recipe the client
-   knows (`C_TradeSkillUI.GetRecipeInfo(spellID)` returns info), snapshot
-   `{ castGUID, recipeID, profession, skillRank, difficulty }` from that recipe info and the
-   profession's current rank. Each queued cast gets its own snapshot.
-2. **Cast succeeds** (`UNIT_SPELLCAST_SUCCEEDED`, same `castGUID`): add one attempt to the
-   snapshot's `levels[skillRank]`, add the items made to `made`, and remember this craft as
-   **the last finished craft** of its profession.
-3. **Cast fails, is interrupted or stops without succeeding**: drop the snapshot; nothing is
-   counted.
+1. **A craft begins** (`TRADE_SKILL_CRAFT_BEGIN`, with the recipe ID): mark the recipe as
+   begun. Only crafts fire this; the profession spells themselves (cast to open the window)
+   don't, though `GetRecipeInfo` accepts them.
+2. **Cast succeeds** (`UNIT_SPELLCAST_SUCCEEDED` for the player, for a begun recipe): read the
+   profession's current rank and the recipe's colour, add one attempt to `levels[skillRank]`,
+   and remember this craft as **the last finished craft** of its profession. Items made
+   (`TRADE_SKILL_ITEM_CRAFTED_RESULT`, ~0.1 s later) are added to `made`. Each queued craft
+   succeeds on its own, so each is its own sample.
+3. **Cast fails or is interrupted**: it never succeeds, so nothing is counted.
 4. **Skill rises** (the profession's rank, re-read when the client reports skill lines changed,
    is higher than the last rank seen): credit the difference to that profession's **last
    finished craft**, in the `levels` row it was counted in. Never to a cast that has only
    started.
+
+*(Amended after the in-game runs; earlier drafts snapshotted on `UNIT_SPELLCAST_START`. See
+"Probe results", check 3.)*
 
 ### Crafts at the skill cap *(builder's call)*
 

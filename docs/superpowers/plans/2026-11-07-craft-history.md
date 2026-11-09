@@ -1,5 +1,11 @@
 # Craft History Implementation Plan
 
+> **Superseded in part.** Task 3 below describes the recorder as first planned (snapshots on
+> `UNIT_SPELLCAST_START`). The in-game runs changed it: rank and colour are read on
+> `UNIT_SPELLCAST_SUCCEEDED`, a craft counts only after `TRADE_SKILL_CRAFT_BEGIN`, and a gather
+> ends credit. The spec's "Recording a craft" and "Probe results" and
+> `Sources/CraftRecorder.lua` are the current description.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** ForeverProfessions records every craft per character, per recipe and per skill level (attempts, skill-ups, colour, capped casts), plus items made and the recipe's gray level.

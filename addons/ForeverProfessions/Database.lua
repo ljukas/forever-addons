@@ -5,13 +5,23 @@ local ADDON_NAME, ns = ...
 --   settings = { [key] = boolean }, owned by Options.lua
 --   nodes    = { [uiMapID] = { [profession] = { [nodeName] = { x1, y1, count1, x2, y2, count2, ... } } } }
 -- profession is the node's key in Professions.lua. x, y are normalized positions on that zone
--- map, rounded to 4 decimals. count is how many times the node has been gathered. Only this
--- file knows the flat layout.
+-- map, rounded to 4 decimals. count is how many times the node has been gathered.
+--   crafts   = { [characterKey] = { [recipeID] = { made, gray, levels = { [skillRank] = row } } } },
+--              written by Sources/CraftRecorder.lua
+-- characterKey is "Name-Realm". made counts the items the recipe produced; gray is the recipe's
+-- maxTrivialLevel, the rank it turns gray at. skillRank is the profession's base skill when the
+-- craft finished, before its own skill-up (not counting racial or item bonuses), and row is
+-- { attempts, skillUps, difficulty, capped }: completed casts at that rank, the skill points
+-- they gave, the recipe's Enum.TradeskillRelativeDifficulty there, and casts made at the skill
+-- cap, which can't give a point and so aren't attempts. Only this file knows the flat layouts.
 
 ns.DB = {}
 
-local DB_VERSION = 1
+local DB_VERSION = 2
 local STRIDE = 3
+
+-- Indexes into a crafts row.
+local ATTEMPTS, SKILL_UPS, DIFFICULTY, CAPPED = 1, 2, 3, 4
 
 -- A gather within this distance of a known node of the same name is the same node.
 local DEDUPE_YARDS = 10
@@ -22,6 +32,9 @@ local migrations = {
 	[1] = function(db)
 		db.settings = db.settings or {}
 		db.nodes = db.nodes or {}
+	end,
+	[2] = function(db)
+		db.crafts = db.crafts or {}
 	end,
 }
 
@@ -87,4 +100,55 @@ function ns.DB.Add(mapID, name, x, y)
 
 	ns.callbacks:TriggerEvent("NodesChanged", mapID)
 	return isNew
+end
+
+local function GetRecipe(characterKey, recipeID)
+	local character = ns.db.crafts[characterKey] or {}
+	ns.db.crafts[characterKey] = character
+	local recipe = character[recipeID]
+	if not recipe then
+		recipe = { made = 0, levels = {} }
+		character[recipeID] = recipe
+	end
+	return recipe
+end
+
+-- Records a completed craft started at skillRank, with the recipe's difficulty and gray level
+-- at that moment. A capped craft (made at the skill cap) is counted apart from the attempts.
+-- Rows are only created here, so every row has its difficulty.
+function ns.DB.RecordAttempt(characterKey, recipeID, skillRank, difficulty, gray, capped)
+	local recipe = GetRecipe(characterKey, recipeID)
+	if gray then
+		recipe.gray = gray
+	end
+	local row = recipe.levels[skillRank]
+	if not row then
+		row = { 0, 0, difficulty, 0 }
+		recipe.levels[skillRank] = row
+	end
+	if capped then
+		row[CAPPED] = row[CAPPED] + 1
+	else
+		row[ATTEMPTS] = row[ATTEMPTS] + 1
+	end
+	row[DIFFICULTY] = difficulty
+end
+
+-- Adds items a craft of the recipe produced.
+function ns.DB.AddMade(characterKey, recipeID, quantity)
+	local recipe = GetRecipe(characterKey, recipeID)
+	recipe.made = recipe.made + quantity
+end
+
+-- Credits skill points to the craft of the recipe started at skillRank, which RecordAttempt
+-- has recorded. Returns false, and records nothing, when there is no such craft.
+function ns.DB.RecordSkillUp(characterKey, recipeID, skillRank, points)
+	local character = ns.db.crafts[characterKey]
+	local recipe = character and character[recipeID]
+	local row = recipe and recipe.levels[skillRank]
+	if not row then
+		return false
+	end
+	row[SKILL_UPS] = row[SKILL_UPS] + points
+	return true
 end

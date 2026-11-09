@@ -52,9 +52,25 @@ ns.L = {
 --   NodesChanged(mapID) a node was recorded or gathered again on that map
 --   OptionChanged()     a ForeverProfessionsDB.settings value changed
 --   SkillsChanged()     the player's profession ranks may have changed
+--   CraftsChanged(recipeID) a craft of the recipe, or its skill-up, was recorded
 ns.callbacks = CreateFromMixins(CallbackRegistryMixin)
 ns.callbacks:OnLoad()
-ns.callbacks:GenerateCallbackEvents({ "NodesChanged", "OptionChanged", "SkillsChanged" })
+ns.callbacks:GenerateCallbackEvents({ "NodesChanged", "OptionChanged", "SkillsChanged", "CraftsChanged" })
+
+local characterKey
+
+-- "Name-Realm", or nil while the client keeps the name secret.
+function ns.GetCharacterKey()
+	if not characterKey then
+		local name = UnitName("player")
+		local realm = GetNormalizedRealmName()
+		-- The realm can still be empty early in a session; the key would then be wrong for good.
+		if name and realm and not issecretvalue(name) and not issecretvalue(realm) and name ~= "" and realm ~= "" then
+			characterKey = name .. "-" .. realm
+		end
+	end
+	return characterKey
+end
 
 -- Returns the player's map ID and normalized x, y on it, or nil where the client has
 -- no map position (instances, for example).

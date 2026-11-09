@@ -15,6 +15,7 @@
 Core.lua
 Data/GatherNodes.lua
 Database.lua
+Odds.lua
 Layers.lua
 Clusters.lua
 Professions.lua

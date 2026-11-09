@@ -8,6 +8,7 @@ local ADDON_NAME, ns = ...
 --   CRAFTED SKILLUP UNCREDITED SECRET LATE  Sources/CraftRecorder.lua
 --   SKILL UNLISTED    Knowledge.lua, which keeps the evidence
 --   CLUSTER           UI/WorldMapProvider.lua
+--   ODDS              UI/RecipeOdds.lua
 --   CRAFT             Dev/CraftProbe.lua
 local function Nop() end
 
@@ -46,6 +47,22 @@ ns.L = {
 	TIMES_GATHERED = "Times gathered: %d",
 	NODES_HERE = "%d nodes",
 	NODE_COUNT = "%dx %s",
+	-- Skill-up odds under a recipe's reagents and in the recipe list (UI/RecipeOdds.lua).
+	NOT_CRAFTED = "Not crafted yet",
+	CRAFTED_ONCE = "Crafted once",
+	CRAFTED_TIMES = "Crafted %d times",
+	SKILL_UP_ONE = "1 skill-up",
+	SKILL_UPS = "%d skill-ups",
+	CHANCE_AT = "Chance at %d:",
+	AT_SKILL_CAP = "At skill cap",
+	ODDS_YOURS = "%d%% (yours, %s)",
+	ODDS_WIKI = "%s (wiki)",
+	ONE_CRAFT = "1 craft",
+	CRAFTS = "%d crafts",
+	ODDS_PERCENT = "%d%%",
+	ODDS_RANGE = "%d–%d%%",
+	ODDS_ABOUT = "~%d%%",
+	ODDS_UNKNOWN = "?",
 }
 
 -- Internal events between the modules. Callbacks are called as func(owner, ...).

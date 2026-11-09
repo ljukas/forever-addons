@@ -12,10 +12,7 @@
 
 Core.lua
 Projection.lua
+XPBonus.lua
 Quests.lua
 Tooltip.lua
 ExpBar.lua
-
-#@do-not-package@
-Dev/XPBuffProbe.lua
-#@end-do-not-package@

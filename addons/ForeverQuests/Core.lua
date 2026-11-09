@@ -3,7 +3,7 @@ local ADDON_NAME, ns = ...
 -- Dev-only logging, probing and evidence through ForeverDev (addons/ForeverDev/ForeverDev.lua,
 -- scripts/devlog.sh). Without ForeverDev, ns.dev is inert: ns.dev.enabled is false and every
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG.
--- Tags: XP (Quests.lua), TURNIN (Quests.lua), BAR (ExpBar.lua), AURA (Dev/XPBuffProbe.lua).
+-- Tags: XP (Quests.lua), TURNIN (Quests.lua), BAR (ExpBar.lua), BONUS (XPBonus.lua).
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.

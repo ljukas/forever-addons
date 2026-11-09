@@ -68,6 +68,15 @@ quest per session and waits at most 5 seconds. Blizzard's quest log itself reads
 `GetQuestLogRewardXP` without waiting, so for log quests the data is normally there already.
 *(Amended: the first build used `RequestLoadQuestByID` and could re-request in a loop.)*
 
+**XP buffs** *(added after the in-game test, with the user)*. `GetQuestLogRewardXP` leaves out
+XP buffs: a 650 XP quest paid 669 with Well-Rested at 3 stacks. Well-Rested is spell 429959, it
+stacks 1-3 times at +1% each, and it has no `points` value (probed 2026-11-09). No API reports
+an XP multiplier, so `XPBonus.lua` reads known buffs with `C_UnitAuras.GetPlayerAuraBySpellID`
+out of combat (keeping the last reading in combat), and each quest's reward becomes
+`floor(reward * (100 + percent) / 100)`, rounded down per quest as the server does. The
+tooltip adds a grey line `Includes +3% from Well-Rested` (the aura's own name). Other XP
+buffs are added to the `BUFFS` table as they're found.
+
 ## Where it hooks
 
 - Exp bar instances: `MainStatusTrackingBarContainer.bars[StatusTrackingBarInfo.BarsEnum.Experience]`

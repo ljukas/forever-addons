@@ -46,9 +46,11 @@ function ns.Quests.Collect()
 				if issecretvalue(reward) then
 					secret = true
 				else
-					xp = xp + reward
+					-- What the turn-in actually pays: the reported reward plus XP buffs.
+					local paid = ns.XPBonus.Apply(reward)
+					xp = xp + paid
 					if parts then
-						predicted[questID] = reward
+						predicted[questID] = paid
 					end
 				end
 				if parts then
@@ -122,8 +124,18 @@ frame:RegisterEvent("PLAYER_LEVEL_UP")
 frame:RegisterEvent("ENABLE_XP_GAIN")
 frame:RegisterEvent("DISABLE_XP_GAIN")
 frame:RegisterUnitEvent("PLAYER_XP_UPDATE", "player")
+frame:RegisterUnitEvent("UNIT_AURA", "player")
+frame:RegisterEvent("PLAYER_REGEN_ENABLED") -- auras changed in combat are read once it ends
 frame:SetScript("OnEvent", function(_, event, ...)
-	if event == "QUEST_TURNED_IN" and ns.dev.enabled then
+	if event == "UNIT_AURA" or event == "PLAYER_REGEN_ENABLED" then
+		-- Auras change often; only a different XP bonus needs a refresh.
+		if ns.XPBonus.Update() then
+			ns.Quests.Invalidate()
+		end
+		return
+	elseif event == "PLAYER_ENTERING_WORLD" then
+		ns.XPBonus.Update()
+	elseif event == "QUEST_TURNED_IN" and ns.dev.enabled then
 		local questID, xpReward = ...
 		ns.log("TURNIN", "quest", questID, "xpReward", xpReward, "predicted", predicted[questID])
 		predicted[questID] = nil

@@ -15,6 +15,7 @@ local L = {
 	LANDS = "Ends at %d%% of level %d",
 	LEVEL_UP = "Level up!",
 	PAST_LEVEL = "+%s XP past level %d",
+	BONUS = "Includes +%d%% from %s",
 }
 
 local added = setmetatable({}, { __mode = "k" }) -- tooltip -> true once our lines are on it
@@ -50,6 +51,10 @@ local function Lines(result)
 		return nil
 	end
 	local lines = { { L.COMPLETED_XP:format(quests.count, BreakUpLargeNumbers(quests.xp)) } }
+	local bonus, buffNames = ns.XPBonus.Get()
+	if bonus > 0 then
+		lines[#lines + 1] = { L.BONUS:format(bonus, table.concat(buffNames, ", ")), GRAY_FONT_COLOR }
+	end
 	if proj.levelsUp then
 		lines[#lines + 1] = { L.LEVEL_UP, GREEN_FONT_COLOR }
 		if proj.overflow > 0 then

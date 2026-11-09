@@ -20,8 +20,12 @@ hooks. There is no test framework: the pure logic is checked by reading, the res
 > (loaded before `ExpBar.lua`, which calls `ns.Tooltip.Attach(bar)`). Reward data is requested
 > with `C_TaskQuest.RequestPreloadRewardData`, once per quest, with a 5 s wait.
 > `ns.Quests.Collect` is cached until `ns.Quests.Invalidate()`. `ns.Project` returns nil for
-> `maxXP <= 0`. The fill uses Blizzard's yellow and green bar fill atlases, and the strings are
-> ASCII. The spec records each amendment.
+> `maxXP <= 0`. The fill uses Blizzard's yellow and green bar fill atlases
+> (`UI-HUD-ExperienceBar-Fill-Reputation-Faction-Yellow` / `-Green`, untinted) instead of the
+> tinted prediction atlas in Task 2, and the strings are ASCII. `XPBonus.lua` (Well-Rested) was
+> added after the in-game test, so the TOC order is `Core`, `Projection`, `XPBonus`, `Quests`,
+> `Tooltip`, `ExpBar`. Where the task steps below differ, they are superseded by this note;
+> the spec records each amendment.
 
 ## Global Constraints
 

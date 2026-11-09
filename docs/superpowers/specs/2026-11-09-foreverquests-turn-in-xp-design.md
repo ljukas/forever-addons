@@ -46,7 +46,8 @@ turn-ins, and a tooltip that spells it out.
 - No exact landing point beyond one level up. A single client API only gives the XP needed for
   the *current* level (`UnitXPMax`), so beyond the next level the tooltip says how much XP
   carries into the next level, not a percentage of it. No hard-coded XP-per-level table.
-- Rested XP doesn't apply to quest rewards and isn't factored in.
+- Rested XP (the exhaustion pool Blizzard draws in blue) doesn't apply to quest rewards and
+  isn't factored in. XP *buffs* such as Well-Rested do apply; see "XP buffs" below.
 
 ## Anti-goals
 

@@ -13,3 +13,4 @@
 Core.lua
 Projection.lua
 Quests.lua
+ExpBar.lua

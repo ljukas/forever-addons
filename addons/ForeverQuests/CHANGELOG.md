@@ -1,0 +1,5 @@
+# ForeverQuests
+
+## Unreleased
+
+- Initial version.

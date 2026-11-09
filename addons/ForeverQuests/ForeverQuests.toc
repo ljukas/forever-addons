@@ -1,0 +1,15 @@
+## Interface: 16001
+## Title: ForeverQuests
+## Notes: Shows on the experience bar where your XP lands after turning in your completed quests.
+## Author: ljukas
+## X-License: MIT
+## Version: @project-version@
+## Category: Forever Enhanced Addons
+## X-Category: Quests
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua
+Projection.lua
+Quests.lua

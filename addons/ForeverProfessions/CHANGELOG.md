@@ -18,4 +18,8 @@
   and Options → AddOns → ForeverProfessions.
 - Remembers what you craft, in every profession and for each character: how often you crafted
   each recipe at each skill level, the recipe's colour then, and how many skill points it gave
-  you there. Recipe statistics in the professions window will build on this.
+  you there.
+- The professions window shows, under a recipe's reagents, how often you've crafted it and the
+  skill points it gave, and your chance to skill up from it at your current skill: your own,
+  learned from every character's crafts nearby, next to the usual wiki formula. The recipe list
+  shows that chance at the end of each recipe that can still give skill points.

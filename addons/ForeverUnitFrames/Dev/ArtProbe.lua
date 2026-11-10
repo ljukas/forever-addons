@@ -93,29 +93,31 @@ local function TuneMask(top, height)
 	ns.log("ART", "mask top", geometry.maskTop, "height", geometry.maskHeight)
 end
 
--- /fufart backing: a black backing behind the health bar, shaped by its mask, to see whether the
--- art's divider shows through the empty part of the bar at less than full health.
-local backing
-local function ToggleBacking()
-	local container = PlayerFrame_GetHealthBarContainer()
-	if not backing then
-		backing = container:CreateTexture(nil, "BACKGROUND", nil, -8)
-		backing:SetColorTexture(0, 0, 0, 1)
-		backing:SetAllPoints(container)
-		backing:AddMaskTexture(container.HealthBarMask)
-		backing:Hide()
+-- /fufart patch <left> <from> <to> <rows>: where the divider is cut out of the frame art
+-- (HealthBar.lua); /fufart patch off|on compares with Blizzard's art.
+local function TunePatch(first, ...)
+	if first == "off" or first == "on" then
+		ns.HealthBar.SetPatchEnabled(first == "on")
+		ns.log("ART", "patch", first)
+		return
 	end
-	backing:SetShown(not backing:IsShown())
-	ns.log("ART", "backing", backing:IsShown())
+	local patch = ns.HealthBar.patch
+	local values = { tonumber(first), ... }
+	patch.left = values[1] or patch.left
+	patch.from = tonumber(values[2]) or patch.from
+	patch.to = tonumber(values[3]) or patch.to
+	patch.rows = tonumber(values[4]) or patch.rows
+	ns.HealthBar.Request()
+	ns.log("ART", "patch left", patch.left, "from", patch.from, "to", patch.to, "rows", patch.rows)
 end
 
 SLASH_FOREVERUNITFRAMES_ART1 = "/fufart"
 SlashCmdList.FOREVERUNITFRAMES_ART = function(msg)
-	local command, first, second = strsplit(" ", strtrim(msg or ""))
+	local command, first, second, third, fourth = strsplit(" ", strtrim(msg or ""))
 	if command == "mask" then
 		TuneMask(tonumber(first), tonumber(second))
-	elseif command == "backing" then
-		ToggleBacking()
+	elseif command == "patch" then
+		TunePatch(first, second, third, fourth)
 	elseif tonumber(command) then
 		Preview(tonumber(command))
 	else

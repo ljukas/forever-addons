@@ -22,6 +22,9 @@ local DEFAULTS = ns.PowerBar.DEFAULTS
 -- the bar with SetPoint("TOPLEFT", 87, -61), relative to its parent, on every art change.
 local BLIZZARD_X, BLIZZARD_Y = 87, -61
 
+-- How far the power bar's mask reaches past the bar on each side (ApplyBar).
+local MASK_OUTSET_X, MASK_OUTSET_Y = 16, 6
+
 local holder = CreateFrame("Frame", nil, UIParent)
 holder:SetFrameStrata(PlayerFrame:GetFrameStrata())
 holder:SetSize(DEFAULTS.width, DEFAULTS.height)
@@ -41,6 +44,8 @@ local background = holder:CreateTexture(nil, "BACKGROUND")
 background:SetAtlas("ui-castingbar-background")
 background:SetPoint("TOPLEFT", -1, 1)
 background:SetPoint("BOTTOMRIGHT", 1, -1)
+-- Darker than the cast bar's, so a little rage or energy (dark red, yellow) stands out against it.
+background:SetVertexColor(0.35, 0.35, 0.35)
 
 local border = CreateFrame("Frame", nil, holder)
 border:SetAllPoints()
@@ -68,13 +73,15 @@ local function ApplyBar()
 	bar:SetPoint("TOPLEFT", slot, "TOPLEFT", BLIZZARD_X, BLIZZARD_Y)
 	bar:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT")
 
-	-- The player frame's mask is cut to its art; the plain bar mask Blizzard uses beside an
-	-- alternate power bar suits a free-standing bar. Like Blizzard, it reaches 2 px past the bar.
+	-- The player frame's mask is cut to its art; the cast bar's border frames this bar instead. The
+	-- plain bar mask Blizzard uses beside an alternate power bar is stretched well past the bar, so
+	-- its soft ends fall outside it and the fill reaches the bar's edges (in game, a 2 px margin
+	-- left the left end empty).
 	local mask = bar.ManaBarMask
 	mask:SetAtlas("Unit_BarMask")
 	mask:ClearAllPoints()
-	mask:SetPoint("TOPLEFT", bar, "TOPLEFT", -2, 2)
-	mask:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 2, -2)
+	mask:SetPoint("TOPLEFT", bar, "TOPLEFT", -MASK_OUTSET_X, MASK_OUTSET_Y)
+	mask:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", MASK_OUTSET_X, -MASK_OUTSET_Y)
 
 	-- The full-power pulse is laid out for the player frame's 124x10 bar from its top-right; centred
 	-- on the right end, as the Personal Resource Display does, it fits any height.

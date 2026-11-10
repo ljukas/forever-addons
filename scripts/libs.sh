@@ -9,12 +9,13 @@
 #       tag: "19"
 #
 # Libraries are never committed or edited: the packager bundles them unmodified at release time.
-# Safe to re-run; a library already at its tag is left alone. setup.sh, `worktree.sh setup` and
-# lint.sh run it.
+# Safe to re-run; a library already at its tag (from the same url) is left alone. setup.sh,
+# `worktree.sh setup`, link.sh and lint.sh run it.
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
-# Prints "<path> <url> <tag>" for each external in the .pkgmeta at <file>.
+# Prints "<path> <url> <tag>" for each external in the .pkgmeta at <file>, or "INVALID <line>" for an
+# entry in a form this script doesn't read (the short "path: url" form, other indentation).
 externals_of() {
 	awk '
 		function flush() {
@@ -26,8 +27,11 @@ externals_of() {
 		/^[^ #]/ { if (inside) flush(); inside = 0 }
 		!inside { next }
 		/^  [^ #][^:]*:[ \t]*$/ { flush(); path = $1; sub(/:$/, "", path); next }
-		/^    url:/ { url = $2 }
-		/^    tag:/ { tag = $2; gsub(/["\047]/, "", tag) }
+		/^    url:/ { url = $2; gsub(/["\047]/, "", url); next }
+		/^    tag:/ { tag = $2; gsub(/["\047]/, "", tag); next }
+		/^    / { next }
+		/^[ \t]*(#|$)/ { next }
+		{ flush(); print "INVALID", $0 }
 		END { flush() }
 	' "$1"
 }
@@ -36,10 +40,15 @@ for pkgmeta in "$ADDONS_DIR"/*/.pkgmeta; do
 	[[ -f "$pkgmeta" ]] || continue
 	addon_dir="$(dirname "$pkgmeta")"
 	while read -r path url tag; do
+		[[ "$path" != INVALID ]] || die "$pkgmeta: can't read external '$url $tag' (use the long form, see $0)"
 		[[ -n "$url" && -n "$tag" ]] ||
 			die "$pkgmeta: external '$path' needs a git url and a pinned tag"
 		dest="$addon_dir/$path"
 		label="$(basename "$addon_dir")/$path"
+		if [[ -d "$dest/.git" && "$(git -C "$dest" remote get-url origin)" != "$url" ]]; then
+			echo "==> $label moved to $url"
+			rm -rf "$dest"
+		fi
 		if [[ -d "$dest/.git" ]]; then
 			wanted="$(git -C "$dest" rev-parse -q --verify "refs/tags/$tag^{commit}" || true)"
 			if [[ -n "$wanted" && "$wanted" == "$(git -C "$dest" rev-parse HEAD)" ]]; then

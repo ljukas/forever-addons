@@ -3,8 +3,8 @@
 #   1. StyLua formatting (run `stylua addons template types` to fix)
 #   2. LuaLS diagnostics against the WoW API annotations + Forever UI source
 #   3. TOC sanity: interface matches the current Forever client, listed files exist,
-#      and every Lua/XML file is loaded by the TOC (directly or via XML). Libs/ (fetched libraries,
-#      see scripts/libs.sh) is skipped by all three checks.
+#      and every Lua/XML file is loaded by the TOC (directly or via XML). StyLua, LuaLS and the
+#      loaded-by-the-TOC check skip Libs/ (fetched libraries, see scripts/libs.sh).
 # Exits non-zero if any check fails.
 set -uo pipefail
 source "$(dirname "$0")/lib.sh"
@@ -52,7 +52,7 @@ for toc in addons/*/*.toc template/Addon/*.toc; do
 		name="$(basename "$file")"
 		[[ "$name" == "Bindings.xml" ]] && continue
 		grep -qxF "$rel" <<<"$loaded" && continue
-		grep -rqsF --include='*.xml' "$name" "$dir" && continue
+		grep -rqsF --include='*.xml' --exclude-dir=Libs "$name" "$dir" && continue
 		fail "$file is not loaded by $toc or any XML file"
 	done < <(find "$dir" -path "$dir/Libs" -prune -o -type f \( -name '*.lua' -o -name '*.xml' \) -print | sort)
 done

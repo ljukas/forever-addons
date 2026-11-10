@@ -19,9 +19,9 @@ local CONTAINER_X, CONTAINER_Y = 87, -46
 local HEALTH_WIDTH, MASK_WIDTH = 124, 128
 
 -- How far the bar reaches below the old health row (the 10 px power row plus 4 px of the well's
--- bottom), above it (3 px of the well's top) and to its right (1 px): what filled the well in game
--- (/fufart grow 14 3 1, 2026-11-10).
-local DEFAULT_GROWTH, DEFAULT_RISE, DEFAULT_WIDEN = 14, 3, 1
+-- bottom), above it (3 px of the well's top) and to its right (half a pixel; UI units need not be
+-- whole): what filled the well in game (/fufart grow 14 3 0.5, 2026-11-10).
+local DEFAULT_GROWTH, DEFAULT_RISE, DEFAULT_WIDEN = 14, 3, 0.5
 
 -- The sizes for a bar grown growth px down, rise px up and widen px right. Pure.
 function ns.HealthBar.Geometry(growth, rise, widen)

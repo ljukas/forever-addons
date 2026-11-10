@@ -141,6 +141,8 @@ setup)
 		link_path "$MAIN_ROOT/$name" "$ROOT/$name"
 		echo "linked $name -> $MAIN_ROOT/$name"
 	done
+	# Libraries live in each checkout's addon folders (gitignored), so a worktree fetches its own.
+	"$ROOT/scripts/libs.sh"
 	;;
 game)
 	require_game

@@ -21,7 +21,8 @@
     ".release",
     ".cache",
     ".vscode",
-    "scripts"
+    "scripts",
+    "Libs"
   ],
   "workspace.checkThirdParty": false,
   "diagnostics.disable": [

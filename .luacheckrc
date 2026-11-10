@@ -18,8 +18,9 @@ ignore = {
 -- Mixin methods keep their implicit self even when they don't use it.
 self = false
 
--- types/ holds LuaLS annotations, not code that runs.
-exclude_files = { "types/**", ".cache/**", ".release/**" }
+-- types/ holds LuaLS annotations, not code that runs. addons/*/Libs/ holds third-party libraries
+-- fetched by scripts/libs.sh.
+exclude_files = { "types/**", ".cache/**", ".release/**", "addons/*/Libs/**" }
 
 -- Globals an addon sets on purpose: SavedVariables, mixins named in XML, slash commands,
 -- bindings and functions the TOC names. Anything else assigned globally is an accident (111).

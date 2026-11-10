@@ -84,7 +84,8 @@ scripts/observed.sh [Addon] [filter] # print the evidence addons keep through Fo
 scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about DoTs/HoTs (IDs, ticks, intervals, misses)
 scripts/package.sh MyAddon [v1.0.0] # build the release zip locally into .release/MyAddon/
 scripts/check-pr-title.sh "<title>" # check a PR title is a Conventional Commit (CI runs it on every PR)
-scripts/setup.sh                    # refresh .cache/ (run after a game patch)
+scripts/setup.sh                    # refresh .cache/ (run after a game patch) and fetch libraries
+scripts/libs.sh                     # fetch the libraries addons declare as .pkgmeta externals into addons/<Name>/Libs/
 scripts/worktree.sh <command>       # setup, game [Addon...], restore, reset or status: share .cache/ with a worktree, move its addons' game links to it and back
 ```
 
@@ -164,7 +165,9 @@ logs for every addon, so claim it only on a branch that changes it, and hand it 
 - Prefer modern client facilities over libraries: `EventUtil.ContinueOnAddOnLoaded`,
   `EventRegistry`, `CreateFrame` with mixins, `C_Timer`, `Settings` (options panels),
   `MenuUtil` (context menus). The repo uses no Ace3 or libs by default. If one is needed, add
-  it per addon via `.pkgmeta` externals.
+  it per addon via `.pkgmeta` externals: a git `url` and a pinned `tag`, at a path under `Libs/`.
+  `scripts/libs.sh` fetches it there for the game and lint (gitignored, never edited or committed;
+  StyLua, LuaLS, luacheck and the TOC checks skip `Libs/`), and the packager bundles it.
 - Guard protected actions with `InCombatLockdown()`, and never touch secure frames in combat.
 - Every new Lua/XML file must be listed in the TOC (or included from XML). Lint checks this.
 - StyLua formats with tabs and a 120-column limit. `.editorconfig` covers the rest.

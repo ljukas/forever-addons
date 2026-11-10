@@ -84,11 +84,40 @@ local function Preview(index)
 	ns.log("ART", "preview", index, preview.atlas, "frame", Rect(texture))
 end
 
+-- /fufart mask <top> <height>: moves the health mask's top (px above the container) and height.
+local function TuneMask(top, height)
+	local geometry = ns.HealthBar.geometry
+	geometry.maskTop = top or geometry.maskTop
+	geometry.maskHeight = height or geometry.maskHeight
+	ns.HealthBar.Request()
+	ns.log("ART", "mask top", geometry.maskTop, "height", geometry.maskHeight)
+end
+
+-- /fufart backing: a black backing behind the health bar, shaped by its mask, to see whether the
+-- art's divider shows through the empty part of the bar at less than full health.
+local backing
+local function ToggleBacking()
+	local container = PlayerFrame_GetHealthBarContainer()
+	if not backing then
+		backing = container:CreateTexture(nil, "BACKGROUND", nil, -8)
+		backing:SetColorTexture(0, 0, 0, 1)
+		backing:SetAllPoints(container)
+		backing:AddMaskTexture(container.HealthBarMask)
+		backing:Hide()
+	end
+	backing:SetShown(not backing:IsShown())
+	ns.log("ART", "backing", backing:IsShown())
+end
+
 SLASH_FOREVERUNITFRAMES_ART1 = "/fufart"
 SlashCmdList.FOREVERUNITFRAMES_ART = function(msg)
-	local index = tonumber(msg)
-	if index then
-		Preview(index)
+	local command, first, second = strsplit(" ", strtrim(msg or ""))
+	if command == "mask" then
+		TuneMask(tonumber(first), tonumber(second))
+	elseif command == "backing" then
+		ToggleBacking()
+	elseif tonumber(command) then
+		Preview(tonumber(command))
 	else
 		LogAtlases()
 	end

@@ -2,7 +2,8 @@ local ADDON_NAME, ns = ...
 
 -- Makes the power bar's holder an Edit Mode box through LibEditMode (fetched into Libs/ by
 -- scripts/libs.sh, loaded namespaced as ns.LibEditMode): drag to place it (snapping like
--- Blizzard's boxes, Snap.lua), Width and Height sliders in its dialog. Position and size are kept
+-- Blizzard's boxes, Snap.lua), Width and Height sliders and a smooth-fill checkbox in its dialog.
+-- These, with the position, are kept
 -- per Edit Mode layout in ForeverUnitFramesDB.powerBar (Database.lua), like Blizzard's own systems.
 local LEM = ns.LibEditMode
 local L = ns.L
@@ -43,6 +44,9 @@ local VALID = {
 	height = function(value)
 		return type(value) == "number" and value >= HEIGHT_MIN and value <= HEIGHT_MAX
 	end,
+	smooth = function(value)
+		return type(value) == "boolean"
+	end,
 }
 
 -- This character, for keys of its character-specific layouts: another character may have a
@@ -78,7 +82,11 @@ local function Get(layoutName, key)
 	local store = Store()
 	local entryKey = Key(layoutName)
 	local saved = store and entryKey and store[entryKey]
-	local value = type(saved) == "table" and saved[key] or nil
+	-- Not "and saved[key] or nil", which reads a saved false as nil.
+	local value
+	if type(saved) == "table" then
+		value = saved[key]
+	end
 	if value == nil or not VALID[key](value) then
 		return DEFAULTS[key]
 	end
@@ -97,7 +105,7 @@ local function Save(layoutName, values)
 	for key, value in pairs(values) do
 		saved[key] = value
 	end
-	ns.log("SAVE", entryKey, saved.point, saved.x, saved.y, saved.width, saved.height)
+	ns.log("SAVE", entryKey, saved.point, saved.x, saved.y, saved.width, saved.height, saved.smooth)
 end
 
 local function Apply(layoutName)
@@ -107,7 +115,24 @@ local function Apply(layoutName)
 		y = Get(layoutName, "y"),
 		width = Get(layoutName, "width"),
 		height = Get(layoutName, "height"),
+		smooth = Get(layoutName, "smooth"),
 	})
+end
+
+local function SmoothCheckbox()
+	return {
+		name = L.SMOOTH,
+		desc = L.SMOOTH_DESC,
+		kind = LEM.SettingType.Checkbox,
+		default = DEFAULTS.smooth,
+		get = function(layoutName)
+			return Get(layoutName, "smooth")
+		end,
+		set = function(layoutName, value)
+			Save(layoutName, { smooth = value })
+			Apply(layoutName)
+		end,
+	}
 end
 
 local function SizeSlider(key, label, minValue, maxValue)
@@ -158,6 +183,7 @@ ns.OnInitialize(function()
 	LEM:AddFrameSettings(holder, {
 		SizeSlider("width", L.WIDTH, WIDTH_MIN, WIDTH_MAX),
 		SizeSlider("height", L.HEIGHT, HEIGHT_MIN, HEIGHT_MAX),
+		SmoothCheckbox(),
 	})
 	local selection = LEM.frameSelections[holder]
 	selection:HookScript("OnDragStop", SnapAfterDrag)

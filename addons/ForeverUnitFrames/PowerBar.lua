@@ -14,6 +14,7 @@ ns.PowerBar.DEFAULTS = {
 	y = 150,
 	width = 270,
 	height = 12,
+	smooth = true,
 }
 
 local DEFAULTS = ns.PowerBar.DEFAULTS
@@ -60,11 +61,23 @@ borderTexture:SetAtlas("ui-castingbar-frame")
 borderTexture:SetPoint("TOPLEFT", -2, 2)
 borderTexture:SetPoint("BOTTOMRIGHT", 2, -2)
 
+-- The fill players see. Blizzard's bar snaps to each new value; this one eases toward it when the
+-- layout asks for smooth fills. It copies the values Blizzard sets (secret, but a status bar takes
+-- them as they are) and its art, and Blizzard's own fill is made transparent. Blizzard's text,
+-- full-power pulse and spend feedback stay on its bar, above this one.
+local fill = CreateFrame("StatusBar", nil, holder)
+fill:SetFrameLevel(holder:GetFrameLevel() + 1)
+local interpolation = Enum.StatusBarInterpolation.ExponentialEaseOut
+
+-- The alpha Blizzard gives its fill (half when dead or a ghost), which goes on this one instead.
+local fillAlpha = 1
+
 -- Shown only while Blizzard shows the bar and it is in the holder, so a /reload in combat (which
 -- leaves the bar in the player frame until combat ends) shows no empty box.
 local function SetBackdropShown(shown)
 	background:SetShown(shown)
 	border:SetShown(shown)
+	fill:SetShown(shown)
 end
 SetBackdropShown(false)
 
@@ -114,8 +127,47 @@ local function RequestBar()
 end
 ns.PowerBar.Request = RequestBar
 
--- Places and sizes the holder: layout = { point, x, y, width, height }, all present.
+-- Copies Blizzard's art (UnitFrameManaBar_UpdateType: an atlas per power type, a colour, and
+-- desaturated at half alpha when dead) onto the fill, and keeps Blizzard's fill transparent.
+local function SyncArt()
+	local bar = PlayerFrame_GetManaBar()
+	local source = bar:GetStatusBarTexture()
+	if not source then
+		return
+	end
+	if source:GetAlpha() > 0 then
+		fillAlpha = source:GetAlpha()
+		source:SetAlpha(0)
+	end
+	local atlas = source:GetAtlas()
+	if atlas then
+		fill:SetStatusBarTexture(atlas)
+	else
+		fill:SetStatusBarTexture(source:GetTexture())
+	end
+	fill:SetStatusBarColor(bar:GetStatusBarColor())
+	local texture = fill:GetStatusBarTexture()
+	texture:SetDesaturated(source:IsDesaturated())
+	texture:SetAlpha(fillAlpha)
+end
+
+local function SyncValues()
+	local bar = PlayerFrame_GetManaBar()
+	fill:SetMinMaxValues(bar:GetMinMaxValues())
+	fill:SetValue(bar:GetValue())
+end
+
+-- Smooth fills ease toward each new value; otherwise the fill snaps to it, as Blizzard's does.
+local function SetSmooth(smooth)
+	interpolation = smooth and Enum.StatusBarInterpolation.ExponentialEaseOut or Enum.StatusBarInterpolation.Immediate
+	if not smooth then
+		fill:SetToTargetValue()
+	end
+end
+
+-- Places and sizes the holder: layout = { point, x, y, width, height, smooth }, all present.
 function ns.PowerBar.SetLayout(layout)
+	SetSmooth(layout.smooth)
 	ns.Layout.Request("holder", function()
 		holder:ClearAllPoints()
 		holder:SetPoint(layout.point, UIParent, layout.point, layout.x, layout.y)
@@ -134,6 +186,24 @@ ns.OnInitialize(function()
 	bar:HookScript("OnHide", function()
 		SetBackdropShown(false)
 	end)
+
+	fill:SetAllPoints(bar)
+	hooksecurefunc(bar, "SetMinMaxValues", function(_, minValue, maxValue)
+		fill:SetMinMaxValues(minValue, maxValue)
+	end)
+	hooksecurefunc(bar, "SetValue", function(_, value)
+		fill:SetValue(value, interpolation)
+	end)
+	hooksecurefunc(bar, "SetStatusBarTexture", SyncArt)
+	hooksecurefunc(bar, "SetStatusBarColor", SyncArt)
+	-- Sets the fill's alpha and desaturation after its texture and colour.
+	hooksecurefunc("UnitFrameManaBar_UpdateType", function(manaBar)
+		if manaBar == bar then
+			SyncArt()
+		end
+	end)
+	SyncArt()
+	SyncValues()
 
 	-- Blizzard runs this on every art change and lays the bar out for the player frame again, so
 	-- ours goes on again right after.

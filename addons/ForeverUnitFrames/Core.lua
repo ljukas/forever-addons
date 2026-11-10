@@ -31,6 +31,8 @@ ns.L = {
 	POWER_BAR = "Player Power Bar",
 	WIDTH = "Width",
 	HEIGHT = "Height",
+	SMOOTH = "Smooth Fill",
+	SMOOTH_DESC = "Slide the bar to each new value instead of jumping to it.",
 }
 
 -- Modules register setup that needs ForeverUnitFramesDB. It runs in TOC order once the

@@ -2,7 +2,8 @@ local ADDON_NAME, ns = ...
 
 -- ForeverUnitFramesDB layout (account-wide):
 --   version  = schema version, see migrations below
---   powerBar = { [key] = { point = string, x = number, y = number, width = number, height = number } },
+--   powerBar = { [key] = { point = string, x = number, y = number, width = number, height = number,
+--                smooth = boolean } },
 --              owned by EditMode.lua. key is the Edit Mode layout's name; for a character-specific
 --              layout it is "<name> @ <player GUID>", since characters can each have a layout of the
 --              same name. The preset layouts (Modern, Classic) are shared by every character. A

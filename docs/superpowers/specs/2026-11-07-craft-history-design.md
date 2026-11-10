@@ -94,8 +94,9 @@ crafts = {
    begun. Only crafts fire this; the profession spells themselves (cast to open the window)
    don't, though `GetRecipeInfo` accepts them.
 2. **Cast succeeds** (`UNIT_SPELLCAST_SUCCEEDED` for the player, for a begun recipe): read the
-   profession's current rank and the recipe's colour, add one attempt to `levels[skillRank]`,
-   and remember this craft as **the last finished craft** of its profession. Items made
+   profession's current rank and the recipe's colour, and remember this craft as **the last
+   finished craft** of its profession. The attempt isn't written yet (see "Pending crafts"
+   below); a capped craft, which can't rise, is written at once. Items made
    (`TRADE_SKILL_ITEM_CRAFTED_RESULT`, ~0.1 s later) are added to `made`. Each queued craft
    succeeds on its own, so each is its own sample.
 3. **Cast fails or is interrupted**: it never succeeds, so nothing is counted.
@@ -103,6 +104,13 @@ crafts = {
    is higher than the last rank seen): credit the difference to that profession's **last
    finished craft**, in the `levels` row it was counted in. Never to a cast that has only
    started.
+
+**Pending crafts** *(fix, 10 Nov 2026)*: the rise arrives ~0.4 s after the cast succeeds, so a
+craft written at step 2 showed in the odds as a miss until then (100% → 83% → 100%). A craft
+that can still rise is held until its outcome is known, then its attempt and skill points are
+written in one `RecordAttempt`. It's settled by its rise, or with no point by the profession's
+next craft, a gather, `PLAYER_LOGOUT` (also fired on `/reload`), or the end of its 3 s credit
+time. A miss therefore shows up to 3 s after the craft.
 
 *(Amended after the in-game runs; earlier drafts snapshotted on `UNIT_SPELLCAST_START`. See
 "Probe results", check 3.)*

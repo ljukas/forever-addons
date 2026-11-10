@@ -114,9 +114,10 @@ local function GetRecipe(characterKey, recipeID)
 end
 
 -- Records a completed craft started at skillRank, with the recipe's difficulty and gray level
--- at that moment. A capped craft (made at the skill cap) is counted apart from the attempts.
--- Rows are only created here, so every row has its difficulty.
-function ns.DB.RecordAttempt(characterKey, recipeID, skillRank, difficulty, gray, capped)
+-- at that moment and the skill points it gave (skillUps, default 0). A capped craft (made at the
+-- skill cap) is counted apart from the attempts. Rows are only created here, so every row has
+-- its difficulty.
+function ns.DB.RecordAttempt(characterKey, recipeID, skillRank, difficulty, gray, capped, skillUps)
 	local recipe = GetRecipe(characterKey, recipeID)
 	if gray then
 		recipe.gray = gray
@@ -131,6 +132,7 @@ function ns.DB.RecordAttempt(characterKey, recipeID, skillRank, difficulty, gray
 	else
 		row[ATTEMPTS] = row[ATTEMPTS] + 1
 	end
+	row[SKILL_UPS] = row[SKILL_UPS] + (skillUps or 0)
 	row[DIFFICULTY] = difficulty
 	ns.callbacks:TriggerEvent("CraftsChanged", recipeID)
 end

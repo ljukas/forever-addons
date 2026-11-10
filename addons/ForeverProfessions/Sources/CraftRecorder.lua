@@ -4,20 +4,27 @@ local ADDON_NAME, ns = ...
 -- skill-up odds per recipe and skill level. Event order checked in game with Dev/CraftProbe.lua
 -- (docs/superpowers/specs/2026-11-07-craft-history-design.md, "Probe results"):
 --   TRADE_SKILL_CRAFT_BEGIN   marks the recipe as a real craft; nothing else counts
---   UNIT_SPELLCAST_SUCCEEDED  read the rank and colour and count the attempt; the craft becomes
---                             the last finished one. Not on START: in a Create All queue the
---                             previous craft's skill-up can arrive after the next cast starts,
---                             so START may still read the old rank. By SUCCEEDED (a cast time
---                             later) it has arrived, and the craft's own skill-up hasn't yet.
---   SKILL_LINES_CHANGED       a rank rise is credited to the profession's last finished craft
+--   UNIT_SPELLCAST_SUCCEEDED  read the rank and colour; the craft becomes the last finished one.
+--                             Not on START: in a Create All queue the previous craft's skill-up
+--                             can arrive after the next cast starts, so START may still read the
+--                             old rank. By SUCCEEDED (a cast time later) it has arrived, and the
+--                             craft's own skill-up hasn't yet.
+--   SKILL_LINES_CHANGED       a rank rise is credited to the profession's last finished craft,
+--                             ~0.4s after SUCCEEDED
 --   TRADE_SKILL_ITEM_CRAFTED_RESULT  items made, ~0.1s after SUCCEEDED, for the last craft
 -- Failed and interrupted casts never succeed, so they count for nothing.
+--
+-- A craft that can still give a point is held (pending) until its outcome is known, then its
+-- attempt and skill-up are written together: written at SUCCEEDED, the odds would count it as
+-- a miss until the rise arrived. It's settled by the rise, or with no point by the profession's
+-- next craft, a gather, logout or the end of its credit time.
 
 -- A skill rise or crafted result this long after a craft finished isn't the craft's. Mining
 -- also rises from mining veins, which must not be credited to the last smelt.
 local CREDIT_SECONDS = 3
 
--- Per professionID, the last finished craft: { recipeID, professionID, skillRank, finishedAt }.
+-- Per professionID, the last finished craft: { recipeID, professionID, skillRank, finishedAt },
+-- plus { key, difficulty, gray } and pending = true while its attempt isn't written yet.
 local lastFinished = {}
 -- The last finished craft of any profession, for TRADE_SKILL_ITEM_CRAFTED_RESULT.
 local lastCraft
@@ -35,6 +42,21 @@ end
 
 local function IsRecent(craft)
 	return craft ~= nil and GetTime() - craft.finishedAt <= CREDIT_SECONDS
+end
+
+-- Writes a pending craft's attempt with the skill points it gave; does nothing once written.
+local function Settle(craft, points)
+	if not craft.pending then
+		return
+	end
+	craft.pending = nil
+	ns.DB.RecordAttempt(craft.key, craft.recipeID, craft.skillRank, craft.difficulty, craft.gray, false, points)
+end
+
+local function SettleAll()
+	for _, craft in pairs(lastFinished) do
+		Settle(craft, 0)
+	end
 end
 
 -- Returns the recipe, its profession info and the character key, or nil (logged) when the
@@ -104,13 +126,28 @@ function handlers.UNIT_SPELLCAST_SUCCEEDED(_, _, spellID)
 
 	local skillRank = info.skillLevel
 	local capped = skillRank >= info.maxSkillLevel
-	ns.DB.RecordAttempt(key, spellID, skillRank, recipe.relativeDifficulty, recipe.maxTrivialLevel, capped)
 	local craft = {
 		recipeID = spellID,
 		professionID = info.professionID,
 		skillRank = skillRank,
 		finishedAt = GetTime(),
+		key = key,
+		difficulty = recipe.relativeDifficulty,
+		gray = recipe.maxTrivialLevel,
 	}
+	-- The profession's previous craft had its chance at a rise; a later one is this craft's.
+	if lastFinished[craft.professionID] then
+		Settle(lastFinished[craft.professionID], 0)
+	end
+	if capped then
+		-- No point can come from it, so there's nothing to wait for.
+		ns.DB.RecordAttempt(key, spellID, skillRank, craft.difficulty, craft.gray, true)
+	else
+		craft.pending = true
+		C_Timer.After(CREDIT_SECONDS, function()
+			Settle(craft, 0)
+		end)
+	end
 	lastFinished[craft.professionID] = craft
 	lastCraft = craft
 	-- Never lowered, so a rise already seen can't be booked a second time.
@@ -133,12 +170,16 @@ function handlers.SKILL_LINES_CHANGED()
 		if rank and not issecretvalue(rank) and rank ~= lastKnownRank[professionID] then
 			local from = lastKnownRank[professionID]
 			local points = rank - from
-			if
-				points > 0
-				and IsRecent(craft)
-				and ns.GetCharacterKey()
-				and ns.DB.RecordSkillUp(ns.GetCharacterKey(), craft.recipeID, craft.skillRank, points)
-			then
+			local credited = false
+			if points > 0 and IsRecent(craft) then
+				if craft.pending then
+					Settle(craft, points)
+					credited = true
+				elseif ns.GetCharacterKey() then
+					credited = ns.DB.RecordSkillUp(ns.GetCharacterKey(), craft.recipeID, craft.skillRank, points)
+				end
+			end
+			if credited then
 				ns.log("SKILLUP", craft.recipeID, "rank", craft.skillRank, "points", points)
 				-- The rise should start from the rank the craft was filed at; otherwise that rank
 				-- was stale and the row is wrong.
@@ -151,14 +192,22 @@ function handlers.SKILL_LINES_CHANGED()
 			lastKnownRank[professionID] = math.max(from, rank)
 		end
 		if not IsRecent(craft) then
+			Settle(craft, 0)
 			lastFinished[professionID] = nil
 		end
 	end
 end
 
+-- SavedVariables are written after PLAYER_LOGOUT (also on /reload), so a craft still waiting
+-- for its rise is written now rather than lost.
+function handlers.PLAYER_LOGOUT()
+	SettleAll()
+end
+
 -- A gather ends every craft's credit: Mining rises from veins as well as from smelting, and a
 -- vein's skill-up must not land on the smelt before it. GatherRecorder announces each gather.
 local function OnGathered()
+	SettleAll()
 	wipe(lastFinished)
 	lastCraft = nil
 end

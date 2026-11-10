@@ -13,28 +13,33 @@ ns.HealthBar = {}
 
 local HEALTH_ROW = 15
 
--- How far the bar reaches below the old health row: the 10 px power row plus 3 px of the well's
--- bottom, which the user saw left dark in game (2026-11-10).
-local DEFAULT_GROWTH = 13
+-- Blizzard's anchor for the health container, relative to the player frame.
+local CONTAINER_X, CONTAINER_Y = 87, -46
 
--- The sizes for a bar grown by growth px. Pure.
-function ns.HealthBar.Geometry(growth)
-	local height = HEALTH_ROW + growth
+-- How far the bar reaches below the old health row (the 10 px power row plus 3 px of the well's
+-- bottom) and above it (1 px of the well's top): what the user saw left dark in game (2026-11-10).
+local DEFAULT_GROWTH, DEFAULT_RISE = 13, 1
+
+-- The sizes for a bar grown growth px down and rise px up. Pure.
+function ns.HealthBar.Geometry(growth, rise)
+	local height = HEALTH_ROW + growth + rise
 	local scale = height / HEALTH_ROW
 	return {
+		containerTop = CONTAINER_Y + rise,
 		containerHeight = height,
-		barHeight = 20 + growth,
+		barHeight = 20 + growth + rise,
 		maskTop = 9 * scale,
 		maskHeight = 32 * scale,
 	}
 end
 
--- Tunable by the dev probe (/fufart grow <px>, /fufart mask <top> <height>).
-ns.HealthBar.geometry = ns.HealthBar.Geometry(DEFAULT_GROWTH)
+-- Tunable by the dev probe (/fufart grow <down> [up], /fufart mask <top> <height>).
+ns.HealthBar.geometry = ns.HealthBar.Geometry(DEFAULT_GROWTH, DEFAULT_RISE)
 
 local function Apply()
 	local geometry = ns.HealthBar.geometry
 	local container = PlayerFrame_GetHealthBarContainer()
+	container:SetPoint("TOPLEFT", CONTAINER_X, geometry.containerTop)
 	container:SetHeight(geometry.containerHeight)
 	PlayerFrame_GetHealthBar():SetHeight(geometry.barHeight)
 

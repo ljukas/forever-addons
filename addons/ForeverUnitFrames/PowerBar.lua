@@ -22,8 +22,10 @@ local DEFAULTS = ns.PowerBar.DEFAULTS
 -- the bar with SetPoint("TOPLEFT", 87, -61), relative to its parent, on every art change.
 local BLIZZARD_X, BLIZZARD_Y = 87, -61
 
--- How far the power bar's mask reaches past the bar on each side (ApplyBar).
-local MASK_OUTSET_X, MASK_OUTSET_Y = 16, 6
+-- How far the power bar's mask reaches past the bar on each side (ApplyBar). Its left end fades
+-- further in than its right, so it reaches further out there (in game, 16 px still left the left
+-- end short, 2026-11-10). Tunable by the dev probe (/fufart powermask <left> <right> <y>).
+ns.PowerBar.maskOutset = { left = 32, right = 16, y = 6 }
 
 local holder = CreateFrame("Frame", nil, UIParent)
 holder:SetFrameStrata(PlayerFrame:GetFrameStrata())
@@ -77,11 +79,12 @@ local function ApplyBar()
 	-- plain bar mask Blizzard uses beside an alternate power bar is stretched well past the bar, so
 	-- its soft ends fall outside it and the fill reaches the bar's edges (in game, a 2 px margin
 	-- left the left end empty).
+	local outset = ns.PowerBar.maskOutset
 	local mask = bar.ManaBarMask
 	mask:SetAtlas("Unit_BarMask")
 	mask:ClearAllPoints()
-	mask:SetPoint("TOPLEFT", bar, "TOPLEFT", -MASK_OUTSET_X, MASK_OUTSET_Y)
-	mask:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", MASK_OUTSET_X, -MASK_OUTSET_Y)
+	mask:SetPoint("TOPLEFT", bar, "TOPLEFT", -outset.left, outset.y)
+	mask:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", outset.right, -outset.y)
 
 	-- The full-power pulse is laid out for the player frame's 124x10 bar from its top-right; centred
 	-- on the right end, as the Personal Resource Display does, it fits any height.
@@ -103,6 +106,7 @@ end
 local function RequestBar()
 	ns.Layout.Request("power", ApplyBar)
 end
+ns.PowerBar.Request = RequestBar
 
 -- Places and sizes the holder: layout = { point, x, y, width, height }, all present.
 function ns.PowerBar.SetLayout(layout)

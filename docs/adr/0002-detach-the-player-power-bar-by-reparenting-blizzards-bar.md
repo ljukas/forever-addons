@@ -43,5 +43,8 @@ Edit Mode has no API for addons to add their own systems.
 
 - The repo's first library. `scripts/libs.sh` fetches `.pkgmeta` externals into `Libs/` for
   development; the packager bundles it unmodified, as its licence requires.
-- If Blizzard re-lays out the player frame in combat (a vehicle), our layout returns when combat
-  ends, not immediately.
+- If Blizzard re-lays out the player frame in combat (a loading screen, a vehicle), our layout
+  returns when combat ends. The power bar is parented to a slot frame offset so that Blizzard's
+  parent-relative `SetPoint("TOPLEFT", 87, -61)` lands on our anchor, so it doesn't move meanwhile.
+- LibEditMode doesn't snap; `Snap.lua` applies Blizzard's magnetism rules on drop, reading
+  `EditModeMagnetismManager`'s state only.

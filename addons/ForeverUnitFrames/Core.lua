@@ -8,6 +8,7 @@ local ADDON_NAME, ns = ...
 --   LAYOUT          HealthBar.lua
 --   POWER           PowerBar.lua
 --   SAVE EDITMODE   EditMode.lua
+--   ART             Dev/ArtProbe.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.

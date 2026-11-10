@@ -20,4 +20,8 @@ Database.lua
 Layout.lua
 HealthBar.lua
 PowerBar.lua
+Snap.lua
 EditMode.lua
+#@do-not-package@
+Dev\ArtProbe.lua
+#@end-do-not-package@

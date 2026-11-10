@@ -15,7 +15,20 @@ local function Apply()
 	container:SetHeight(CONTAINER_HEIGHT)
 	PlayerFrame_GetHealthBar():SetHeight(BAR_HEIGHT)
 	container.HealthBarMask:SetHeight(MASK_HEIGHT)
-	ns.log("LAYOUT", "health", container:GetWidth(), CONTAINER_HEIGHT, "unit", PlayerFrame.unit)
+	if ns.dev.enabled then
+		ns.log(
+			"LAYOUT",
+			"health container",
+			container:GetWidth(),
+			container:GetHeight(),
+			"bar",
+			PlayerFrame_GetHealthBar():GetHeight(),
+			"mask",
+			container.HealthBarMask:GetHeight(),
+			"unit",
+			PlayerFrame.unit
+		)
+	end
 end
 
 local function Request()

@@ -127,9 +127,19 @@ FocusFrame = {}
 -- has the target frame's layout under PlayerFrameContent.PlayerFrameContentMain. unit is
 -- "vehicle" while the player is in one (PlayerFrame_ToVehicleArt).
 
+---@class PlayerFrameContainer : Frame
+---@field FrameTexture Texture the frame's art (atlas UI-HUD-UnitFrame-Player-PortraitOn)
+
 ---@class PlayerFrame : Button
 ---@field unit string
+---@field PlayerFrameContainer PlayerFrameContainer
 PlayerFrame = {}
+
+-- Blizzard_EditMode/Shared/EditModeManager.xml and .lua: Edit Mode's manager frame. Only the
+-- members our addons use.
+---@class EditModeManagerFrame : Frame
+---@field IsSnapEnabled fun(self: EditModeManagerFrame): boolean
+EditModeManagerFrame = {}
 
 ---@return TargetFrameHealthBarsContainer
 function PlayerFrame_GetHealthBarContainer() end

@@ -62,4 +62,5 @@ files["addons/ForeverTooltip/**"].globals = {
 
 files["addons/ForeverUnitFrames/**"].globals = {
 	"ForeverUnitFramesDB",
+	"SLASH_FOREVERUNITFRAMES_ART1",
 }

@@ -24,3 +24,5 @@
   learned from every character's crafts nearby, next to the usual wiki formula. The recipe list
   shows a chance at the end of each recipe that can still give skill points: yours in the
   recipe's colour once you've crafted it often enough nearby, otherwise the wiki's, dimmed.
+- Your skill-up chance no longer dips for a moment after each craft while the skill point is
+  on its way.

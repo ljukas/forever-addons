@@ -115,11 +115,11 @@ SLASH_FOREVERUNITFRAMES_ART1 = "/fufart"
 SlashCmdList.FOREVERUNITFRAMES_ART = function(msg)
 	local command, first, second, third, fourth = strsplit(" ", strtrim(msg or ""))
 	if command == "grow" and tonumber(first) then
-		-- /fufart grow <down> [up]: how far the bar reaches below and above the old health row.
-		local rise = tonumber(second) or 0
-		ns.HealthBar.geometry = ns.HealthBar.Geometry(tonumber(first), rise)
+		-- /fufart grow <down> [up] [right]: how far the bar reaches past the old health row.
+		local rise, widen = tonumber(second) or 0, tonumber(third) or 0
+		ns.HealthBar.geometry = ns.HealthBar.Geometry(tonumber(first), rise, widen)
 		ns.HealthBar.Request()
-		ns.log("ART", "grow", first, "up", rise)
+		ns.log("ART", "grow", first, "up", rise, "right", widen)
 	elseif command == "powermask" then
 		-- /fufart powermask <left> [right] [y]: how far the power bar's mask reaches past the bar.
 		local outset = ns.PowerBar.maskOutset

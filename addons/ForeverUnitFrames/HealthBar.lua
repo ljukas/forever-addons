@@ -16,16 +16,24 @@ local HEALTH_ROW = 15
 -- Blizzard's anchor for the health container, relative to the player frame.
 local CONTAINER_X, CONTAINER_Y = 87, -46
 
--- How far the bar reaches below the old health row (the 10 px power row plus 3 px of the well's
--- bottom) and above it (1 px of the well's top): what the user saw left dark in game (2026-11-10).
-local DEFAULT_GROWTH, DEFAULT_RISE = 13, 1
+local HEALTH_WIDTH, MASK_WIDTH = 124, 128
 
--- The sizes for a bar grown growth px down and rise px up. Pure.
-function ns.HealthBar.Geometry(growth, rise)
+-- How far the bar reaches below the old health row (the 10 px power row plus 4 px of the well's
+-- bottom), above it (3 px of the well's top) and to its right (1 px): what filled the well in game
+-- (/fufart grow 14 3 1, 2026-11-10).
+local DEFAULT_GROWTH, DEFAULT_RISE, DEFAULT_WIDEN = 14, 3, 1
+
+-- The sizes for a bar grown growth px down, rise px up and widen px right. Pure.
+function ns.HealthBar.Geometry(growth, rise, widen)
 	local height = HEALTH_ROW + growth + rise
 	local scale = height / HEALTH_ROW
+	local width = HEALTH_WIDTH + widen
+	local scaleX = width / HEALTH_WIDTH
 	return {
 		containerTop = CONTAINER_Y + rise,
+		width = width,
+		maskLeft = -2 * scaleX,
+		maskWidth = MASK_WIDTH * scaleX,
 		containerHeight = height,
 		barHeight = 20 + growth + rise,
 		maskTop = 9 * scale,
@@ -33,20 +41,21 @@ function ns.HealthBar.Geometry(growth, rise)
 	}
 end
 
--- Tunable by the dev probe (/fufart grow <down> [up], /fufart mask <top> <height>).
-ns.HealthBar.geometry = ns.HealthBar.Geometry(DEFAULT_GROWTH, DEFAULT_RISE)
+-- Tunable by the dev probe (/fufart grow <down> [up] [right],/fufart mask <top> <height>).
+ns.HealthBar.geometry = ns.HealthBar.Geometry(DEFAULT_GROWTH, DEFAULT_RISE, DEFAULT_WIDEN)
 
 local function Apply()
 	local geometry = ns.HealthBar.geometry
 	local container = PlayerFrame_GetHealthBarContainer()
 	container:SetPoint("TOPLEFT", CONTAINER_X, geometry.containerTop)
-	container:SetHeight(geometry.containerHeight)
-	PlayerFrame_GetHealthBar():SetHeight(geometry.barHeight)
+	container:SetSize(geometry.width, geometry.containerHeight)
+	PlayerFrame_GetHealthBar():SetSize(geometry.width, geometry.barHeight)
 
+	-- Scaled both ways, so its open part stays on the grown bar.
 	local mask = container.HealthBarMask
 	mask:ClearAllPoints()
-	mask:SetPoint("TOPLEFT", container, "TOPLEFT", -2, geometry.maskTop)
-	mask:SetHeight(geometry.maskHeight)
+	mask:SetPoint("TOPLEFT", container, "TOPLEFT", geometry.maskLeft, geometry.maskTop)
+	mask:SetSize(geometry.maskWidth, geometry.maskHeight)
 
 	if ns.dev.enabled then
 		ns.log(

@@ -9,9 +9,10 @@ local _, ns = ...
 
 ns.ExpBar = {}
 
--- Blizzard's own bar fills, in colours that can't be mistaken for rested XP (blue/purple).
-local FILL_ATLAS = "UI-HUD-ExperienceBar-Fill-Reputation-Faction-Yellow"
-local LEVEL_UP_ATLAS = "UI-HUD-ExperienceBar-Fill-Reputation-Faction-Green"
+-- Blizzard's rested fill art, desaturated and tinted so it can't be mistaken for rested XP
+-- (blue/purple): gold, or green when the turn-ins level the player up.
+local FILL_ATLAS = "UI-HUD-ExperienceBar-Fill-Prediction"
+local FILL_COLOR, LEVEL_UP_COLOR = NORMAL_FONT_COLOR, GREEN_FONT_COLOR
 local PIP_ATLAS = "UI-HUD-ExperienceBar-Frame-Pip"
 local PIP_WIDTH, PIP_HEIGHT = 10, 14
 local EDGE_HIDE = 0.99 -- like Blizzard's hideAtBarEdge: no pip right at the bar's end
@@ -56,7 +57,7 @@ local function Draw(bar, result)
 	local startFraction = math.min(result.cur / result.max, 1)
 	local fillWidth = (proj.fraction - startFraction) * width
 	if fillWidth >= 1 then
-		fill:SetAtlas(proj.levelsUp and LEVEL_UP_ATLAS or FILL_ATLAS)
+		fill:SetVertexColor((proj.levelsUp and LEVEL_UP_COLOR or FILL_COLOR):GetRGB())
 		fill:ClearAllPoints()
 		fill:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", startFraction * width, 0)
 		-- As tall as Blizzard's rested fill, so the two line up.
@@ -123,9 +124,12 @@ local function Hook(bar)
 	if not bar or not bar.StatusBar or bar.ForeverQuestsFill then
 		return
 	end
-	-- Above Blizzard's rested fill (ARTWORK, sublevel -1). Like it, it shows through the
-	-- status bar's translucent background and under the current-XP fill.
-	local fill = bar:CreateTexture(nil, "ARTWORK", nil, 0)
+	-- Under Blizzard's rested fill (ARTWORK, sublevel -1), so the rested shading stays visible
+	-- where the two overlap. Like it, it shows through the status bar's translucent background
+	-- and under the current-XP fill.
+	local fill = bar:CreateTexture(nil, "ARTWORK", nil, -2)
+	fill:SetAtlas(FILL_ATLAS)
+	fill:SetDesaturated(true)
 	fill:Hide()
 	bar.ForeverQuestsFill = fill
 

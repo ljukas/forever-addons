@@ -14,13 +14,12 @@ local order = {}
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function(self)
 	self:UnregisterEvent("PLAYER_REGEN_ENABLED")
-	local names = order
-	order = {}
+	local names, funcs = order, pending
+	order, pending = {}, {}
 	for _, name in ipairs(names) do
-		local func = pending[name]
-		pending[name] = nil
 		ns.log("APPLY", name, "after combat")
-		func()
+		-- One failing request is reported and doesn't stop the others.
+		xpcall(funcs[name], geterrorhandler())
 	end
 end)
 

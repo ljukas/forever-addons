@@ -59,3 +59,7 @@ files["addons/ForeverProfessions/**"].globals = {
 files["addons/ForeverTooltip/**"].globals = {
 	"ForeverTooltipDB",
 }
+
+files["addons/ForeverUnitFrames/**"].globals = {
+	"ForeverUnitFramesDB",
+}

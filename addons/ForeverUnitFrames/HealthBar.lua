@@ -8,25 +8,34 @@ local ADDON_NAME, ns = ...
 --
 -- The mask's open part is its rows 9-24: the 15 px health well. Measured in game (/fufart,
 -- 2026-11-10). Scaling the mask by the grown height over the old one keeps that open part on the
--- two wells together, -46 to -71, so the frame art's divider and the old power well are covered.
+-- grown bar, so the bar fills the well the rebuilt art leaves (below), down to the frame's edge.
 ns.HealthBar = {}
 
-local POWER_ROW = 10
 local HEALTH_ROW = 15
-local CONTAINER_HEIGHT = HEALTH_ROW + POWER_ROW
-local SCALE = CONTAINER_HEIGHT / HEALTH_ROW
 
--- Tunable by the dev probe (/fufart mask <top> <height>).
-ns.HealthBar.geometry = {
-	barHeight = 20 + POWER_ROW,
-	maskTop = 9 * SCALE,
-	maskHeight = 32 * SCALE,
-}
+-- How far the bar reaches below the old health row: the 10 px power row plus 3 px of the well's
+-- bottom, which the user saw left dark in game (2026-11-10).
+local DEFAULT_GROWTH = 13
+
+-- The sizes for a bar grown by growth px. Pure.
+function ns.HealthBar.Geometry(growth)
+	local height = HEALTH_ROW + growth
+	local scale = height / HEALTH_ROW
+	return {
+		containerHeight = height,
+		barHeight = 20 + growth,
+		maskTop = 9 * scale,
+		maskHeight = 32 * scale,
+	}
+end
+
+-- Tunable by the dev probe (/fufart grow <px>, /fufart mask <top> <height>).
+ns.HealthBar.geometry = ns.HealthBar.Geometry(DEFAULT_GROWTH)
 
 local function Apply()
 	local geometry = ns.HealthBar.geometry
 	local container = PlayerFrame_GetHealthBarContainer()
-	container:SetHeight(CONTAINER_HEIGHT)
+	container:SetHeight(geometry.containerHeight)
 	PlayerFrame_GetHealthBar():SetHeight(geometry.barHeight)
 
 	local mask = container.HealthBarMask

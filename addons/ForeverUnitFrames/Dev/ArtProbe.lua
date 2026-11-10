@@ -114,7 +114,12 @@ end
 SLASH_FOREVERUNITFRAMES_ART1 = "/fufart"
 SlashCmdList.FOREVERUNITFRAMES_ART = function(msg)
 	local command, first, second, third, fourth = strsplit(" ", strtrim(msg or ""))
-	if command == "mask" then
+	if command == "grow" and tonumber(first) then
+		-- /fufart grow <px>: how far the bar reaches below the old health row.
+		ns.HealthBar.geometry = ns.HealthBar.Geometry(tonumber(first))
+		ns.HealthBar.Request()
+		ns.log("ART", "grow", first)
+	elseif command == "mask" then
 		TuneMask(tonumber(first), tonumber(second))
 	elseif command == "patch" then
 		TunePatch(first, second, third, fourth)

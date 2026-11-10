@@ -13,13 +13,15 @@ turn-ins, and a tooltip that spells it out.
 
 1. **Turn-in fill on the exp bar.** When the log holds completed quests that reward XP, a fill
    runs from the current XP to where the XP lands after turning them all in, ending in a pip.
-   It is placed like Blizzard's rested overlay (`ExhaustionLevelFillBar`, same height), but
-   drawn with Blizzard's yellow bar fill (`UI-HUD-ExperienceBar-Fill-Reputation-Faction-Yellow`)
-   so it can't be mistaken for rested XP. The pip is `UI-HUD-ExperienceBar-Frame-Pip` tinted
-   `NORMAL_FONT_COLOR`. *(Amended: the review found the rested atlas, tinted, read as rested.)*
+   It is placed like Blizzard's rested overlay (`ExhaustionLevelFillBar`, same height) and drawn
+   with the same art (`UI-HUD-ExperienceBar-Fill-Prediction`), desaturated and tinted
+   `NORMAL_FONT_COLOR` (gold) so it can't be mistaken for rested XP. The pip is
+   `UI-HUD-ExperienceBar-Frame-Pip` tinted `NORMAL_FONT_COLOR`. *(Amended twice: the review found
+   the rested atlas, tinted, read as rested, so it became the reputation bar's yellow fill; on
+   2026-11-10 the user asked for the rested art again so the two match, now desaturated before
+   tinting and drawn under the rested shading.)*
 2. **Level-up is unmistakable** *(my call, the user didn't pick)*. If the turn-ins reach or pass
-   the next level, the fill runs to the bar's right end and switches to Blizzard's green bar fill
-   (`UI-HUD-ExperienceBar-Fill-Reputation-Faction-Green`), and the
+   the next level, the fill runs to the bar's right end and is tinted `GREEN_FONT_COLOR`, and the
    pip is hidden (as Blizzard hides the rested pip at the bar edge). The tooltip's result line
    turns green.
 3. **Tooltip lines.** Hovering the exp bar shows Blizzard's tooltip as today, followed by:

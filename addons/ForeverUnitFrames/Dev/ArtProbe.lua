@@ -128,6 +128,13 @@ SlashCmdList.FOREVERUNITFRAMES_ART = function(msg)
 		outset.y = tonumber(third) or outset.y
 		ns.PowerBar.Request()
 		ns.log("ART", "powermask", outset.left, outset.right, outset.y)
+	elseif command == "powerbar" then
+		-- /fufart powerbar <left> [right]: how far the power bar reaches past its box, under the border.
+		local outset = ns.PowerBar.barOutset
+		outset.left = tonumber(first) or outset.left
+		outset.right = tonumber(second) or outset.right
+		ns.PowerBar.Request()
+		ns.log("ART", "powerbar", outset.left, outset.right)
 	elseif command == "mask" then
 		TuneMask(tonumber(first), tonumber(second))
 	elseif command == "patch" then

@@ -22,10 +22,14 @@ local DEFAULTS = ns.PowerBar.DEFAULTS
 -- the bar with SetPoint("TOPLEFT", 87, -61), relative to its parent, on every art change.
 local BLIZZARD_X, BLIZZARD_Y = 87, -61
 
--- How far the power bar's mask reaches past the bar on each side (ApplyBar). Its left end fades
--- further in than its right, so it reaches further out there (in game, 16 px still left the left
--- end short, 2026-11-10). Tunable by the dev probe (/fufart powermask <left> <right> <y>).
-ns.PowerBar.maskOutset = { left = 32, right = 16, y = 6 }
+-- How far the power bar's mask reaches past the bar on each side (ApplyBar), so its soft ends fall
+-- outside the bar. Tunable by the dev probe (/fufart powermask <left> <right> <y>).
+ns.PowerBar.maskOutset = { left = 16, right = 16, y = 6 }
+
+-- How far the bar itself reaches past the holder, under the border: in game its fill still
+-- started short of the border's left edge whatever the mask's reach (2026-11-10). Tunable by the
+-- dev probe (/fufart powerbar <left> <right>).
+ns.PowerBar.barOutset = { left = 2, right = 0 }
 
 local holder = CreateFrame("Frame", nil, UIParent)
 holder:SetFrameStrata(PlayerFrame:GetFrameStrata())
@@ -33,12 +37,11 @@ holder:SetSize(DEFAULTS.width, DEFAULTS.height)
 holder:SetPoint(DEFAULTS.point, UIParent, DEFAULTS.point, DEFAULTS.x, DEFAULTS.y)
 ns.PowerBar.holder = holder
 
--- The bar's parent. Its top-left sits (-87, 61) from the holder's, so Blizzard's anchor above lands
--- on the holder's top-left: the anchor ApplyBar sets. A re-layout in combat, when ours has to wait,
--- then leaves the bar in place.
+-- The bar's parent. Its top-left sits (-87, 61) from the bar's top-left, so Blizzard's anchor above
+-- lands where ApplyBar puts the bar. A re-layout in combat, when ours has to wait, then leaves the
+-- bar in place.
 local slot = CreateFrame("Frame", nil, holder)
 slot:SetSize(1, 1)
-slot:SetPoint("TOPLEFT", holder, "TOPLEFT", -BLIZZARD_X, -BLIZZARD_Y)
 
 -- The cast bar's background and border (Blizzard_UIPanels_Game/Mainline/CastingBarFrame.xml, same
 -- offsets), so the bar matches the other free-standing bars. The border sits above the bar's fill.
@@ -71,9 +74,12 @@ local function ApplyBar()
 		bar:SetParent(slot)
 	end
 	bar:SetFrameLevel(holder:GetFrameLevel() + 2)
+	local barOutset = ns.PowerBar.barOutset
+	slot:ClearAllPoints()
+	slot:SetPoint("TOPLEFT", holder, "TOPLEFT", -BLIZZARD_X - barOutset.left, -BLIZZARD_Y)
 	bar:ClearAllPoints()
 	bar:SetPoint("TOPLEFT", slot, "TOPLEFT", BLIZZARD_X, BLIZZARD_Y)
-	bar:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT")
+	bar:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", barOutset.right, 0)
 
 	-- The player frame's mask is cut to its art; the cast bar's border frames this bar instead. The
 	-- plain bar mask Blizzard uses beside an alternate power bar is stretched well past the bar, so

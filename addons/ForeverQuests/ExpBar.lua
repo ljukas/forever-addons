@@ -123,9 +123,10 @@ local function Hook(bar)
 	if not bar or not bar.StatusBar or bar.ForeverQuestsFill then
 		return
 	end
-	-- Above Blizzard's rested fill (ARTWORK, sublevel -1). Like it, it shows through the
-	-- status bar's translucent background and under the current-XP fill.
-	local fill = bar:CreateTexture(nil, "ARTWORK", nil, 0)
+	-- Under Blizzard's rested fill (ARTWORK, sublevel -1), so the rested shading stays visible
+	-- where the two overlap. Like it, it shows through the status bar's translucent background
+	-- and under the current-XP fill.
+	local fill = bar:CreateTexture(nil, "ARTWORK", nil, -2)
 	fill:Hide()
 	bar.ForeverQuestsFill = fill
 

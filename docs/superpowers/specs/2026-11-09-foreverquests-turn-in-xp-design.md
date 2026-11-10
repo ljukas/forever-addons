@@ -92,9 +92,11 @@ buffs are added to the `BUFFS` table as they're found.
   directly). When `GetRestState()` reports no state, Blizzard built nothing, so whatever the
   tooltip shows isn't ours: open it afresh as Blizzard does (`GetAppropriateTooltip()`,
   `GameTooltip_SetDefaultAnchor`, title `XP_TEXT`), append the lines, then `Show()` again.
-- Layering: the turn-in fill is a texture on the bar at ARTWORK sublevel 0, just above
-  Blizzard's rested fill (-1). Like the rested fill, it shows through the status bar's
-  translucent background, under the current-XP fill. The pip sits on the status bar at OVERLAY.
+- Layering: the turn-in fill is a texture on the bar at ARTWORK sublevel -2, just under
+  Blizzard's rested fill (-1), so the rested shading stays visible where they overlap. Like the
+  rested fill, it shows through the status bar's translucent background, under the current-XP
+  fill. *(Amended 2026-11-10: at sublevel 0 it hid the rested shading; the user chose rested on
+  top.)* The pip sits on the status bar at OVERLAY.
   Checked by eye in game (in-game check 3).
 
 ## Secret values
@@ -118,7 +120,7 @@ A new addon `ForeverQuests` from `template/Addon` (`scripts/new-addon.sh`), cate
    of combat. Tag `XP` logs each quest's ID, completion and XP, and the secret flags.
 2. **Totals match.** The tooltip's +X equals the XP actually gained after turning them in
    (`QUEST_TURNED_IN` reports the XP; tag `TURNIN` logs it next to our prediction).
-3. **Looks right.** The fill sits over the rested overlay, under the XP fill; the pip lines up;
+3. **Looks right.** The fill sits under the rested overlay, under the XP fill; the pip lines up;
    the level-up tint reads clearly. Checked by eye.
 4. **Updates.** The fill appears when an objective completes and goes when the quest is turned
    in or abandoned, without a `/reload`.

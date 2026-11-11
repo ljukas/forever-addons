@@ -35,6 +35,15 @@
 					</OnClick>
 				</Scripts>
 			</Button>
+			<!-- The vendor price, with each coin a texture of its own. Coins written into a font
+			     string (GetMoneyString) stay put while the panel's opening and closing animation
+			     moves everything else. The row's OnLoad anchors it under the name. -->
+			<Frame parentKey="Price" inherits="MoneyDisplayFrameTemplate" useParentLevel="true">
+				<Size x="120" y="13"/>
+				<KeyValues>
+					<KeyValue key="leftAlign" value="true" type="boolean"/>
+				</KeyValues>
+			</Frame>
 		</Frames>
 		<Layers>
 			<Layer level="BACKGROUND">
@@ -60,11 +69,6 @@
 						<Anchor point="TOPLEFT" relativeKey="$parent.Item" relativePoint="TOPRIGHT" x="8" y="-4"/>
 						<!-- Up to the Delete button (62 wide, 6 from the edge), on the name's own line. -->
 						<Anchor point="TOPRIGHT" x="-72" y="-8"/>
-					</Anchors>
-				</FontString>
-				<FontString parentKey="Price" inherits="GameFontHighlightSmall" justifyH="LEFT">
-					<Anchors>
-						<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" x="0" y="-4"/>
 					</Anchors>
 				</FontString>
 			</Layer>

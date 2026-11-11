@@ -40,6 +40,12 @@ ForeverBagsRowMixin = {}
 
 function ForeverBagsRowMixin:OnLoad()
 	self.Delete:SetText(DELETE)
+	self.Price:SetPoint("TOPLEFT", self.Name, "BOTTOMLEFT", 0, -4)
+	self.Price:SetFontObject(GameFontHighlightSmall)
+	-- Only the coins the price has, as GetMoneyString writes it: "6c", not "0s 6c".
+	local showsZeroAmount = false
+	self.Price.SilverDisplay:SetShowsZeroAmount(showsZeroAmount)
+	self.Price.CopperDisplay:SetShowsZeroAmount(showsZeroAmount)
 end
 
 function ForeverBagsRowMixin:Init(entry)
@@ -53,7 +59,7 @@ function ForeverBagsRowMixin:Init(entry)
 		self.Name:SetVertexColor(colorData.color:GetRGB())
 		self.NameFrame:SetVertexColor(colorData.color:GetRGB())
 	end
-	self.Price:SetText(GetMoneyString(entry.value))
+	self.Price:SetAmount(entry.value)
 end
 
 function ForeverBagsRowMixin:OnDeleteClick()

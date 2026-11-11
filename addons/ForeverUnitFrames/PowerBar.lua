@@ -29,8 +29,9 @@ ns.PowerBar.maskOutset = { left = 16, right = 16, y = 6 }
 
 -- How far the bar itself reaches past the holder, under the border: in game the fill's art (made
 -- for the player frame) started short of the border's left edge, and a full mana bar stopped short
--- of its right edge (2026-11-10/11). Tunable by the dev probe (/fufart powerbar <left> <right>).
-ns.PowerBar.barOutset = { left = 2, right = 3 }
+-- of its right edge, while 3 px there ran past the border when spending (2026-11-10/11). Tunable by
+-- the dev probe (/fufart powerbar <left> <right>).
+ns.PowerBar.barOutset = { left = 2, right = 2 }
 
 local holder = CreateFrame("Frame", nil, UIParent)
 holder:SetFrameStrata(PlayerFrame:GetFrameStrata())

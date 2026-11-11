@@ -15,3 +15,4 @@
 
 Core.lua
 Database.lua
+Items.lua

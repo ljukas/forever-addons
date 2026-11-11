@@ -98,6 +98,15 @@ function GetLootSlotInfo(slot) end
 ---@type Frame
 WorldFrame = {}
 
+--- The loot window: Blizzard_UIPanels_Game/Mainline/LootFrame.xml, a ScrollingFlatPanelTemplate.
+---@type Frame
+LootFrame = {}
+
+--- The bags' sort button: Blizzard_UIPanels_Game/Mainline/ContainerFrame.xml.
+--- ContainerFrameMixin:UpdateSearchBox reparents it to the backpack or the combined bag frame.
+---@type Button
+BagItemAutoSortButton = {}
+
 -- Blizzard_WorldMap/Blizzard_WorldMap.xml, a MapCanvasFrameTemplate.
 ---@class WorldMapFrame : MapCanvasFrame
 ---@field AddDataProvider fun(self: WorldMapFrame, dataProvider: table)

@@ -1,0 +1,152 @@
+local ADDON_NAME, ns = ...
+
+-- Dev-only: what Forever's player frame art really is, to fit the grown health bar to it.
+--   /fufart          logs the candidate atlases (size, file, coords) and where the bars sit (ART)
+--   /fufart <n>      previews frame art n on the player frame until /reload (ART)
+if not ns.dev.enabled then
+	return
+end
+
+local ATLASES = {
+	"UI-HUD-UnitFrame-Player-PortraitOn",
+	"UI-HUD-UnitFrame-Player-PortraitOn-Bar-Health-Mask",
+	"UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana-Mask",
+	"UI-HUD-UnitFrame-Player-PortraitOn-Bar-Health",
+	"plunderstorm-ui-hud-unitframe-player-portraiton",
+	"plunderstorm-ui-hud-unitframe-player-portraiton-bar-health-mask",
+	"UI-HUD-UnitFrame-Target-MinusMob-PortraitOn",
+	"UI-HUD-UnitFrame-Target-MinusMob-PortraitOn-Bar-Health-Mask",
+	"UI-HUD-UnitFrame-Target-PortraitOn",
+	"ui-castingbar-frame",
+	"ui-castingbar-background",
+	"Unit_BarMask",
+}
+
+-- Frame art to preview; mirror flips a target-frame atlas to face the player frame's way.
+local PREVIEWS = {
+	{ atlas = "UI-HUD-UnitFrame-Player-PortraitOn" },
+	{ atlas = "plunderstorm-ui-hud-unitframe-player-portraiton" },
+	{ atlas = "UI-HUD-UnitFrame-Target-MinusMob-PortraitOn", mirror = true },
+}
+
+-- A region's rect relative to the player frame's top-left: left, top, width, height.
+local function Rect(region)
+	local left, top = region:GetLeft(), region:GetTop()
+	if not left then
+		return "unplaced"
+	end
+	return string.format(
+		"%.1f,%.1f %.1fx%.1f",
+		left - PlayerFrame:GetLeft(),
+		top - PlayerFrame:GetTop(),
+		region:GetWidth(),
+		region:GetHeight()
+	)
+end
+
+local function LogAtlases()
+	for _, name in ipairs(ATLASES) do
+		local info = C_Texture.GetAtlasInfo(name)
+		if info then
+			ns.log(
+				"ART",
+				name,
+				info.width .. "x" .. info.height,
+				"file",
+				info.filename or info.file,
+				"coords",
+				info.leftTexCoord,
+				info.rightTexCoord,
+				info.topTexCoord,
+				info.bottomTexCoord
+			)
+		else
+			ns.log("ART", name, "missing")
+		end
+	end
+	local container = PlayerFrame_GetHealthBarContainer()
+	ns.log("ART", "frame", Rect(PlayerFrame.PlayerFrameContainer.FrameTexture))
+	ns.log("ART", "health container", Rect(container), "bar", Rect(PlayerFrame_GetHealthBar()))
+	ns.log("ART", "health mask", Rect(container.HealthBarMask))
+end
+
+local function Preview(index)
+	local preview = PREVIEWS[index]
+	if not preview or InCombatLockdown() then
+		return
+	end
+	local texture = PlayerFrame.PlayerFrameContainer.FrameTexture
+	texture:SetAtlas(preview.atlas, TextureKitConstants.UseAtlasSize)
+	local info = C_Texture.GetAtlasInfo(preview.atlas)
+	if preview.mirror and info then
+		texture:SetTexCoord(info.rightTexCoord, info.leftTexCoord, info.topTexCoord, info.bottomTexCoord)
+	end
+	ns.log("ART", "preview", index, preview.atlas, "frame", Rect(texture))
+end
+
+-- /fufart mask <top> <height>: moves the health mask's top (px above the container) and height.
+local function TuneMask(top, height)
+	local geometry = ns.HealthBar.geometry
+	geometry.maskTop = top or geometry.maskTop
+	geometry.maskHeight = height or geometry.maskHeight
+	ns.HealthBar.Request()
+	ns.log("ART", "mask top", geometry.maskTop, "height", geometry.maskHeight)
+end
+
+-- /fufart patch <left> <from> <to> <rows>: where the divider is cut out of the frame art
+-- (HealthBar.lua); /fufart patch off|on compares with Blizzard's art.
+local function TunePatch(first, ...)
+	if first == "off" or first == "on" then
+		ns.HealthBar.SetPatchEnabled(first == "on")
+		ns.log("ART", "patch", first)
+		return
+	end
+	local patch = ns.HealthBar.patch
+	local values = { tonumber(first), ... }
+	patch.left = values[1] or patch.left
+	patch.from = tonumber(values[2]) or patch.from
+	patch.to = tonumber(values[3]) or patch.to
+	patch.rows = tonumber(values[4]) or patch.rows
+	ns.HealthBar.Request()
+	ns.log("ART", "patch left", patch.left, "from", patch.from, "to", patch.to, "rows", patch.rows)
+end
+
+SLASH_FOREVERUNITFRAMES_ART1 = "/fufart"
+SlashCmdList.FOREVERUNITFRAMES_ART = function(msg)
+	local command, first, second, third, fourth = strsplit(" ", strtrim(msg or ""))
+	if command == "grow" and tonumber(first) then
+		-- /fufart grow <down> [up] [right]: how far the bar reaches past the old health row.
+		local rise, widen = tonumber(second) or 0, tonumber(third) or 0
+		ns.HealthBar.geometry = ns.HealthBar.Geometry(tonumber(first), rise, widen)
+		ns.HealthBar.Request()
+		ns.log("ART", "grow", first, "up", rise, "right", widen)
+	elseif command == "powermask" then
+		-- /fufart powermask <left> [right] [y]: how far the power bar's mask reaches past the bar.
+		local outset = ns.PowerBar.maskOutset
+		outset.left = tonumber(first) or outset.left
+		outset.right = tonumber(second) or outset.right
+		outset.y = tonumber(third) or outset.y
+		ns.PowerBar.Request()
+		ns.log("ART", "powermask", outset.left, outset.right, outset.y)
+	elseif command == "powerbar" then
+		-- /fufart powerbar <left> [right]: how far the power bar reaches past its box, under the border.
+		local outset = ns.PowerBar.barOutset
+		outset.left = tonumber(first) or outset.left
+		outset.right = tonumber(second) or outset.right
+		ns.PowerBar.Request()
+		ns.log("ART", "powerbar", outset.left, outset.right)
+	elseif command == "powerfill" and tonumber(first) then
+		-- /fufart powerfill <right>: how far the fill reaches past Blizzard's bar on the right.
+		ns.PowerBar.fillOutset.right = tonumber(first)
+		ns.PowerBar.Request()
+		ns.log("ART", "powerfill", first)
+	elseif command == "mask" then
+		TuneMask(tonumber(first), tonumber(second))
+	elseif command == "patch" then
+		TunePatch(first, second, third, fourth)
+	elseif tonumber(command) then
+		Preview(tonumber(command))
+	else
+		LogAtlases()
+	end
+end

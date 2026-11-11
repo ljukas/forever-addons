@@ -25,8 +25,16 @@ end
 
 -- The current character's ignore list, found on first use (the GUID isn't known before
 -- PLAYER_LOGIN). UnitGUID can return a secret value where unit identity is restricted; a secret
--- can't be a table key, so the list then lives for this session only and isn't saved.
+-- can't be a table key, so until the GUID is readable the saved list isn't consulted.
 local ignored
+
+-- Ignores made while the character's list couldn't be found. They move into the saved list
+-- the first time it can.
+local unsaved = {}
+
+local function TableOrNew(value)
+	return type(value) == "table" and value or {}
+end
 
 local function Ignored()
 	if ignored then
@@ -34,16 +42,19 @@ local function Ignored()
 	end
 	local guid = UnitGUID("player")
 	if not guid or issecretvalue(guid) or not ns.db then
-		ns.log("DB", "no character key, ignore list not saved this session")
-		ignored = {}
-		return ignored
+		ns.dev:LogOnce("no-character-key", "DB", "no character key yet, ignores are held until there is one")
+		return unsaved
 	end
 	-- A database from a newer version may lack the layout this version expects.
-	ns.db.characters = ns.db.characters or {}
-	local character = ns.db.characters[guid] or {}
+	ns.db.characters = TableOrNew(ns.db.characters)
+	local character = TableOrNew(ns.db.characters[guid])
 	ns.db.characters[guid] = character
-	character.ignored = character.ignored or {}
+	character.ignored = TableOrNew(character.ignored)
 	ignored = character.ignored
+	for itemID in pairs(unsaved) do
+		ignored[itemID] = true
+	end
+	wipe(unsaved)
 	return ignored
 end
 

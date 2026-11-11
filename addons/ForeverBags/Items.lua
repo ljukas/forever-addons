@@ -55,6 +55,18 @@ local function IsGeneralBag(bag)
 	return not family or family == 0
 end
 
+-- How many slots loot could go into.
+function Items.FreeSlots()
+	local free = 0
+	for bag = FIRST_BAG, LAST_BAG do
+		local count, family = C_Container.GetContainerNumFreeSlots(bag)
+		if not family or family == 0 then
+			free = free + count
+		end
+	end
+	return free
+end
+
 -- Returns the entries, cheapest first, and whether any stack was skipped because its item
 -- data hasn't loaded yet (GET_ITEM_INFO_RECEIVED follows).
 function Items.Scan()
@@ -65,11 +77,14 @@ function Items.Scan()
 			for slot = 1, C_Container.GetContainerNumSlots(bag) do
 				local info = C_Container.GetContainerItemInfo(bag, slot)
 				if info then
-					local sellPrice = select(11, C_Item.GetItemInfo(info.itemID))
+					-- By link, not item ID: a random-suffix item ("of the Bear") has its own price.
+					local sellPrice = select(11, C_Item.GetItemInfo(info.hyperlink))
 					if ns.dev.enabled and sellPrice then
 						ns.dev:LogOnce(
-							"scan-secret",
+							"scan-secret-" .. tostring(InCombatLockdown()),
 							"SCAN",
+							"combat",
+							InCombatLockdown(),
 							"secret sellPrice",
 							issecretvalue(sellPrice),
 							"hasNoValue",

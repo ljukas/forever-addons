@@ -10,23 +10,12 @@ local Window = ns.Window
 local looting = false
 -- The player closed the window during this loot: it stays closed until the next one.
 local dismissed = false
--- A stack was deleted during this loot: loot again once the bags have caught up.
+-- A stack was deleted during this loot: loot again once a bag slot is free.
 local relootArmed = false
+-- A re-loot ran and its outcome hasn't been logged yet.
+local relootUnlogged = false
 
 local driver = CreateFrame("Frame")
-
--- Takes everything still in the loot window, once. A slot that still doesn't fit raises the
--- full-inventory error again, which refreshes the window.
-local function LootAgain()
-	local slots = 0
-	for slot = 1, GetNumLootItems() do
-		if GetLootSlotInfo(slot) then
-			slots = slots + 1
-			LootSlot(slot)
-		end
-	end
-	ns.log("RELOOT", "before", slots)
-end
 
 local function RemainingLoot()
 	local slots = 0
@@ -38,16 +27,39 @@ local function RemainingLoot()
 	return slots
 end
 
+-- Takes everything still in the loot window, once. A slot that still doesn't fit raises the
+-- full-inventory error again, which refreshes the window.
+local function LootAgain()
+	ns.log("RELOOT", "before", RemainingLoot(), "free", ns.Items.FreeSlots())
+	relootUnlogged = true
+	for slot = 1, GetNumLootItems() do
+		if GetLootSlotInfo(slot) then
+			LootSlot(slot)
+		end
+	end
+end
+
+-- outcome: "took" (a loot slot emptied), "full" (the bags were full again) or "closed".
+local function LogReloot(outcome, remaining)
+	if relootUnlogged then
+		relootUnlogged = false
+		ns.log("RELOOT", "after", remaining, outcome)
+	end
+end
+
 local function OnEvent(_, event, ...)
 	if event == "LOOT_OPENED" then
 		local autoLoot = ...
 		looting = true
 		dismissed = false
 		relootArmed = false
+		relootUnlogged = false
 		driver.autoLoot = autoLoot
 		driver:RegisterEvent("UI_ERROR_MESSAGE")
 		driver:RegisterEvent("BAG_UPDATE_DELAYED")
+		driver:RegisterEvent("LOOT_SLOT_CLEARED")
 	elseif event == "LOOT_CLOSED" then
+		LogReloot("closed", 0)
 		looting = false
 		relootArmed = false
 		driver:UnregisterEvent("UI_ERROR_MESSAGE")
@@ -61,23 +73,22 @@ local function OnEvent(_, event, ...)
 		if message ~= ERR_INV_FULL then
 			return
 		end
-		ns.log("FULL", errorType, "auto", driver.autoLoot, "dismissed", dismissed)
+		ns.log("FULL", errorType, "autoloot", driver.autoLoot, "dismissed", dismissed)
+		LogReloot("full", RemainingLoot())
 		if Window.IsOpen() then
 			Window.Refresh()
 		elseif not dismissed then
 			Window.Open("loot", LootFrame)
 		end
 	elseif event == "BAG_UPDATE_DELAYED" then
-		if relootArmed then
+		-- Bag updates arrive for other reasons too, some before the delete has reached the
+		-- server. The one that counts is the first with a free slot.
+		if relootArmed and ns.Items.FreeSlots() > 0 then
 			relootArmed = false
-			if ns.dev.enabled then
-				driver:RegisterEvent("LOOT_SLOT_CLEARED")
-			end
 			LootAgain()
 		end
 	elseif event == "LOOT_SLOT_CLEARED" then
-		-- Only registered with ForeverDev, after a re-loot: shows that it took something.
-		ns.log("RELOOT", "after", RemainingLoot())
+		LogReloot("took", RemainingLoot())
 	end
 end
 

@@ -13,9 +13,11 @@ local POPUP = "FOREVERBAGS_DELETE_ITEM"
 local POPUP_GOOD = "FOREVERBAGS_DELETE_GOOD_ITEM"
 
 -- True while the slot still holds exactly the stack the entry describes and nothing is on
--- the cursor.
+-- the cursor. A spell waiting for an item to be cast on (an enchant, a poison) counts as
+-- something on the cursor: picking a slot up would cast it, as Blizzard's bag buttons check
+-- (ContainerFrame.lua).
 function Delete.Matches(entry)
-	if GetCursorInfo() then
+	if GetCursorInfo() or SpellIsTargeting() then
 		return false
 	end
 	local info = C_Container.GetContainerItemInfo(entry.bag, entry.slot)

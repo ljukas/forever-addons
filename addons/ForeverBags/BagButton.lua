@@ -11,15 +11,15 @@ local ADDON_NAME, ns = ...
 local Window = ns.Window
 
 local SIZE = 20
-local ICON_SIZE = 14
 
 local button = CreateFrame("Button", nil, UIParent)
 button:SetSize(SIZE, SIZE)
 button:Hide()
 
 local icon = button:CreateTexture(nil, "ARTWORK")
-icon:SetAtlas("bags-junkcoin")
-icon:SetSize(ICON_SIZE, ICON_SIZE)
+-- At the atlas's own size, as Blizzard draws it on a junk item.
+local useAtlasSize = true
+icon:SetAtlas("bags-junkcoin", useAtlasSize)
 icon:SetPoint("CENTER")
 
 local highlight = button:CreateTexture(nil, "HIGHLIGHT")
@@ -37,7 +37,8 @@ end)
 
 button:SetScript("OnClick", function(self)
 	if Window.IsOpen() then
-		Window.Close()
+		local byPlayer = true
+		Window.Close(byPlayer)
 	else
 		Window.Open("hand", self:GetParent())
 	end

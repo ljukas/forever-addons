@@ -58,7 +58,8 @@
 					<Size x="0" y="14"/>
 					<Anchors>
 						<Anchor point="TOPLEFT" relativeKey="$parent.Item" relativePoint="TOPRIGHT" x="8" y="-4"/>
-						<Anchor point="RIGHT" relativeKey="$parent.Delete" relativePoint="LEFT" x="-4" y="0"/>
+						<!-- Up to the Delete button (62 wide, 6 from the edge), on the name's own line. -->
+						<Anchor point="TOPRIGHT" x="-72" y="-8"/>
 					</Anchors>
 				</FontString>
 				<FontString parentKey="Price" inherits="GameFontHighlightSmall" justifyH="LEFT">

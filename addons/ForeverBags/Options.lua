@@ -13,13 +13,7 @@ ns.OnInitialize(function()
 	-- The settings button asserts that addSearchTags is given.
 	local addSearchTags = true
 	layout:AddInitializer(
-		CreateSettingsButtonInitializer(
-			ns.L.RESET_IGNORED,
-			ns.L.RESET_IGNORED,
-			ResetIgnored,
-			ns.L.RESET_IGNORED_TOOLTIP,
-			addSearchTags
-		)
+		CreateSettingsButtonInitializer("", ns.L.RESET_IGNORED, ResetIgnored, ns.L.RESET_IGNORED_TOOLTIP, addSearchTags)
 	)
 
 	Settings.RegisterAddOnCategory(category)

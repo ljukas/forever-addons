@@ -24,6 +24,8 @@ local SPACING = 2
 local PANEL_WIDTH = 260
 local PANEL_MAX_HEIGHT = 290
 local GAP = 8
+-- Seconds after a delete during which further Delete clicks are ignored.
+local DELETE_PAUSE = 0.5
 
 local frame
 local owner
@@ -31,6 +33,8 @@ local owner
 local closingOurselves = false
 -- The last scan skipped a stack whose item data hadn't loaded.
 local pending = false
+-- GetTime() of the last delete made from the window.
+local lastDelete = 0
 
 ForeverBagsRowMixin = {}
 
@@ -42,6 +46,7 @@ function ForeverBagsRowMixin:Init(entry)
 	self.entry = entry
 	SetItemButtonTexture(self.Item, entry.icon)
 	SetItemButtonCount(self.Item, entry.count)
+	SetItemButtonQuality(self.Item, entry.quality, entry.link)
 	self.Name:SetText(entry.name)
 	local colorData = ColorManager.GetColorDataForItemQuality(entry.quality or Enum.ItemQuality.Common)
 	if colorData then
@@ -52,7 +57,13 @@ function ForeverBagsRowMixin:Init(entry)
 end
 
 function ForeverBagsRowMixin:OnDeleteClick()
+	-- After a delete the list moves up, and the next stack lands under the cursor. A second
+	-- click that quickly was aimed at the row that is gone, so it is dropped.
+	if GetTime() - lastDelete < DELETE_PAUSE then
+		return
+	end
 	local function Deleted()
+		lastDelete = GetTime()
 		if Window.onDeleted then
 			Window.onDeleted()
 		end
@@ -105,6 +116,11 @@ local function OnHide(self)
 	ns.log("WINDOW", "close", owner, byPlayer and "player" or "addon")
 	closingOurselves = false
 	owner = nil
+	-- When a parent was hidden (the whole UI, for a cinematic or Alt-Z) the frame itself still
+	-- counts as shown and would come back, empty, with the parent. Close it for real.
+	if self:IsShown() then
+		self:Hide()
+	end
 	if byPlayer and Window.onClosedByPlayer then
 		Window.onClosedByPlayer()
 	end
@@ -138,6 +154,16 @@ local function Create()
 		row:Init(entry)
 	end)
 	ScrollUtil.InitScrollBoxWithScrollBar(frame.ScrollBox, frame.ScrollBar, view)
+
+	-- The template's scroll shadows, sized and placed as LootFrameMixin:OnLoad does.
+	local scrollBox = frame.ScrollBox
+	scrollBox:SetShadowsFrameLevel(scrollBox.ScrollTarget:GetFrameLevel() + 15)
+	scrollBox:SetShadowsScale(0.2)
+	scrollBox:GetUpperShadowTexture():SetTexCoord(0, 1, 1, 0)
+	scrollBox:GetUpperShadowTexture():SetPoint("TOPLEFT", 30, 0)
+	scrollBox:GetUpperShadowTexture():SetPoint("TOPRIGHT", -30, 0)
+	scrollBox:GetLowerShadowTexture():SetPoint("BOTTOMLEFT", 30, 0)
+	scrollBox:GetLowerShadowTexture():SetPoint("BOTTOMRIGHT", -30, 0)
 
 	frame.Empty = frame:CreateFontString(nil, "ARTWORK", "GameFontDisable")
 	frame.Empty:SetPoint("LEFT", frame.ScrollBox, "LEFT", PAD * 2, 0)
@@ -198,9 +224,11 @@ function Window.Open(newOwner, anchorFrame)
 	ns.log("WINDOW", "open", owner)
 end
 
-function Window.Close()
+-- byPlayer: the player asked for it (the bag button), so it counts as them closing the
+-- window, the same as its close button.
+function Window.Close(byPlayer)
 	if Window.IsOpen() then
-		closingOurselves = true
+		closingOurselves = not byPlayer
 		frame:Close()
 	end
 end

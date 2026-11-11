@@ -32,8 +32,8 @@ local ignored
 -- the first time it can.
 local unsaved = {}
 
-local function TableOrNew(value)
-	return type(value) == "table" and value or {}
+local function IsTableOrNil(value)
+	return value == nil or type(value) == "table"
 end
 
 local function Ignored()
@@ -45,11 +45,22 @@ local function Ignored()
 		ns.dev:LogOnce("no-character-key", "DB", "no character key yet, ignores are held until there is one")
 		return unsaved
 	end
-	-- A database from a newer version may lack the layout this version expects.
-	ns.db.characters = TableOrNew(ns.db.characters)
-	local character = TableOrNew(ns.db.characters[guid])
+	-- A database from a newer version may have another layout. What is missing is created;
+	-- what is there in another shape is left alone, and the list isn't saved this session.
+	local characters = ns.db.characters
+	local character = type(characters) == "table" and characters[guid] or nil
+	if
+		not IsTableOrNil(characters)
+		or not IsTableOrNil(character)
+		or (character and not IsTableOrNil(character.ignored))
+	then
+		ns.dev:LogOnce("foreign-layout", "DB", "saved layout not recognised, ignores are not saved")
+		return unsaved
+	end
+	ns.db.characters = characters or {}
+	character = character or {}
 	ns.db.characters[guid] = character
-	character.ignored = TableOrNew(character.ignored)
+	character.ignored = character.ignored or {}
 	ignored = character.ignored
 	for itemID in pairs(unsaved) do
 		ignored[itemID] = true

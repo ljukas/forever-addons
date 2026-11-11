@@ -29,9 +29,13 @@ ns.PowerBar.maskOutset = { left = 16, right = 16, y = 6 }
 
 -- How far the bar itself reaches past the holder, under the border: in game the fill's art (made
 -- for the player frame) started short of the border's left edge, and a full mana bar stopped short
--- of its right edge, while 3 px there ran past the border when spending (2026-11-10/11). Tunable by
--- the dev probe (/fufart powerbar <left> <right>).
-ns.PowerBar.barOutset = { left = 2, right = 2 }
+-- of its right edge (2026-11-10/11). Tunable by the dev probe (/fufart powerbar <left> <right>).
+ns.PowerBar.barOutset = { left = 2, right = 0 }
+
+-- How far the fill reaches past Blizzard's bar on the right: a full bar's art needs 3 px more to
+-- meet the border, but Blizzard's spend flash, drawn on its own bar, ran past the border when the
+-- bar itself was widened that far (2026-11-11). Tunable by the dev probe (/fufart powerfill <right>).
+ns.PowerBar.fillOutset = { right = 3 }
 
 local holder = CreateFrame("Frame", nil, UIParent)
 holder:SetFrameStrata(PlayerFrame:GetFrameStrata())
@@ -117,6 +121,10 @@ local function ApplyBar()
 	pulse.PulseFrame:ClearAllPoints()
 	pulse.PulseFrame:SetPoint("RIGHT")
 
+	fill:ClearAllPoints()
+	fill:SetPoint("TOPLEFT", bar)
+	fill:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", ns.PowerBar.fillOutset.right, 0)
+
 	SetBackdropShown(bar:IsShown())
 	if ns.dev.enabled then
 		ns.log("POWER", "bar", bar:GetWidth(), bar:GetHeight(), "shown", bar:IsShown(), "unit", PlayerFrame.unit)
@@ -188,7 +196,6 @@ ns.OnInitialize(function()
 		SetBackdropShown(false)
 	end)
 
-	fill:SetAllPoints(bar)
 	hooksecurefunc(bar, "SetMinMaxValues", function(_, minValue, maxValue)
 		fill:SetMinMaxValues(minValue, maxValue)
 	end)

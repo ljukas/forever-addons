@@ -135,6 +135,11 @@ SlashCmdList.FOREVERUNITFRAMES_ART = function(msg)
 		outset.right = tonumber(second) or outset.right
 		ns.PowerBar.Request()
 		ns.log("ART", "powerbar", outset.left, outset.right)
+	elseif command == "powerfill" and tonumber(first) then
+		-- /fufart powerfill <right>: how far the fill reaches past Blizzard's bar on the right.
+		ns.PowerBar.fillOutset.right = tonumber(first)
+		ns.PowerBar.Request()
+		ns.log("ART", "powerfill", first)
 	elseif command == "mask" then
 		TuneMask(tonumber(first), tonumber(second))
 	elseif command == "patch" then

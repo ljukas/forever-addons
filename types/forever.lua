@@ -55,6 +55,42 @@ UNIT_LEVEL_TEMPLATE = ""
 ---@type string
 XP_TEXT = ""
 
+--- Button and dialog texts of Blizzard's own delete confirmations
+--- (Blizzard_StaticPopup_Game/GameDialogDefs.lua and Mainline/GameDialogDefs.lua: DELETE_ITEM and
+--- DELETE_GOOD_ITEM take the item's name or link; DELETE_ITEM_CONFIRM_STRING is the word to type).
+--- DELETE labels the mail frame's delete button (Blizzard_MailFrame/MailFrame.lua).
+---@type string
+YES = ""
+---@type string
+NO = ""
+---@type string
+DELETE = ""
+---@type string
+DELETE_ITEM = ""
+---@type string
+DELETE_GOOD_ITEM = ""
+---@type string
+DELETE_ITEM_CONFIRM_STRING = ""
+
+--- The error text when loot doesn't fit in the bags; Blizzard_UIPanels_Game/Mainline/LootFrame.lua
+--- compares UI_ERROR_MESSAGE's message with it.
+---@type string
+ERR_INV_FULL = ""
+
+--- Loot window functions that the generated docs leave out. Blizzard_UIPanels_Game/Mainline/
+--- LootFrame.lua calls them (LootSlot at 84, GetNumLootItems at 227, GetLootSlotInfo at 228).
+
+--- Loots one slot of the open loot window.
+---@param slot number
+function LootSlot(slot) end
+
+---@return number
+function GetNumLootItems() end
+
+---@param slot number
+---@return number|string? texture, string? item, number? quantity, number? currencyID, number? itemQuality, boolean? locked, boolean? isQuestItem, number? questID, boolean? isActive, boolean? isCoin
+function GetLootSlotInfo(slot) end
+
 -- Frames created by Blizzard XML.
 
 -- The frame the 3D world renders in, created by the client; the mouse focus while the cursor is over

@@ -16,3 +16,7 @@
 Core.lua
 Database.lua
 Items.lua
+Delete.lua
+#@do-not-package@
+Dev/DeleteProbe.lua
+#@end-do-not-package@

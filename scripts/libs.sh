@@ -64,7 +64,13 @@ for pkgmeta in "$ADDONS_DIR"/*/.pkgmeta; do
 			die "$pkgmeta: external '$path' must be a path under Libs/"
 		dest="$addon_dir/$path"
 		label="$(basename "$addon_dir")/$path"
-		[[ ! -L "$addon_dir/Libs" && ! -L "$dest" ]] || die "$label: is a link; remove it so it can be fetched"
+		# No folder on the way may be a link, or the library would land (and be replaced) outside Libs/.
+		walked="$addon_dir"
+		IFS=/ read -ra parts <<<"$path"
+		for part in "${parts[@]}"; do
+			walked="$walked/$part"
+			[[ ! -L "$walked" ]] || die "$label: ${walked#"$addon_dir"/} is a link; remove it so it can be fetched"
+		done
 		if [[ -e "$dest" && ! -d "$dest/.git" ]]; then
 			die "$label: exists but isn't a fetched library; remove it so it can be fetched"
 		fi
@@ -83,10 +89,14 @@ for pkgmeta in "$ADDONS_DIR"/*/.pkgmeta; do
 
 		# A new library, or one whose url changed: clone beside it, and only replace it once that worked.
 		[[ -d "$dest" ]] && echo "==> $label moved to $url" || echo "==> Fetching $label ($tag)"
-		staging="$dest.fetching"
-		rm -rf "$staging"
-		GIT_TERMINAL_PROMPT=0 git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$tag" \
-			--recurse-submodules --shallow-submodules "$url" "$staging"
+		# A new, empty staging folder of its own, so nothing already there is ever deleted.
+		mkdir -p "$(dirname "$dest")"
+		staging="$(mktemp -d "$dest.fetching.XXXXXX")"
+		if ! GIT_TERMINAL_PROMPT=0 git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$tag" \
+			--recurse-submodules --shallow-submodules "$url" "$staging"; then
+			rm -rf "$staging"
+			die "$label: couldn't clone $url at $tag"
+		fi
 		rm -rf "$dest"
 		mv "$staging" "$dest"
 	done < <(externals_of "$pkgmeta")

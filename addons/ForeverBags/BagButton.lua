@@ -68,7 +68,14 @@ local function Attach(bagFrame)
 	button:SetParent(bagFrame)
 	button:ClearAllPoints()
 	button:SetPoint("RIGHT", bagFrame.CloseButton, "LEFT", 0, 0)
-	button:SetFrameLevel(bagFrame.CloseButton:GetFrameLevel())
+	-- The frame's TitleContainer takes mouse input, spans the title bar up to the close button
+	-- and sits at the close button's level (510, seen in game), so at that level the title
+	-- bar gets the click. The button goes one above.
+	local level = bagFrame.CloseButton:GetFrameLevel()
+	if bagFrame.TitleContainer then
+		level = math.max(level, bagFrame.TitleContainer:GetFrameLevel())
+	end
+	button:SetFrameLevel(level + 1)
 	button:Show()
 end
 

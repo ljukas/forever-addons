@@ -15,8 +15,9 @@ set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
 # Prints "<path> <url> <tag>" for each external in the .pkgmeta at <file>, or "INVALID <line>" for an
-# entry in a form this script doesn't read (the short "path: url" form, a key outside an entry, an
-# entry indented less than the first). Entries may use any indentation, as long as all share it.
+# entry in a form this script doesn't read (the short "path: url" form, a key outside an entry, a key
+# other than url, tag and "type: git", an entry indented less than the first). Entries may use any
+# indentation, as long as all share it.
 externals_of() {
 	awk '
 		function flush() {
@@ -39,9 +40,11 @@ externals_of() {
 				flush(); path = $1; sub(/:$/, "", path); next
 			}
 			if (indent > entry && path != "") {
-				if ($1 == "url:") url = value($0)
-				else if ($1 == "tag:") tag = value($0)
-				next
+				# Any other key (path, branch, commit, a non-git type) would change what the packager
+				# bundles, so it is rejected rather than ignored.
+				if ($1 == "url:") { url = value($0); next }
+				if ($1 == "tag:") { tag = value($0); next }
+				if ($1 == "type:" && value($0) == "git") next
 			}
 			flush(); print "INVALID", $0
 		}
@@ -53,7 +56,7 @@ for pkgmeta in "$ADDONS_DIR"/*/.pkgmeta; do
 	[[ -f "$pkgmeta" ]] || continue
 	addon_dir="$(dirname "$pkgmeta")"
 	while read -r path url tag; do
-		[[ "$path" != INVALID ]] || die "$pkgmeta: can't read external '$url $tag' (use the long form, see $0)"
+		[[ "$path" != INVALID ]] || die "$pkgmeta: can't read external line '$url $tag' (only the long form with url and tag, see $0)"
 		[[ -n "$url" && -n "$tag" ]] ||
 			die "$pkgmeta: external '$path' needs a git url and a pinned tag"
 		# Only ever replace folders under Libs/, so a typo can't delete the addon's own files.

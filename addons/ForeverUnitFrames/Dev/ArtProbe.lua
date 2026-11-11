@@ -81,6 +81,8 @@ local function Preview(index)
 	if preview.mirror and info then
 		texture:SetTexCoord(info.rightTexCoord, info.leftTexCoord, info.topTexCoord, info.bottomTexCoord)
 	end
+	-- The divider patch hides the frame art; it only covers Forever's own atlas, so re-run it.
+	ns.HealthBar.Request()
 	ns.log("ART", "preview", index, preview.atlas, "frame", Rect(texture))
 end
 

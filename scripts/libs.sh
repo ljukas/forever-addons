@@ -52,6 +52,20 @@ externals_of() {
 	' "$1"
 }
 
+# Brings <dir>'s submodules to what its checkout records, at the urls its .gitmodules gives now.
+sync_submodules() {
+	git -C "$1" submodule sync --quiet --recursive &&
+		GIT_TERMINAL_PROMPT=0 git -C "$1" submodule update --quiet --init --recursive --depth 1
+}
+
+# Checks out tag <tag> in the checkout <dir>, fetched from origin as refs/tags/<tag> only: unlike
+# `clone --branch`, a branch of the same name can never stand in for it.
+checkout_tag() {
+	GIT_TERMINAL_PROMPT=0 git -C "$1" fetch --quiet --depth 1 --no-tags origin "+refs/tags/$2:refs/tags/$2" &&
+		git -C "$1" -c advice.detachedHead=false checkout --quiet --force "refs/tags/$2" &&
+		sync_submodules "$1"
+}
+
 for pkgmeta in "$ADDONS_DIR"/*/.pkgmeta; do
 	[[ -f "$pkgmeta" ]] || continue
 	addon_dir="$(dirname "$pkgmeta")"
@@ -59,8 +73,10 @@ for pkgmeta in "$ADDONS_DIR"/*/.pkgmeta; do
 		[[ "$path" != INVALID ]] || die "$pkgmeta: can't read external line '$url $tag' (only the long form with url and tag, see $0)"
 		[[ -n "$url" && -n "$tag" ]] ||
 			die "$pkgmeta: external '$path' needs a git url and a pinned tag"
-		# Only ever replace folders under Libs/, so a typo can't delete the addon's own files.
-		[[ "$path" == Libs/* && "/$path/" != */../* && "/$path/" != */./* ]] ||
+		# Only ever replace folders under Libs/, so a typo can't delete the addon's own files. A
+		# trailing slash would put the staging folder inside the library instead of beside it.
+		while [[ "$path" == */ ]]; do path="${path%/}"; done
+		[[ "$path" == Libs/?* && "/$path/" != */../* && "/$path/" != */./* && "$path" != *//* ]] ||
 			die "$pkgmeta: external '$path' must be a path under Libs/"
 		dest="$addon_dir/$path"
 		label="$(basename "$addon_dir")/$path"
@@ -80,10 +96,10 @@ for pkgmeta in "$ADDONS_DIR"/*/.pkgmeta; do
 			wanted="$(git -C "$dest" rev-parse -q --verify "refs/tags/$tag^{commit}" || true)"
 			if [[ -z "$wanted" || "$wanted" != "$(git -C "$dest" rev-parse HEAD)" ]]; then
 				echo "==> Updating $label to $tag"
-				GIT_TERMINAL_PROMPT=0 git -C "$dest" fetch --quiet --depth 1 origin tag "$tag"
-				git -C "$dest" checkout --quiet --force "refs/tags/$tag"
+				checkout_tag "$dest" "$tag"
+			else
+				sync_submodules "$dest"
 			fi
-			GIT_TERMINAL_PROMPT=0 git -C "$dest" submodule update --quiet --init --recursive
 			continue
 		fi
 
@@ -92,8 +108,8 @@ for pkgmeta in "$ADDONS_DIR"/*/.pkgmeta; do
 		# A new, empty staging folder of its own, so nothing already there is ever deleted.
 		mkdir -p "$(dirname "$dest")"
 		staging="$(mktemp -d "$dest.fetching.XXXXXX")"
-		if ! GIT_TERMINAL_PROMPT=0 git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$tag" \
-			--recurse-submodules --shallow-submodules "$url" "$staging"; then
+		if ! { git init --quiet "$staging" && git -C "$staging" remote add origin "$url" &&
+			checkout_tag "$staging" "$tag"; }; then
 			rm -rf "$staging"
 			die "$label: couldn't clone $url at $tag"
 		fi

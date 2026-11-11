@@ -65,14 +65,15 @@ end
 
 -- The DB key for a layout: its name, plus this character for a character-specific layout. The
 -- preset layouts (Modern, Classic) aren't in GetLayouts and are shared by every character, as in
--- Edit Mode.
+-- Edit Mode. Nil for a character-specific layout while this character is unknown, so its settings
+-- are neither read from nor saved to another character's shared entry.
 local function Key(layoutName)
 	if not layoutName then
 		return nil
 	end
 	for _, layout in ipairs(C_EditMode.GetLayouts().layouts) do
 		if layout.layoutName == layoutName and layout.layoutType == Enum.EditModeLayoutType.Character then
-			return characterKey and (layoutName .. " @ " .. characterKey) or layoutName
+			return characterKey and (layoutName .. " @ " .. characterKey) or nil
 		end
 	end
 	return layoutName
@@ -169,8 +170,9 @@ local function SnapAfterDrag(selection)
 end
 
 ns.OnInitialize(function()
+	-- Checked for secrecy before anything else touches it.
 	local guid = UnitGUID("player")
-	if guid and not issecretvalue(guid) then
+	if not issecretvalue(guid) and guid then
 		characterKey = guid
 	end
 
@@ -222,10 +224,10 @@ ns.OnInitialize(function()
 	end)
 
 	-- The layout is gone, so its type is unknown: this character's entry if it has one, else the
-	-- shared one.
+	-- shared one. While this character is unknown nothing is deleted; a stale entry is harmless.
 	LEM:RegisterCallback("delete", function(layoutName)
 		local store = Store()
-		if not store then
+		if not store or not characterKey then
 			return
 		end
 		local characterEntry = characterKey and (layoutName .. " @ " .. characterKey)

@@ -92,7 +92,18 @@ function ForeverBagsRowMixin:OnItemEnter()
 	GameTooltip:Show()
 end
 
+-- The game's own words for full bags, without the full stop of the error message.
+local TITLE_FULL = (ERR_INV_FULL:gsub("%.$", ""))
+
+-- A window a failed loot opened says why it is there, also while a delete has just made room.
+-- One opened by hand only says the bags are full when they are.
+local function UpdateTitle()
+	local full = owner == "loot" or ns.Items.FreeSlots() == 0
+	frame:SetTitle(full and TITLE_FULL or ns.L.BUTTON_TOOLTIP)
+end
+
 local function Populate()
+	UpdateTitle()
 	local entries
 	entries, pending = ns.Items.Scan()
 	frame.ScrollBox:SetDataProvider(CreateDataProvider(entries), ScrollBoxConstants.RetainScrollPosition)
@@ -138,9 +149,7 @@ local function Create()
 	frame.panelWidth = PANEL_WIDTH
 	frame.panelMaxHeight = PANEL_MAX_HEIGHT
 	frame:SetFrameStrata("HIGH")
-	-- The panel reads its title while it is created, before we could set one. The game's own
-	-- words for the situation, without the full stop of the error message.
-	frame:SetTitle((ERR_INV_FULL:gsub("%.$", "")))
+	-- The panel reads its title while it is created, before we could set one; Populate sets it.
 
 	-- ScrollingFlatPanelMixin leaves this to the frame that uses it.
 	function frame:CalculateElementsHeight()

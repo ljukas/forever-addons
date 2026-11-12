@@ -35,7 +35,7 @@ ns.L = {
 	SMOOTH = "Smooth Fill",
 	SMOOTH_DESC = "Slide the bar to each new value instead of jumping to it.",
 	OFF_FORM = "Other Powers",
-	OFF_FORM_DESC = "Show the powers your current form doesn't use (mana, energy, rage) in a row above the bar, once you know their forms.",
+	OFF_FORM_DESC = "Show your mana while in a form, and your energy outside Cat Form once you know it, in a row above the bar.",
 	OFF_FORM_HEIGHT = "Other Powers Height",
 }
 

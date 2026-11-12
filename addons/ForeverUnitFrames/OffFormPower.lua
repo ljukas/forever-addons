@@ -1,10 +1,12 @@
 local ADDON_NAME, ns = ...
 
--- A druid's other powers: a row above the detached power bar with a thin bar for each of mana,
--- energy and rage that the current form doesn't use. Rage gets a bar once the druid knows a bear
--- form and energy once they know cat form: no bar before either, one bar across the row with one
--- of them, two side by side with both. Each wears the cast bar's border, overlapping the power bar's by a
--- line, over the power bar's background (ns.PowerBar.SetHeadroom), so they read as one frame
+-- A druid's other powers: a row above the detached power bar with a thin bar for mana and for
+-- energy when the current form doesn't use them. Energy gets its bar once the druid knows Cat
+-- Form (it builds up outside cat form, see the Furor talent). Rage gets none: it is gone by the time
+-- the druid is back in bear form (in game, 2026-11-12). So: no row in caster form before Cat Form,
+-- one bar across the row otherwise, and two side by side in bear form with Cat Form known. Each
+-- wears the cast bar's border, overlapping the power bar's by a line, over the power bar's
+-- background (ns.PowerBar.SetHeadroom), so they read as one frame
 -- (docs/superpowers/specs/2026-11-12-foreverunitframes-off-form-power-design.md).
 --
 -- Display only. Power values are secret: they go from UnitPower straight into the status bars and
@@ -20,16 +22,14 @@ if not ns.OffFormPower.available then
 	return
 end
 
-local Mana, Energy, Rage = Enum.PowerType.Mana, Enum.PowerType.Energy, Enum.PowerType.Rage
+local Mana, Energy = Enum.PowerType.Mana, Enum.PowerType.Energy
 
 -- Left to right; the current form's power is left out.
-local ORDER = { Mana, Energy, Rage }
+local ORDER = { Mana, Energy }
 
--- The power each form's spell brings. Bear Form and Dire Bear Form are the IDs Blizzard names in
--- Blizzard_ActionBar/Shared/SpellFlyout.lua; Cat Form is Vanilla's.
+-- The power each form's spell brings, for the powers in ORDER. Cat Form's ID is Vanilla's; the
+-- client's source doesn't name it.
 local FORM_POWER = {
-	[5487] = Rage,
-	[9634] = Rage,
 	[768] = Energy,
 }
 
@@ -38,11 +38,10 @@ local FORM_POWER = {
 local ATLAS = {
 	[Mana] = "UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana",
 	[Energy] = "UI-HUD-UnitFrame-Player-PortraitOn-Bar-Energy",
-	[Rage] = "UI-HUD-UnitFrame-Player-PortraitOn-Bar-Rage",
 }
 
 -- For the devlog.
-local NAME = { [Mana] = "mana", [Energy] = "energy", [Rage] = "rage" }
+local NAME = { [Mana] = "mana", [Energy] = "energy" }
 
 -- How far the cast bar's border reaches past the bar it frames (CastingBarFrame.xml), which is how
 -- thick its line draws. Neighbouring bars sit this far apart and their borders overlap by it, so
@@ -240,8 +239,6 @@ function ns.OffFormPower.SetLayout(shown, height)
 			"art",
 			"energy",
 			C_Texture.GetAtlasInfo(ATLAS[Energy]) ~= nil,
-			"rage",
-			C_Texture.GetAtlasInfo(ATLAS[Rage]) ~= nil,
 			"border sliced",
 			frame ~= nil and frame.sliceData ~= nil
 		)

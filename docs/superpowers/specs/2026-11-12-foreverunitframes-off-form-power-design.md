@@ -11,17 +11,17 @@ it."
 
 ## What it does
 
-- A row above the detached power bar holds a thin bar for each power of mana, energy and rage
-  that the druid has and the current form does **not** use, in that order.
-- A power only gets a bar once the druid knows its form (the user: "we should only activate
-  extra bars when we know the spells"). Mana always counts; rage counts once a bear form is on
-  the stance bar (spells 5487, 9634), energy once Cat Form is (768).
+- A row above the detached power bar holds a thin bar for mana and for energy when the current
+  form does **not** use them, in that order.
+- Energy only gets its bar once the druid knows Cat Form (the user: "we should only activate
+  extra bars when we know the spells"): spell 768 on the stance bar.
+- Rage never gets a bar: in game it was gone whenever the user went back into bear form, so
+  there is nothing to watch (2026-11-12). Energy does build up outside cat form (the Furor talent).
 
   | Forms known | In caster form | In bear | In cat |
   |---|---|---|---|
-  | none (before level 10) | no row | | |
-  | bear | rage, full width | mana, full width | |
-  | bear and cat | energy, rage | mana, energy | mana, rage |
+  | none or bear only | no row | mana, full width | |
+  | cat (with or without bear) | energy, full width | mana, energy | mana, full width |
 
   One bar spans the row, so with the main bar it is two bars of equal width; two bars split the
   row in half.
@@ -31,7 +31,7 @@ it."
   isn't sliced, and stretched over the row its top and bottom lines grew thicker and crowded the
   bar's text (in game, 2026-11-12). The background grows upward behind the row.
 - The bars use Blizzard's player-frame bar art per power
-  (`UI-HUD-UnitFrame-Player-PortraitOn-Bar-<Mana|Energy|Rage>`, from `PowerBarColor`), with no
+  (`UI-HUD-UnitFrame-Player-PortraitOn-Bar-<Mana|Energy>`, from `PowerBarColor`), with no
   text, pulse or spend flash. They slide to new values when the bar's Smooth Fill is on.
 - The row follows the main bar's position and width. The Edit Mode box stays the main bar; the row
   grows upward from it.
@@ -59,7 +59,7 @@ it."
 
 ## Calls made by the builder (not the user's)
 
-- The order mana, energy, rage, and showing energy + rage in caster form.
+- Mana left of energy, and showing energy in caster form.
 - Reading known forms from the stance bar (`GetShapeshiftFormInfo`) by spell ID.
 - The height slider, since pixel tuning goes in options sliders.
 
@@ -69,11 +69,11 @@ it."
 |---|---|
 | Row shows the right powers in bear, cat and caster form | screenshot; `OFFFORM powers` |
 | The stance bar's form spell IDs are the ones the code expects | `OFFFORM form <index> <spellID>` |
-| A druid without cat form gets one full-width bar; without bear form, no row | user on a low-level druid |
+| A druid without cat form gets no row in caster form and mana in bear | user on a low-level druid |
 | Row and main bar read as one framed bar; dividers look right | screenshot |
 | Fills reach the border's left and right ends | screenshot at full mana |
-| Energy fills while in bear; what rage reads in cat | user's eyes (values are secret); `OFFFORM event <event> <power> in <current>` shows which powers get updates |
-| The energy and rage bar art exists; the border stretches without thickening | `OFFFORM art`; screenshot |
+| Energy fills while in bear and in caster form | user's eyes (values are secret); `OFFFORM event <event> <power> in <current>` shows which powers get updates |
+| The energy bar art exists; the border stretches without thickening | `OFFFORM art`; screenshot |
 | Bars update in combat, no blocked actions or errors | `devlog.sh --errors` |
 | Checkbox hides the row and the border shrinks back; slider resizes it | user; `OFFFORM layout` |
 | A non-druid sees no row and no settings | user on another character |

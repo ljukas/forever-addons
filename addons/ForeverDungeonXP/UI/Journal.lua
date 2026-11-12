@@ -2,9 +2,10 @@ local _, ns = ...
 
 -- The journal window: the character's runs grouped by dungeon on the left, the selected run's
 -- totals and creatures on the right. Built on first use from Blizzard's own panel pieces
--- (ButtonFrameTemplate, InsetFrameTemplate, WowScrollBoxList, MinimalScrollBar); the rows are in
--- UI/Templates.xml. It holds no secure frames, so it opens and closes in combat with plain
--- Show and Hide, and Escape closes it through UISpecialFrames.
+-- (ButtonFrameTemplate without a portrait as the addon list uses it, InsetFrameTemplate,
+-- PanelDragBarTemplate, WowScrollBoxList, MinimalScrollBar); the rows are in UI/Templates.xml.
+-- It holds no secure frames, so it opens and closes in combat with plain Show and Hide, and
+-- Escape closes it through UISpecialFrames.
 
 ns.Journal = {}
 
@@ -13,6 +14,10 @@ local L = ns.L
 local FRAME_NAME = "ForeverDungeonXPFrame"
 local WIDTH, HEIGHT = 720, 470
 local LIST_WIDTH = 250
+-- Blizzard's inset offsets for a panel without a portrait (SharedUIPanelTemplates.lua).
+local INSET_LEFT, INSET_TOP, INSET_RIGHT, INSET_BOTTOM = 9, -24, -6, 4
+local INSET_GAP = 4
+local DETAIL_WIDTH = WIDTH - INSET_LEFT - LIST_WIDTH - INSET_GAP + INSET_RIGHT
 
 local frame
 local selectedID
@@ -48,31 +53,31 @@ local function BuildRunRows(runs)
 	return rows
 end
 
--- A run's creature rows, most experience first, the hidden-name bucket last.
+-- A run's creature rows, most experience first, then by name; the kills whose names were hidden
+-- last.
 local function BuildCreatureRows(run)
 	local rows = {}
 	for name, creature in pairs(run.creatures) do
-		table.insert(rows, {
-			name = name == ns.DB.UNKNOWN and L.UNKNOWN_CREATURES or name,
-			unknown = name == ns.DB.UNKNOWN,
-			kills = creature.kills,
-			xp = creature.xp,
-		})
+		table.insert(rows, { name = name, kills = creature.kills, xp = creature.xp })
 	end
 	table.sort(rows, function(a, b)
-		if a.unknown ~= b.unknown then
-			return b.unknown
-		end
 		if a.xp ~= b.xp then
 			return a.xp > b.xp
 		end
 		return a.name < b.name
 	end)
+	if run.unknown then
+		table.insert(rows, { name = L.UNKNOWN_CREATURES, kills = run.unknown.kills, xp = run.unknown.xp })
+	end
 	return rows
 end
 
 local function Number(value)
 	return BreakUpLargeNumbers(math.floor(value + 0.5))
+end
+
+local function Kills(count)
+	return count == 1 and L.KILL_ONE or L.KILLS:format(Number(count))
 end
 
 ----------------------------------------------------------------------------------------------
@@ -102,7 +107,7 @@ local function InitRun(row, data)
 	row.Title:SetText(L.RUN_TITLE:format(run.number, date("%d %b %H:%M", run.firstKill)))
 	row.Share:SetText(ns.Format.Share(run.share))
 	row.Summary:SetText(
-		L.RUN_SUMMARY:format(Number(run.xp), Number(run.kills), ns.Format.Duration(ns.Format.RunSeconds(run)))
+		L.RUN_SUMMARY:format(Number(run.xp), Kills(run.kills), ns.Format.Duration(ns.Format.RunSeconds(run)))
 	)
 	row.SelectedBar:SetShown(run.id == selectedID)
 	row:SetScript("OnClick", function(self, button)
@@ -121,29 +126,33 @@ local function InitCreature(row, data)
 	row.Total:SetText(Number(data.xp))
 end
 
--- A ScrollBox with its scroll bar inside parent, inset by the given offsets.
+-- A ScrollBox filling parent below top, with its scroll bar, anchored the way Blizzard's Forever
+-- lists are (Camelot/SkillsFrame.xml). The bar hides while there is nothing to scroll.
 local function CreateList(parent, top, factory)
 	local scrollBox = CreateFrame("Frame", nil, parent, "WowScrollBoxList")
 	scrollBox:SetPoint("TOPLEFT", 4, top)
 	scrollBox:SetPoint("BOTTOMRIGHT", -20, 5)
 	local scrollBar = CreateFrame("EventFrame", nil, parent, "MinimalScrollBar")
 	scrollBar:SetPoint("TOPLEFT", scrollBox, "TOPRIGHT", 5, -2)
-	scrollBar:SetPoint("BOTTOMLEFT", scrollBox, "BOTTOMRIGHT", 5, 2)
+	scrollBar:SetPoint("BOTTOMLEFT", scrollBox, "BOTTOMRIGHT", 5, 4)
+	scrollBar:SetHideIfUnscrollable(true)
 	local view = CreateScrollBoxListLinearView()
 	view:SetElementFactory(factory)
 	ScrollUtil.InitScrollBoxListWithScrollBar(scrollBox, scrollBar, view)
 	return scrollBox
 end
 
-local function CreateStat(parent, index, count, label)
+local function CreateStat(parent, index, width, label)
 	local stat = CreateFrame("Frame", nil, parent)
-	stat:SetPoint("TOPLEFT", parent, "TOPLEFT", (index - 1) * (parent:GetWidth() / count), 0)
-	stat:SetSize(parent:GetWidth() / count, parent:GetHeight())
+	stat:SetPoint("TOPLEFT", parent, "TOPLEFT", (index - 1) * width, 0)
+	stat:SetSize(width, parent:GetHeight())
 	stat.Label = stat:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
 	stat.Label:SetPoint("TOP", 0, -2)
 	stat.Label:SetText(label)
 	stat.Value = stat:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
 	stat.Value:SetPoint("TOP", stat.Label, "BOTTOM", 0, -4)
+	stat.Value:SetWidth(width)
+	stat.Value:SetWordWrap(false)
 	return stat
 end
 
@@ -162,20 +171,18 @@ local function CreateJournal()
 	frame:SetTitle(L.TITLE)
 	tinsert(UISpecialFrames, FRAME_NAME)
 
-	frame.TitleContainer:EnableMouse(true)
-	frame.TitleContainer:RegisterForDrag("LeftButton")
-	frame.TitleContainer:SetScript("OnDragStart", function()
-		frame:StartMoving()
-	end)
-	frame.TitleContainer:SetScript("OnDragStop", function()
-		frame:StopMovingOrSizing()
-	end)
+	-- Dragging by the title bar, with Blizzard's own drag bar (as the event trace window has).
+	-- It sits below the close button's frame level, so the close button keeps its clicks.
+	local dragBar = CreateFrame("Button", nil, frame, "PanelDragBarTemplate")
+	dragBar:SetPoint("TOPLEFT")
+	dragBar:SetPoint("TOPRIGHT")
+	dragBar:SetHeight(22)
 
 	-- The template's inset becomes the run list; a second inset beside it holds the run.
 	local list = frame.Inset
 	list:ClearAllPoints()
-	list:SetPoint("TOPLEFT", 9, -26)
-	list:SetPoint("BOTTOMLEFT", 9, 8)
+	list:SetPoint("TOPLEFT", INSET_LEFT, INSET_TOP)
+	list:SetPoint("BOTTOMLEFT", INSET_LEFT, INSET_BOTTOM)
 	list:SetWidth(LIST_WIDTH)
 	frame.RunList = CreateList(list, -4, function(factory, data)
 		if data.header then
@@ -186,31 +193,40 @@ local function CreateJournal()
 	end)
 
 	local detail = CreateFrame("Frame", nil, frame, "InsetFrameTemplate")
-	detail:SetPoint("TOPLEFT", list, "TOPRIGHT", 4, 0)
-	detail:SetPoint("BOTTOMRIGHT", -8, 8)
+	detail:SetPoint("TOPLEFT", list, "TOPRIGHT", INSET_GAP, 0)
+	detail:SetPoint("BOTTOMRIGHT", INSET_RIGHT, INSET_BOTTOM)
 	frame.Detail = detail
 
-	detail.Header = detail:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-	detail.Header:SetPoint("TOPLEFT", 12, -12)
-	detail.Header:SetPoint("RIGHT", -12, 0)
-	detail.Header:SetJustifyH("LEFT")
-	detail.Header:SetWordWrap(false)
+	-- With no runs the inset stays and shows only this line.
+	detail.Empty = detail:CreateFontString(nil, "ARTWORK", "GameFontDisable")
+	detail.Empty:SetPoint("CENTER")
+	detail.Empty:SetText(L.EMPTY)
 
-	detail.Note = detail:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	detail.Note:SetPoint("TOPLEFT", detail.Header, "BOTTOMLEFT", 0, -3)
-	detail.Note:SetText(L.APPROXIMATE)
+	local content = CreateFrame("Frame", nil, detail)
+	content:SetAllPoints()
+	detail.Content = content
 
-	local stats = CreateFrame("Frame", nil, detail)
+	content.Header = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+	content.Header:SetPoint("TOPLEFT", 12, -12)
+	content.Header:SetPoint("RIGHT", -12, 0)
+	content.Header:SetJustifyH("LEFT")
+	content.Header:SetWordWrap(false)
+
+	content.Note = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	content.Note:SetPoint("TOPLEFT", content.Header, "BOTTOMLEFT", 0, -3)
+	content.Note:SetText(L.APPROXIMATE)
+
+	local stats = CreateFrame("Frame", nil, content)
 	stats:SetPoint("TOPLEFT", 8, -52)
-	stats:SetSize(WIDTH - LIST_WIDTH - 21 - 16, 40)
+	stats:SetSize(DETAIL_WIDTH - 16, 40)
 	local labels = { L.STAT_XP, L.STAT_SHARE, L.STAT_KILLS, L.STAT_TIME, L.STAT_PER_HOUR }
-	detail.Stats = {}
+	content.Stats = {}
 	for index, label in ipairs(labels) do
-		detail.Stats[index] = CreateStat(stats, index, #labels, label)
+		content.Stats[index] = CreateStat(stats, index, (DETAIL_WIDTH - 16) / #labels, label)
 	end
 
 	-- Column headings, placed like the creature rows beneath them (UI/Templates.xml).
-	local columns = CreateFrame("Frame", nil, detail)
+	local columns = CreateFrame("Frame", nil, content)
 	columns:SetPoint("TOPLEFT", 4, -100)
 	columns:SetPoint("TOPRIGHT", -20, -100)
 	columns:SetHeight(18)
@@ -232,17 +248,12 @@ local function CreateJournal()
 	local name = Column(L.COLUMN_CREATURE, "LEFT")
 	name:SetPoint("LEFT", 8, 0)
 
-	frame.CreatureList = CreateList(detail, -120, function(factory)
+	frame.CreatureList = CreateList(content, -120, function(factory)
 		factory("ForeverDungeonXPCreatureTemplate", InitCreature)
 	end)
 
-	frame.Empty = frame:CreateFontString(nil, "ARTWORK", "GameFontDisable")
-	frame.Empty:SetPoint("CENTER", detail, "CENTER")
-	frame.Empty:SetText(L.EMPTY)
-
 	frame:SetScript("OnShow", function()
 		PlaySound(SOUNDKIT.IG_CHARACTER_INFO_OPEN)
-		Refresh()
 	end)
 	frame:SetScript("OnHide", function()
 		PlaySound(SOUNDKIT.IG_CHARACTER_INFO_CLOSE)
@@ -255,9 +266,9 @@ local function CreateJournal()
 end
 
 local function ShowRun(run)
-	local detail = frame.Detail
-	detail.Header:SetText(L.DETAIL_HEADER:format(run.name, run.number, run.level))
-	detail.Note:SetShown(run.approximate == true)
+	local content = frame.Detail.Content
+	content.Header:SetText(L.DETAIL_HEADER:format(run.name, run.number, run.level))
+	content.Note:SetShown(run.approximate == true)
 	local seconds = ns.Format.RunSeconds(run)
 	local perHour = ns.Format.PerHour(run.xp, seconds)
 	local values = {
@@ -268,7 +279,7 @@ local function ShowRun(run)
 		perHour and Number(perHour) or L.NONE,
 	}
 	for index, value in ipairs(values) do
-		detail.Stats[index].Value:SetText(value)
+		content.Stats[index].Value:SetText(value)
 	end
 	frame.CreatureList:SetDataProvider(
 		CreateDataProvider(BuildCreatureRows(run)),
@@ -298,8 +309,8 @@ function Refresh()
 	selectedID = selected and selected.id or nil
 
 	frame.RunList:SetDataProvider(CreateDataProvider(rows), ScrollBoxConstants.RetainScrollPosition)
-	frame.Detail:SetShown(selected ~= nil)
-	frame.Empty:SetShown(selected == nil)
+	frame.Detail.Content:SetShown(selected ~= nil)
+	frame.Detail.Empty:SetShown(selected == nil)
 	if selected then
 		ShowRun(selected)
 	end
@@ -309,13 +320,15 @@ function ns.Journal.Toggle()
 	if not frame then
 		CreateJournal()
 	end
-	frame:SetShown(not frame:IsShown())
 	if frame:IsShown() then
-		-- Opening goes to the run being recorded.
-		local current = ns.Tracker.CurrentRun()
-		if current and current.kills > 0 then
-			Select(current.id)
-		end
-		ns.log("UI", "show", "runs", #ns.DB.Runs())
+		frame:Hide()
+		return
+	end
+	-- Opening goes to the run being recorded, else the newest: not to an earlier selection.
+	selectedID = nil
+	frame:Show()
+	Refresh()
+	if ns.dev.enabled then
+		ns.log("UI", "show", "runs", #ns.DB.Runs(), "selected", selectedID)
 	end
 end

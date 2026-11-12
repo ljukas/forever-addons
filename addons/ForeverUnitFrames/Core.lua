@@ -7,6 +7,7 @@ local ADDON_NAME, ns = ...
 --   DEFER APPLY     Layout.lua
 --   LAYOUT          HealthBar.lua
 --   POWER           PowerBar.lua
+--   OFFFORM         OffFormPower.lua
 --   SAVE EDITMODE   EditMode.lua
 --   ART             Dev/ArtProbe.lua
 local function Nop() end
@@ -33,6 +34,9 @@ ns.L = {
 	HEIGHT = "Height",
 	SMOOTH = "Smooth Fill",
 	SMOOTH_DESC = "Slide the bar to each new value instead of jumping to it.",
+	OFF_FORM = "Other Powers",
+	OFF_FORM_DESC = "Show your mana while in a form, and your energy outside Cat Form once you know it, in a row above the bar.",
+	OFF_FORM_HEIGHT = "Other Powers Height",
 }
 
 -- Modules register setup that needs ForeverUnitFramesDB. It runs in TOC order once the

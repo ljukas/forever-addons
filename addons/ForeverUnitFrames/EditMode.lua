@@ -2,8 +2,8 @@ local ADDON_NAME, ns = ...
 
 -- Makes the power bar's holder an Edit Mode box through LibEditMode (fetched into Libs/ by
 -- scripts/libs.sh, loaded namespaced as ns.LibEditMode): drag to place it (snapping like
--- Blizzard's boxes, Snap.lua), Width and Height sliders and a smooth-fill checkbox in its dialog.
--- These, with the position, are kept
+-- Blizzard's boxes, Snap.lua), Width and Height sliders and a smooth-fill checkbox in its dialog,
+-- and for druids the other-powers row's checkbox and height. These, with the position, are kept
 -- per Edit Mode layout in ForeverUnitFramesDB.powerBar (Database.lua), like Blizzard's own systems.
 local LEM = ns.LibEditMode
 local L = ns.L
@@ -14,6 +14,8 @@ local holder = ns.PowerBar.holder
 -- text needs about 8.
 local WIDTH_MIN, WIDTH_MAX = 60, 600
 local HEIGHT_MIN, HEIGHT_MAX = 8, 40
+-- The row of a druid's other powers (OffFormPower.lua): thin, with no text to fit.
+local OFF_FORM_HEIGHT_MIN, OFF_FORM_HEIGHT_MAX = 3, 20
 
 local POINTS = {
 	CENTER = true,
@@ -46,6 +48,12 @@ local VALID = {
 	end,
 	smooth = function(value)
 		return type(value) == "boolean"
+	end,
+	offForm = function(value)
+		return type(value) == "boolean"
+	end,
+	offFormHeight = function(value)
+		return type(value) == "number" and value >= OFF_FORM_HEIGHT_MIN and value <= OFF_FORM_HEIGHT_MAX
 	end,
 }
 
@@ -106,7 +114,18 @@ local function Save(layoutName, values)
 	for key, value in pairs(values) do
 		saved[key] = value
 	end
-	ns.log("SAVE", entryKey, saved.point, saved.x, saved.y, saved.width, saved.height, saved.smooth)
+	ns.log(
+		"SAVE",
+		entryKey,
+		saved.point,
+		saved.x,
+		saved.y,
+		saved.width,
+		saved.height,
+		saved.smooth,
+		saved.offForm,
+		saved.offFormHeight
+	)
 end
 
 local function Apply(layoutName)
@@ -118,19 +137,20 @@ local function Apply(layoutName)
 		height = Get(layoutName, "height"),
 		smooth = Get(layoutName, "smooth"),
 	})
+	ns.OffFormPower.SetLayout(Get(layoutName, "offForm"), Get(layoutName, "offFormHeight"))
 end
 
-local function SmoothCheckbox()
+local function Checkbox(key, label, desc)
 	return {
-		name = L.SMOOTH,
-		desc = L.SMOOTH_DESC,
+		name = label,
+		desc = desc,
 		kind = LEM.SettingType.Checkbox,
-		default = DEFAULTS.smooth,
+		default = DEFAULTS[key],
 		get = function(layoutName)
-			return Get(layoutName, "smooth")
+			return Get(layoutName, key)
 		end,
 		set = function(layoutName, value)
-			Save(layoutName, { smooth = value })
+			Save(layoutName, { [key] = value })
 			Apply(layoutName)
 		end,
 	}
@@ -182,11 +202,17 @@ ns.OnInitialize(function()
 	end
 
 	LEM:AddFrame(holder, OnMoved, { point = DEFAULTS.point, x = DEFAULTS.x, y = DEFAULTS.y }, L.POWER_BAR)
-	LEM:AddFrameSettings(holder, {
+	local settings = {
 		SizeSlider("width", L.WIDTH, WIDTH_MIN, WIDTH_MAX),
 		SizeSlider("height", L.HEIGHT, HEIGHT_MIN, HEIGHT_MAX),
-		SmoothCheckbox(),
-	})
+		Checkbox("smooth", L.SMOOTH, L.SMOOTH_DESC),
+	}
+	-- Only druids have other powers to show.
+	if ns.OffFormPower.available then
+		table.insert(settings, Checkbox("offForm", L.OFF_FORM, L.OFF_FORM_DESC))
+		table.insert(settings, SizeSlider("offFormHeight", L.OFF_FORM_HEIGHT, OFF_FORM_HEIGHT_MIN, OFF_FORM_HEIGHT_MAX))
+	end
+	LEM:AddFrameSettings(holder, settings)
 	local selection = LEM.frameSelections[holder]
 	selection:HookScript("OnDragStop", SnapAfterDrag)
 

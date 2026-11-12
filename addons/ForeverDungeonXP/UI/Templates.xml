@@ -1,0 +1,84 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\..\..\..\WoW\Data\Interface\AddOns\Blizzard_SharedXML\UI.xsd">
+	<!-- Rows of the journal's two lists (UI/Journal.lua fills them). Fonts, the hover texture and
+	     the selection bar are the ones Blizzard's own Forever lists use (the character frame's
+	     title list, Camelot/PaperDollFrame.xml). The ScrollBox takes each row's height from here. -->
+
+	<!-- A dungeon's heading in the run list. -->
+	<Frame name="ForeverDungeonXPHeaderTemplate" virtual="true">
+		<Size y="24"/>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Text" inherits="GameFontNormal" justifyH="LEFT" wordwrap="false">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" x="6" y="4"/>
+						<Anchor point="BOTTOMRIGHT" x="-6" y="4"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+	</Frame>
+
+	<!-- One run in the run list. -->
+	<Button name="ForeverDungeonXPRunTemplate" registerForClicks="LeftButtonUp, RightButtonUp" virtual="true">
+		<Size y="36"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="SelectedBar" file="Interface\FriendsFrame\UI-FriendsFrame-HighlightBar" alpha="0.4" alphaMode="ADD" setAllPoints="true" hidden="true"/>
+			</Layer>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Share" inherits="GameFontHighlight" justifyH="RIGHT">
+					<Anchors>
+						<Anchor point="TOPRIGHT" x="-8" y="-5"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="Title" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="false">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="12" y="-5"/>
+						<Anchor point="RIGHT" relativeKey="$parent.Share" relativePoint="LEFT" x="-6"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="Summary" inherits="GameFontDisableSmall" justifyH="LEFT" wordwrap="false">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" x="12" y="5"/>
+						<Anchor point="BOTTOMRIGHT" x="-8" y="5"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+	</Button>
+
+	<!-- One creature in a run's table. UI/Journal.lua's column headings use the same anchors. -->
+	<Frame name="ForeverDungeonXPCreatureTemplate" virtual="true">
+		<Size y="20"/>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Total" inherits="GameFontHighlight" justifyH="RIGHT">
+					<Size x="70"/>
+					<Anchors>
+						<Anchor point="RIGHT" x="-8"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="Each" inherits="GameFontHighlight" justifyH="RIGHT">
+					<Size x="70"/>
+					<Anchors>
+						<Anchor point="RIGHT" relativeKey="$parent.Total" relativePoint="LEFT"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="Kills" inherits="GameFontHighlight" justifyH="RIGHT">
+					<Size x="50"/>
+					<Anchors>
+						<Anchor point="RIGHT" relativeKey="$parent.Each" relativePoint="LEFT"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="Name" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="false">
+					<Anchors>
+						<Anchor point="LEFT" x="8"/>
+						<Anchor point="RIGHT" relativeKey="$parent.Kills" relativePoint="LEFT" x="-6"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+	</Frame>
+</Ui>

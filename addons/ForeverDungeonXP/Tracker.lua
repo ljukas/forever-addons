@@ -10,25 +10,28 @@ ns.Tracker = {}
 
 local RUNS_CHANGED = "ForeverDungeonXP.RunsChanged"
 
--- A delta on the XP bar and the message it belongs to arrive within this many seconds.
-local PAIR_WINDOW = 2
-
 local current -- the run being recorded, nil outside a 5-player dungeon
 local copyKnown -- this visit's copy number has been read
 local matchers = {} -- for kill messages, Logic/XPMessage.lua
 local resetPattern -- for "<dungeon> has been reset.", or nil
+local entries = 0 -- counts Enter calls, so a retry from an earlier one can tell it is stale
 
--- The XP bar at the last reading, or nil when it couldn't be read.
-local lastXP, lastMax
+local bar = ns.XPBar.New()
 
--- Pairing a secret kill message with its XP: the bar's change may come before or after the
--- message. pending is a change no message has claimed yet; awaiting is the time a secret kill
--- started waiting for its change; owed is XP that readable messages already recorded and whose
--- bar change must not be counted again; skipped is the time a readable message that names no
--- creature (a quest, exploration) started waiting for its change.
-local pending, pendingShare, pendingTime = 0, 0, 0
-local awaiting, skipped
-local owed, owedTime = 0, 0
+-- Experience for kills whose message was secret. A secret message carries no amount, and
+-- whether the XP bar changes before or after its message isn't known, nor whether a pull's
+-- kills change it once or one by one. So nothing is paired: the run's unknown bucket holds what
+-- the bar gained while the run was recorded minus what readable messages explain, once a secret
+-- kill has been seen. Any event order gives the same total. Per recording stretch (a visit, or
+-- since the recorded run last changed):
+local gained, gainedShare = 0, 0 -- the bar's gains
+local explained, explainedShare = 0, 0 -- XP readable messages reported (kills or not)
+local given, givenShare = 0, 0 -- what the unknown bucket got so far
+local secretKills = 0
+-- Until the first secret kill, only what happened in the last few seconds can belong to it: an
+-- unexplained gain from minutes ago (a gain the client sent no message for) must not be swept in.
+local STALE = 3
+local lastActivity = 0
 
 function ns.Tracker.CurrentRun()
 	return current
@@ -38,80 +41,102 @@ local function Changed()
 	EventRegistry:TriggerEvent(RUNS_CHANGED)
 end
 
+local function ClearAccounts()
+	gained, gainedShare, explained, explainedShare, given, givenShare = 0, 0, 0, 0, 0, 0
+	secretKills = 0
+end
+
+-- Called before each gain or readable message is added to the accounts.
+local function Touch()
+	local now = GetTime()
+	if secretKills == 0 and now - lastActivity > STALE then
+		gained, gainedShare, explained, explainedShare = 0, 0, 0, 0
+	end
+	lastActivity = now
+end
+
+-- Reads the XP bar. Returns the gain since the last reading and its fraction of a level.
+local function ReadBar()
+	local xp, max = UnitXP("player"), UnitXPMax("player")
+	if issecretvalue(xp) or issecretvalue(max) then
+		ns.XPBar.Reset(bar)
+		return 0, 0
+	end
+	return ns.XPBar.Gain(bar, xp, max)
+end
+
+-- Brings the unknown bucket to what the bar gained and no readable message explains.
+local function Settle()
+	if secretKills == 0 then
+		return
+	end
+	local xp = math.max(0, gained - explained)
+	local share = math.max(0, gainedShare - explainedShare)
+	if xp ~= given or share ~= givenShare then
+		ns.DB.AddUnknownXP(current, xp - given, share - givenShare)
+		given, givenShare = xp, share
+	end
+end
+
+-- The player's level, 0 if the client keeps it secret.
+local function PlayerLevel()
+	local level = UnitLevel("player")
+	return issecretvalue(level) and 0 or level
+end
+
+-- Makes run the one being recorded from now on.
+local function Record(run)
+	current = run
+	ClearAccounts()
+	return run
+end
+
 -- Deletes a saved run. If it is the one being recorded, later kills go to a fresh run.
 function ns.Tracker.DeleteRun(id)
 	local deleted = current and current.id == id and current
 	ns.DB.DeleteRun(id)
 	if deleted then
-		current = ns.DB.NewRun(deleted.instanceID, deleted.name, UnitLevel("player"), "first")
+		Record(ns.DB.NewRun(deleted.instanceID, deleted.name, PlayerLevel(), "deleted"))
 		if current then
-			current.copy = deleted.copy
+			ns.DB.SetCopy(current, deleted.copy)
 		end
 	end
 	ns.log("RUN", "deleted", id)
 	Changed()
 end
 
-local function ReadBaseline()
-	local xp, max = UnitXP("player"), UnitXPMax("player")
-	if issecretvalue(xp) or issecretvalue(max) then
-		lastXP, lastMax = nil, nil
-	else
-		lastXP, lastMax = xp, max
-	end
-end
-
-local function ClearPairing()
-	pending, pendingShare, pendingTime = 0, 0, 0
-	owed, owedTime = 0, 0
-	awaiting, skipped = nil, nil
-end
-
-local function Fresh(since)
-	return since and GetTime() - since <= PAIR_WINDOW
-end
-
--- The gain since the last reading and the fraction of a level it is. Across a level-up the bar
--- wraps: the part before it is measured against the old level, the rest against the new one.
-local function ReadGain()
-	local oldXP, oldMax = lastXP, lastMax
-	ReadBaseline()
-	if not oldXP or not lastXP or oldMax <= 0 or lastMax <= 0 then
-		return 0, 0
-	end
-	if lastXP >= oldXP and lastMax == oldMax then
-		local gain = lastXP - oldXP
-		return gain, gain / oldMax
-	end
-	local before = oldMax - oldXP
-	return before + lastXP, before / oldMax + lastXP / lastMax
-end
-
--- Applies a copy number read from a creature. An unstamped run takes it, unless an earlier run
--- of this dungeon already has it and this one has no kills yet: then the fallback rule started
--- a run too many, and the earlier one continues. A run stamped with another number was continued
--- wrongly, and a new run starts (or the one with this number continues).
+-- Applies a copy number read from a creature. Three cases beyond "already known":
+--   the recorded run has no number yet and no other run of this dungeon has this one: it takes it;
+--   another run has it: that run is the one this visit continues, so the recorded run (started
+--   by the fallback rule) is merged into it, or just dropped if it has no kills;
+--   the recorded run has a different number: it was continued wrongly, and a new run starts.
 local function ApplyCopy(copy)
 	copyKnown = true
 	if current.copy == copy then
-		return
-	end
-	local other = ns.DB.RunByCopy(current.instanceID, copy)
-	if not current.copy and not (other and current.kills == 0) then
-		current.copy = copy
-		ns.log("RUN", "copy stamp", copy, "run", current.number)
+		ns.log("RUN", "copy unchanged", copy, "run", current.number)
 		return
 	end
 	local previous = current
+	local other = ns.DB.RunByCopy(previous.instanceID, copy)
 	if other then
+		Settle()
+		if not previous.copy and previous.kills > 0 then
+			ns.DB.MergeRun(previous, other)
+		end
 		ns.DB.ReopenRun(other)
-		current = other
+		Record(other)
+		ns.log("RUN", "copy same", copy, "run", other.number, "was", previous.number, "kills", previous.kills)
+	elseif not previous.copy then
+		ns.DB.SetCopy(previous, copy)
+		ns.log("RUN", "copy stamp", copy, "run", previous.number, "openedBy", previous.openedBy)
+		return
 	else
-		current = ns.DB.NewRun(previous.instanceID, previous.name, UnitLevel("player"), "copy")
-		current.copy = copy
+		Settle()
+		Record(ns.DB.NewRun(previous.instanceID, previous.name, PlayerLevel(), "copy"))
+		ns.DB.SetCopy(current, copy)
+		ns.log("RUN", "copy new", copy, "run", current.number, "was", previous.number, "copy", previous.copy)
 	end
 	ns.DB.DropEmptyRuns(current)
-	ns.log("RUN", other and "copy same" or "copy new", copy, "run", current.number, "was", previous.number)
 	Changed()
 end
 
@@ -137,37 +162,50 @@ local function TryCopy(unit)
 	end
 end
 
-local function Enter(isLogin, isReload, attempt)
+local function Enter(isLogin, isReload, attempt, entry)
+	if entry ~= entries then
+		return -- a later loading screen has taken over
+	end
 	local name, instanceType, _, _, _, _, _, instanceID = GetInstanceInfo()
-	current, copyKnown = nil, false
-	ClearPairing()
-	ReadBaseline()
+	if issecretvalue(name) or issecretvalue(instanceType) or issecretvalue(instanceID) then
+		current = nil
+		ns.log("RUN", "instance info secret")
+		return
+	end
+	ReadBar()
 
 	if instanceType ~= "party" then
+		current = nil
 		ns.DB.DropEmptyRuns(nil)
 		ns.log("RUN", "outside", instanceType)
 		Changed()
 		return
 	end
+	if current and current.instanceID == instanceID then
+		-- A loading screen inside the dungeon being recorded (a teleport): the same visit.
+		ns.log("RUN", "enter", name, instanceID, "continue", "same visit", "run", current.number)
+		return
+	end
+	current, copyKnown = nil, false
 	if not ns.DB.Character() then
 		-- The realm name can be empty right after login; without it there is nowhere to save.
 		if attempt < 10 then
 			C_Timer.After(1, function()
-				Enter(isLogin, isReload, attempt + 1)
+				Enter(isLogin, isReload, attempt + 1, entry)
 			end)
+		else
+			ns.log("RUN", "not recording: no character key", name)
 		end
 		return
 	end
 
 	local open = ns.DB.OpenRun(instanceID)
 	local decision, reason = ns.RunRules.Decide(open, { reload = isLogin or isReload, now = GetServerTime() })
-	if decision == "continue" then
-		current = open
-	else
-		current = ns.DB.NewRun(instanceID, name, UnitLevel("player"), reason)
-	end
-	ns.DB.DropEmptyRuns(current)
-	ns.log("RUN", "enter", name, instanceID, decision, reason, "run", current.number, "copy", current.copy)
+	local run = Record(decision == "continue" and open or ns.DB.NewRun(instanceID, name, PlayerLevel(), reason))
+	-- A death is one corpse run's worth: walking out alive after it starts a new run.
+	ns.DB.SetDied(run, false)
+	ns.DB.DropEmptyRuns(run)
+	ns.log("RUN", "enter", name, instanceID, decision, reason, "run", run.number, "by", run.openedBy, "copy", run.copy)
 	TryCopy("target")
 	TryCopy("mouseover")
 	Changed()
@@ -177,78 +215,61 @@ local function OnKillMessage(text)
 	if not current then
 		return
 	end
-	local now = GetServerTime()
 
 	if issecretvalue(text) then
-		ns.DB.AddKill(current, nil, 0, 0, now)
-		if pending > 0 and Fresh(pendingTime) then
-			ns.DB.AddXP(current, pending, pendingShare)
-			awaiting = nil
-		else
-			awaiting = GetTime()
-		end
-		pending, pendingShare = 0, 0
-		ns.log("KILL", "secret", "run", current.number, "kills", current.kills, "xp", current.xp)
+		Touch()
+		secretKills = secretKills + 1
+		ns.DB.AddKill(current, nil, 0, 0, GetServerTime(), PlayerLevel())
+		Settle()
+		ns.log(
+			"KILL",
+			"secret",
+			"run",
+			current.number,
+			"kills",
+			current.kills,
+			"fallback",
+			current.fallback,
+			"xp",
+			current.xp
+		)
 		Changed()
 		return
 	end
 
-	local creature, xp = ns.XPMessage.Parse(matchers, text)
-	if not creature then
-		-- A quest or exploration gain: not a kill. Its change on the bar must not be picked up
-		-- by a secret kill either.
-		if pending > 0 and Fresh(pendingTime) then
-			pending, pendingShare = 0, 0
-		else
-			skipped = GetTime()
-		end
+	local creature, xp, format = ns.XPMessage.Parse(matchers, text)
+	if not xp then
 		ns.log("KILL", "unparsed", text)
 		return
 	end
-
-	local max = UnitXPMax("player")
-	local share = (not issecretvalue(max) and max > 0) and xp / max or 0
-	ns.DB.AddKill(current, creature, xp, share, now)
-	if pending > 0 and Fresh(pendingTime) then
-		pending, pendingShare = 0, 0
+	-- Measured against the level's size at the last bar reading. For the one kill that crosses a
+	-- level-up this is one level's size for the whole gain: off by a fraction of that kill.
+	local share = (bar.max and bar.max > 0) and xp / bar.max or 0
+	Touch()
+	explained, explainedShare = explained + xp, explainedShare + share
+	if creature then
+		ns.DB.AddKill(current, creature, xp, share, GetServerTime(), PlayerLevel())
+		ns.log("KILL", "parsed", format, creature, xp, "run", current.number, "kills", current.kills, "xp", current.xp)
 	else
-		owed, owedTime = (Fresh(owedTime) and owed or 0) + xp, GetTime()
+		-- A quest or exploration gain: not a kill.
+		ns.log("KILL", "other", format, xp)
 	end
-	ns.log("KILL", "parsed", creature, xp, "run", current.number, "kills", current.kills, "xp", current.xp)
+	Settle()
 	Changed()
 end
 
 local function OnXPUpdate()
-	if not current then
-		ReadBaseline()
+	local gain, share = ReadBar()
+	if not current or gain <= 0 then
 		return
 	end
-	local gain, share = ReadGain()
-	if gain <= 0 then
-		return
-	end
-	-- XP a readable kill message already recorded.
-	if owed > 0 and Fresh(owedTime) then
-		local used = math.min(owed, gain)
-		owed = owed - used
-		share = share * (gain - used) / gain
-		gain = gain - used
-		if gain <= 0 then
-			return
-		end
-	end
-	if Fresh(skipped) then
-		skipped = nil
-		return
-	end
-	if Fresh(awaiting) then
-		awaiting = nil
-		ns.DB.AddXP(current, gain, share)
-		ns.log("KILL", "secret xp", gain, "run", current.number, "xp", current.xp)
+	Touch()
+	gained, gainedShare = gained + gain, gainedShare + share
+	if secretKills > 0 then
+		Settle()
+		ns.log("KILL", "bar", gain, "run", current.number, "unknown xp", given)
 		Changed()
-		return
 	end
-	pending, pendingShare, pendingTime = gain, share, GetTime()
 end
 
 local function OnSystemMessage(text)
@@ -261,22 +282,34 @@ local function OnSystemMessage(text)
 	end
 	for _, run in ipairs(ns.DB.Runs()) do
 		if run.name == dungeon then
-			ns.DB.CloseRun(run.instanceID)
+			ns.DB.CloseRun(run.instanceID, "reset")
 		end
 	end
 	ns.log("RUN", "reset", dungeon)
 end
 
+-- The player's own reset closes every dungeon's run. The hook runs on the call, not on success,
+-- so only where a reset can work: outside an instance, alone or as the group's leader.
+local function OnResetInstances()
+	if IsInInstance() or (IsInGroup() and not UnitIsGroupLeader("player")) then
+		return
+	end
+	ns.DB.CloseAllRuns("reset")
+	ns.log("RUN", "reset own")
+end
+
 local handlers = {
 	PLAYER_ENTERING_WORLD = function(isLogin, isReload)
-		Enter(isLogin, isReload, 1)
+		entries = entries + 1
+		Enter(isLogin, isReload, 1, entries)
 	end,
 	CHAT_MSG_COMBAT_XP_GAIN = OnKillMessage,
 	PLAYER_XP_UPDATE = OnXPUpdate,
+	PLAYER_LEVEL_UP = OnXPUpdate,
 	CHAT_MSG_SYSTEM = OnSystemMessage,
 	PLAYER_DEAD = function()
 		if current then
-			current.died = true
+			ns.DB.SetDied(current, true)
 			ns.log("RUN", "died", "run", current.number)
 		end
 	end,
@@ -289,13 +322,13 @@ local handlers = {
 	NAME_PLATE_UNIT_ADDED = TryCopy,
 }
 
--- The client's format strings for kill experience: every COMBATLOG_XPGAIN* global. Which ones
+-- The client's format strings for experience gains: every COMBATLOG_XPGAIN* global. Which ones
 -- exist on Forever is only known in game, so they are collected by name prefix.
 local function CollectFormats()
 	local formats = {}
 	for name, value in pairs(_G) do
 		if type(name) == "string" and type(value) == "string" and name:find("^COMBATLOG_XPGAIN") then
-			table.insert(formats, value)
+			table.insert(formats, { name = name, format = value })
 		end
 	end
 	return formats
@@ -304,21 +337,36 @@ end
 ns.OnInitialize(function()
 	local formats = CollectFormats()
 	matchers = ns.XPMessage.Build(formats)
-	ns.log("LOADED", "xp formats", #formats, "kill matchers", #matchers)
 
 	local reset = _G["INSTANCE_RESET_SUCCESS"]
 	if type(reset) == "string" then
 		local pattern, captures = ns.XPMessage.Pattern(reset)
-		if pattern and #captures == 1 then
+		if pattern and #captures == 1 and not captures[1].number then
 			resetPattern = pattern
 		end
 	end
 
-	-- The player's own reset closes every dungeon's run, whatever the chat says.
-	hooksecurefunc("ResetInstances", function()
-		ns.DB.CloseAllRuns()
-		ns.log("RUN", "reset own")
-	end)
+	if ns.dev.enabled then
+		local creatures = 0
+		for _, matcher in ipairs(matchers) do
+			if matcher.creature then
+				creatures = creatures + 1
+			end
+		end
+		ns.log(
+			"LOADED",
+			"xp formats",
+			#formats,
+			"matchers",
+			#matchers,
+			"for kills",
+			creatures,
+			"reset pattern",
+			resetPattern and "built" or (reset and "unusable" or "no INSTANCE_RESET_SUCCESS")
+		)
+	end
+
+	hooksecurefunc("ResetInstances", OnResetInstances)
 
 	local frame = CreateFrame("Frame")
 	frame:SetScript("OnEvent", function(_, event, ...)

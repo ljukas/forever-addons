@@ -15,7 +15,7 @@ it."
   that the druid has and the current form does **not** use, in that order.
 - A power only gets a bar once the druid knows its form (the user: "we should only activate
   extra bars when we know the spells"). Mana always counts; rage counts once a bear form is on
-  the stance bar (spells 5487, 9634), energy once Cat Form is (768). The power in use counts too.
+  the stance bar (spells 5487, 9634), energy once Cat Form is (768).
 
   | Forms known | In caster form | In bear | In cat |
   |---|---|---|---|
@@ -72,7 +72,8 @@ it."
 | A druid without cat form gets one full-width bar; without bear form, no row | user on a low-level druid |
 | Row and main bar read as one framed bar; dividers look right | screenshot |
 | Fills reach the border's left and right ends | screenshot at full mana |
-| Energy fills while in bear; what rage reads in cat | user's eyes (values are secret) |
+| Energy fills while in bear; what rage reads in cat | user's eyes (values are secret); `OFFFORM event <event> <power> in <current>` shows which powers get updates |
+| The energy and rage bar art exists; the border stretches without thickening | `OFFFORM art`; screenshot |
 | Bars update in combat, no blocked actions or errors | `devlog.sh --errors` |
 | Checkbox hides the row and the border shrinks back; slider resizes it | user; `OFFFORM layout` |
 | A non-druid sees no row and no settings | user on another character |

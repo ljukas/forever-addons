@@ -48,10 +48,6 @@ local NAME = { [Mana] = "mana", [Energy] = "energy", [Rage] = "rage" }
 local DIVIDER = 3
 local DIVIDER_LINE = 1
 
--- How far the fills reach past the row under the border's ends, like the main bar's
--- (ns.PowerBar.barOutset, fillOutset).
-local OUTSET_LEFT, OUTSET_RIGHT = 2, 3
-
 -- The powers to show, left to right: those of ORDER the druid has (known[powerType]) other than
 -- the one the current form uses. Returns up to two; either may be nil.
 local function OtherPowers(current, known)
@@ -68,13 +64,9 @@ local function OtherPowers(current, known)
 	return left, right
 end
 
--- Which powers the druid has: mana, the power of every form on the stance bar, and the power in
--- use (so a form this table doesn't know still counts while the druid is in it).
-local function KnownPowers(current)
+-- Which powers the druid has: mana, and the power of every form on the stance bar.
+local function KnownPowers()
 	local known = { [Mana] = true }
-	if current then
-		known[current] = true
-	end
 	for index = 1, GetNumShapeshiftForms() do
 		local _, _, _, spellID = GetShapeshiftFormInfo(index)
 		local powerType = spellID and FORM_POWER[spellID]
@@ -104,11 +96,11 @@ local function CreateBar()
 	return bar
 end
 
--- The left bar takes the whole row when it is the only one.
+-- The left bar takes the whole row when it is the only one. The middle divider covers the pixel
+-- left of the row's centre and the two right of it, so with an even width everything sits on whole
+-- pixels. The outer ends are placed by SetBars.
 local leftBar, rightBar = CreateBar(), CreateBar()
-leftBar:SetPoint("TOPLEFT", row, "TOPLEFT", -OUTSET_LEFT, 0)
-rightBar:SetPoint("TOPLEFT", row, "TOP", DIVIDER / 2, 0)
-rightBar:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", OUTSET_RIGHT, 0)
+rightBar:SetPoint("TOPLEFT", row, "TOP", DIVIDER - 1, 0)
 
 -- The dividers are drawn on the border's frame, above the fills and under the border's texture.
 local function CreateDivider()
@@ -121,20 +113,19 @@ end
 
 -- Between the row and the main bar, across the whole width.
 local acrossEdge, acrossLine = CreateDivider()
-acrossEdge:SetPoint("BOTTOMLEFT", holder, "TOPLEFT")
-acrossEdge:SetPoint("BOTTOMRIGHT", holder, "TOPRIGHT")
 acrossEdge:SetHeight(DIVIDER)
 acrossLine:SetPoint("LEFT", acrossEdge, "LEFT")
 acrossLine:SetPoint("RIGHT", acrossEdge, "RIGHT")
 acrossLine:SetHeight(DIVIDER_LINE)
 
--- Between the row's two halves.
+-- Between the row's two halves. Its grey line runs one pixel further down, onto the divider
+-- below, so the two grey lines join.
 local betweenEdge, betweenLine = CreateDivider()
-betweenEdge:SetPoint("TOP", row, "TOP")
-betweenEdge:SetPoint("BOTTOM", row, "BOTTOM")
+betweenEdge:SetPoint("TOPLEFT", row, "TOP", -1, 0)
+betweenEdge:SetPoint("BOTTOMLEFT", row, "BOTTOM", -1, 0)
 betweenEdge:SetWidth(DIVIDER)
-betweenLine:SetPoint("TOP", betweenEdge, "TOP")
-betweenLine:SetPoint("BOTTOM", betweenEdge, "BOTTOM")
+betweenLine:SetPoint("TOPLEFT", row, "TOP")
+betweenLine:SetPoint("BOTTOMLEFT", row, "BOTTOM", 0, -1)
 betweenLine:SetWidth(DIVIDER_LINE)
 
 -- Lays the row out for this many bars (0, 1 or 2) at this height, and fits the frame around it.
@@ -151,10 +142,17 @@ local function SetBars(count, height)
 	end
 	row:SetHeight(height)
 	ns.PowerBar.SetHeadroom(height + DIVIDER)
+	-- The fills and the divider below them reach past the row under the border's ends, as far as
+	-- the main bar's fill does.
+	local left, right = ns.PowerBar.barOutset.left, ns.PowerBar.fillOutset.right
+	leftBar:SetPoint("TOPLEFT", row, "TOPLEFT", -left, 0)
+	rightBar:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", right, 0)
+	acrossEdge:SetPoint("BOTTOMLEFT", holder, "TOPLEFT", -left, 0)
+	acrossEdge:SetPoint("BOTTOMRIGHT", holder, "TOPRIGHT", right, 0)
 	if count > 1 then
-		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOM", -DIVIDER / 2, 0)
+		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOM", -1, 0)
 	else
-		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", OUTSET_RIGHT, 0)
+		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", right, 0)
 	end
 end
 SetBars(0)
@@ -184,6 +182,7 @@ local function SetPower(bar, powerType)
 	if powerType then
 		bar:SetStatusBarTexture(ATLAS[powerType])
 		UpdateBar(bar, Enum.StatusBarInterpolation.Immediate)
+		bar:SetToTargetValue()
 	end
 end
 
@@ -200,7 +199,7 @@ local function Refresh()
 		return
 	end
 	local current = UnitPowerType("player")
-	local left, right = OtherPowers(current, KnownPowers(current))
+	local left, right = OtherPowers(current, KnownPowers())
 	SetPower(leftBar, left)
 	SetPower(rightBar, right)
 	SetBars((left and 1 or 0) + (right and 1 or 0), rowHeight)
@@ -211,8 +210,13 @@ local function Refresh()
 end
 
 local events = CreateFrame("Frame")
-events:SetScript("OnEvent", function(_, event)
+events:SetScript("OnEvent", function(_, event, _, powerToken)
 	if event == "UNIT_POWER_FREQUENT" or event == "UNIT_MAXPOWER" then
+		-- Which powers the game sends updates for, in each form.
+		if ns.dev.enabled then
+			local key = event .. tostring(powerToken) .. tostring(UnitPowerType("player"))
+			ns.dev:LogOnce(key, "OFFFORM", "event", event, powerToken, "in", UnitPowerType("player"))
+		end
 		UpdateValues()
 	else
 		-- A new form in use, or a form learned.
@@ -236,4 +240,24 @@ function ns.OffFormPower.SetLayout(shown, height)
 	end
 	Refresh()
 	UpdateValues()
+	-- With smooth fills just turned off, a bar still sliding jumps to its value.
+	if ns.PowerBar.Interpolation() == Enum.StatusBarInterpolation.Immediate then
+		leftBar:SetToTargetValue()
+		rightBar:SetToTargetValue()
+	end
+	if ns.dev.enabled then
+		-- Does the art exist, and can the border stretch taller without thickening?
+		local frame = C_Texture.GetAtlasInfo("ui-castingbar-frame")
+		ns.dev:LogOnce(
+			"offform-art",
+			"OFFFORM",
+			"art",
+			"energy",
+			C_Texture.GetAtlasInfo(ATLAS[Energy]) ~= nil,
+			"rage",
+			C_Texture.GetAtlasInfo(ATLAS[Rage]) ~= nil,
+			"border sliced",
+			frame ~= nil and frame.sliceData ~= nil
+		)
+	end
 end

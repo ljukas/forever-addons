@@ -114,7 +114,18 @@ local function Save(layoutName, values)
 	for key, value in pairs(values) do
 		saved[key] = value
 	end
-	ns.log("SAVE", entryKey, saved.point, saved.x, saved.y, saved.width, saved.height, saved.smooth)
+	ns.log(
+		"SAVE",
+		entryKey,
+		saved.point,
+		saved.x,
+		saved.y,
+		saved.width,
+		saved.height,
+		saved.smooth,
+		saved.offForm,
+		saved.offFormHeight
+	)
 end
 
 local function Apply(layoutName)

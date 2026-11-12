@@ -73,8 +73,15 @@ borderTexture:SetPoint("BOTTOMRIGHT", 2, -2)
 ns.PowerBar.border = border
 
 -- Grows the background and the border upward by this many pixels, over a row above the bar, so the
--- row and the bar read as one frame. These are our own textures: safe in combat.
+-- row and the bar read as one frame. Only a new value moves anything: the background is the
+-- holder's texture, and the holder may be protected in combat (Blizzard's bar is anchored into it).
+-- The value changes with the settings and with a form learned, neither of which happens in combat.
+local headroom = 0
 function ns.PowerBar.SetHeadroom(pixels)
+	if pixels == headroom then
+		return
+	end
+	headroom = pixels
 	background:SetPoint("TOPLEFT", -1, 1 + pixels)
 	borderTexture:SetPoint("TOPLEFT", -2, 2 + pixels)
 end

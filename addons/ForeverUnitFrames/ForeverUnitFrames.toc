@@ -20,6 +20,7 @@ Database.lua
 Layout.lua
 HealthBar.lua
 PowerBar.lua
+OffFormPower.lua
 Snap.lua
 EditMode.lua
 #@do-not-package@

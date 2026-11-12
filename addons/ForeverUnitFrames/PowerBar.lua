@@ -15,6 +15,9 @@ ns.PowerBar.DEFAULTS = {
 	width = 270,
 	height = 12,
 	smooth = true,
+	-- A druid's other powers, in a row above the bar (OffFormPower.lua).
+	offForm = true,
+	offFormHeight = 6,
 }
 
 local DEFAULTS = ns.PowerBar.DEFAULTS
@@ -65,6 +68,16 @@ local borderTexture = border:CreateTexture(nil, "OVERLAY")
 borderTexture:SetAtlas("ui-castingbar-frame")
 borderTexture:SetPoint("TOPLEFT", -2, 2)
 borderTexture:SetPoint("BOTTOMRIGHT", 2, -2)
+-- Shown and hidden with the backdrop; what else belongs to the frame (OffFormPower.lua's row) is
+-- parented to it.
+ns.PowerBar.border = border
+
+-- Grows the background and the border upward by this many pixels, over a row above the bar, so the
+-- row and the bar read as one frame. These are our own textures: safe in combat.
+function ns.PowerBar.SetHeadroom(pixels)
+	background:SetPoint("TOPLEFT", -1, 1 + pixels)
+	borderTexture:SetPoint("TOPLEFT", -2, 2 + pixels)
+end
 
 -- The fill players see. Blizzard's bar snaps to each new value; this one eases toward it when the
 -- layout asks for smooth fills. It copies the values Blizzard sets (secret, but a status bar takes
@@ -172,6 +185,11 @@ local function SetSmooth(smooth)
 	if not smooth then
 		fill:SetToTargetValue()
 	end
+end
+
+-- How fills move to a new value right now, for the other bars in the frame.
+function ns.PowerBar.Interpolation()
+	return interpolation
 end
 
 -- Places and sizes the holder: layout = { point, x, y, width, height, smooth }, all present.

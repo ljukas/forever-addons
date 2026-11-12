@@ -7,27 +7,29 @@ local _, ns = ...
 --   characters = { [characterKey] = {
 --     nextID = the next run's id,
 --     open   = { [instanceID] = runID }, the run each dungeon's next visit may continue,
+--     closed = { [instanceID] = "reset" }, why a dungeon has no open run, until its next run starts,
 --     runs   = { run, ... } in the order they started } }
 -- characterKey is "Name-Realm". instanceID is GetInstanceInfo()'s, the same for every run of a
 -- dungeon. A run is:
 --   id, instanceID, name (the dungeon's), number (1, 2, ... per dungeon),
 --   copy       = the instance copy number from a creature's GUID, nil while unknown,
---   openedBy   = why it started: "first", "copy", "alive", "gap" or "reset" (Logic/RunRules.lua),
---   level      = the player's level when it started,
+--   openedBy   = why it started: "first", "copy", "alive" or "gap" (Logic/RunRules.lua), "reset"
+--                after a seen instance reset, "deleted" replacing a run deleted while recorded,
+--   level      = the player's level at its first kill (at its start until then),
 --   firstKill, lastKill = GetServerTime() of those kills, nil before the first,
 --   xp         = kill experience gained, share = the same as a fraction of a level, summed gain
 --                by gain against the level's size at that moment,
 --   kills      = kill messages counted, parsed = those whose text named a creature,
 --                fallback = those whose text was secret,
 --   approximate = true once a kill's text was secret (its XP then comes from the XP bar and may
---                include other gains), died = true from the player's death until the next kill,
---   creatures  = { [name] = { kills, xp } }, with UNKNOWN for kills whose text was secret.
--- Only this file knows the layout.
+--                include other gains), died = true from the player's death until the next kill
+--                or entry,
+--   creatures  = { [name] = { kills, xp } },
+--   unknown    = { kills, xp } for kills whose text was secret, nil without any.
+-- Runs are kept until the player deletes them (a few KB each). Only this file writes the layout;
+-- UI/Journal.lua and Tracker.lua read a run's fields.
 
 ns.DB = {}
-
--- The creatures key for kills whose message was secret. Not a name a creature can have.
-ns.DB.UNKNOWN = "?"
 
 local DB_VERSION = 1
 
@@ -44,7 +46,8 @@ local migrations = {
 
 function ns.DB.Migrate(db)
 	-- Data from a newer version of the addon is left alone rather than downgraded.
-	for version = (db.version or 0) + 1, DB_VERSION do
+	local from = type(db.version) == "number" and db.version or 0
+	for version = from + 1, DB_VERSION do
 		migrations[version](db)
 		db.version = version
 	end
@@ -53,6 +56,41 @@ end
 function ns.DB.Minimap()
 	return ns.db.minimap
 end
+
+-- Makes a character's section safe to use whatever was saved: a damaged file must not make every
+-- dungeon entry throw, and a lost nextID must not hand out an id a run already has (deleting by
+-- id would then delete the wrong run).
+local function Repair(character)
+	if type(character.open) ~= "table" then
+		character.open = {}
+	end
+	if type(character.closed) ~= "table" then
+		character.closed = {}
+	end
+	if type(character.runs) ~= "table" then
+		character.runs = {}
+	end
+	local highest = 0
+	for index = #character.runs, 1, -1 do
+		local run = character.runs[index]
+		if
+			type(run) ~= "table"
+			or type(run.id) ~= "number"
+			or type(run.number) ~= "number"
+			or type(run.kills) ~= "number"
+			or type(run.creatures) ~= "table"
+		then
+			table.remove(character.runs, index)
+		elseif run.id > highest then
+			highest = run.id
+		end
+	end
+	if type(character.nextID) ~= "number" or character.nextID <= highest then
+		character.nextID = highest + 1
+	end
+end
+
+local repaired = {}
 
 -- The current character's section, or nil while the character key isn't known yet.
 function ns.DB.Character()
@@ -65,9 +103,10 @@ function ns.DB.Character()
 		character = {}
 		ns.db.characters[key] = character
 	end
-	character.nextID = character.nextID or 1
-	character.open = character.open or {}
-	character.runs = character.runs or {}
+	if not repaired[character] then
+		Repair(character)
+		repaired[character] = true
+	end
 	return character
 end
 
@@ -92,12 +131,17 @@ function ns.DB.OpenRun(instanceID)
 	return id and ns.DB.RunByID(id) or nil
 end
 
--- Starts a run and makes it the dungeon's open run. Returns nil without a character key.
+-- Starts a run and makes it the dungeon's open run. Returns nil without a character key. A
+-- "first" run of a dungeon whose last run was closed by a reset is recorded as "reset".
 function ns.DB.NewRun(instanceID, name, level, openedBy)
 	local character = ns.DB.Character()
 	if not character then
 		return nil
 	end
+	if openedBy == "first" and character.closed[instanceID] then
+		openedBy = character.closed[instanceID]
+	end
+	character.closed[instanceID] = nil
 	local number = 0
 	for _, run in ipairs(character.runs) do
 		if run.instanceID == instanceID and run.number > number then
@@ -132,24 +176,39 @@ function ns.DB.ReopenRun(run)
 	end
 end
 
--- The dungeon's next visit starts a new run.
-function ns.DB.CloseRun(instanceID)
+-- The dungeon's next visit starts a new run, recorded as opened by reason ("reset").
+function ns.DB.CloseRun(instanceID, reason)
 	local character = ns.DB.Character()
-	if character then
+	if character and character.open[instanceID] then
 		character.open[instanceID] = nil
+		character.closed[instanceID] = reason
 	end
 end
 
-function ns.DB.CloseAllRuns()
+function ns.DB.CloseAllRuns(reason)
 	local character = ns.DB.Character()
 	if character then
+		for instanceID in pairs(character.open) do
+			character.closed[instanceID] = reason
+		end
 		wipe(character.open)
 	end
 end
 
--- The current character's run of this dungeon with that copy number, or nil.
+function ns.DB.SetCopy(run, copy)
+	run.copy = copy
+end
+
+-- The player died in the run (true), or the death no longer matters (false): Logic/RunRules.lua.
+function ns.DB.SetDied(run, died)
+	run.died = died or nil
+end
+
+-- The current character's latest run of this dungeon with that copy number, or nil.
 function ns.DB.RunByCopy(instanceID, copy)
-	for _, run in ipairs(ns.DB.Runs()) do
+	local runs = ns.DB.Runs()
+	for index = #runs, 1, -1 do
+		local run = runs[index]
 		if run.instanceID == instanceID and run.copy == copy then
 			return run
 		end
@@ -190,25 +249,35 @@ function ns.DB.DropEmptyRuns(keep)
 	end
 end
 
--- Counts one kill. creatureName nil means the kill message was secret: the kill goes under
--- UNKNOWN and the run becomes approximate. xp and share may be 0 when the XP arrives apart
--- (AddXP). now is GetServerTime().
-function ns.DB.AddKill(run, creatureName, xp, share, now)
-	local key = creatureName
-	if key then
+local function Bucket(run, creatureName)
+	if not creatureName then
+		run.unknown = run.unknown or { kills = 0, xp = 0 }
+		return run.unknown
+	end
+	local creature = run.creatures[creatureName]
+	if not creature then
+		creature = { kills = 0, xp = 0 }
+		run.creatures[creatureName] = creature
+	end
+	return creature
+end
+
+-- Counts one kill. creatureName nil means the kill message was secret: the kill goes to the
+-- unknown bucket and the run becomes approximate; its XP arrives through AddUnknownXP. now is
+-- GetServerTime(), level the player's level.
+function ns.DB.AddKill(run, creatureName, xp, share, now, level)
+	if creatureName then
 		run.parsed = run.parsed + 1
 	else
-		key = ns.DB.UNKNOWN
 		run.fallback = run.fallback + 1
 		run.approximate = true
 	end
-	local creature = run.creatures[key]
-	if not creature then
-		creature = { kills = 0, xp = 0 }
-		run.creatures[key] = creature
+	local bucket = Bucket(run, creatureName)
+	bucket.kills = bucket.kills + 1
+	bucket.xp = bucket.xp + xp
+	if run.kills == 0 then
+		run.level = level
 	end
-	creature.kills = creature.kills + 1
-	creature.xp = creature.xp + xp
 	run.kills = run.kills + 1
 	run.xp = run.xp + xp
 	run.share = run.share + share
@@ -217,15 +286,37 @@ function ns.DB.AddKill(run, creatureName, xp, share, now)
 	run.died = nil
 end
 
--- Adds experience that arrived apart from its kill message (the message was secret), under
--- UNKNOWN.
-function ns.DB.AddXP(run, xp, share)
-	local creature = run.creatures[ns.DB.UNKNOWN]
-	if not creature then
-		creature = { kills = 0, xp = 0 }
-		run.creatures[ns.DB.UNKNOWN] = creature
-	end
-	creature.xp = creature.xp + xp
+-- Adds experience (or takes it back, when negative) that no readable message explains, to the
+-- unknown bucket.
+function ns.DB.AddUnknownXP(run, xp, share)
+	local bucket = Bucket(run, nil)
+	bucket.xp = bucket.xp + xp
 	run.xp = run.xp + xp
 	run.share = run.share + share
+end
+
+-- Moves everything from's kills gave into into and removes from: the two turned out to be one
+-- run (the same instance copy).
+function ns.DB.MergeRun(from, into)
+	for name, creature in pairs(from.creatures) do
+		local bucket = Bucket(into, name)
+		bucket.kills = bucket.kills + creature.kills
+		bucket.xp = bucket.xp + creature.xp
+	end
+	if from.unknown then
+		local bucket = Bucket(into, nil)
+		bucket.kills = bucket.kills + from.unknown.kills
+		bucket.xp = bucket.xp + from.unknown.xp
+	end
+	for _, field in ipairs({ "xp", "share", "kills", "parsed", "fallback" }) do
+		into[field] = into[field] + from[field]
+	end
+	into.approximate = into.approximate or from.approximate
+	if from.firstKill and (not into.firstKill or from.firstKill < into.firstKill) then
+		into.firstKill = from.firstKill
+	end
+	if from.lastKill and (not into.lastKill or from.lastKill > into.lastKill) then
+		into.lastKill = from.lastKill
+	end
+	ns.DB.DeleteRun(from.id)
 end

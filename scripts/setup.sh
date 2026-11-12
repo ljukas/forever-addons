@@ -36,3 +36,5 @@ if client_version="$(installed_client_version)" && [[ -n "$client_version" ]]; t
 		echo "warning: wow-ui-source ($source_version) and the installed client ($client_version) differ." >&2
 	fi
 fi
+
+"$ROOT/scripts/libs.sh"

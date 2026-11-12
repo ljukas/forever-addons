@@ -2,6 +2,9 @@
 .release/
 .cache
 
+# Libraries fetched from addons' .pkgmeta externals (scripts/libs.sh); the packager bundles them
+addons/*/Libs/
+
 # Local machine config (see scripts/lib.sh)
 .env.local
 

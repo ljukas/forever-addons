@@ -20,6 +20,9 @@ if $unlink; then
 else
 	require_game
 	mkdir -p "$target_dir"
+	# Addons load their libraries from Libs/ (gitignored), so a checkout linked into the game needs
+	# them fetched, the main checkout included.
+	"$ROOT/scripts/libs.sh" || echo "warning: fetching libraries failed; addons that need them won't load" >&2
 fi
 
 names=("$@")

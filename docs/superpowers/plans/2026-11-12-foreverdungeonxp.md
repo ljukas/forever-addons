@@ -11,8 +11,8 @@ Blizzard's `ButtonFrameTemplate`, insets and ScrollBox reads that table. A `Dev/
 because the kill message's wording and the secrecy of creature GUIDs can only be read in game.
 
 **Tech Stack:** Lua 5.1 on the Forever client (Interface 16001, Midnight API), Blizzard
-SharedXML templates and ScrollBox, `MenuUtil`, LibStub + CallbackHandler-1.0 + LibDataBroker-1.1 +
-LibDBIcon-1.0 via `.pkgmeta` externals, ForeverDev for logging.
+SharedXML templates and ScrollBox, `MenuUtil`, `PanelDragBarTemplate`, ForeverDev for logging. No
+libraries (see Rulings).
 
 **Spec:** `docs/superpowers/specs/2026-11-12-foreverdungeonxp-design.md`. Read it with this plan.
 Process: `docs/feature-workflow.md` (Phases 4-7), conventions: `CLAUDE.md`.
@@ -27,7 +27,7 @@ One step, one PR: `feat(foreverdungeonxp): add a dungeon experience journal`.
 - Never compare, do arithmetic on, concatenate, use as a table key or branch on a value before
   `issecretvalue(v)` says it is not secret. `ns.log` accepts secrets (prints `<secret>`).
 - Verify each API in `.cache/wow-ui-source` before first use. Global strings and colour constants
-  are not in the cache; declare the ones used in `types/forever.lua` as `---@type string` stubs.
+  are not in the cache; read global strings through `_G[name]` so LuaLS needs no stubs.
 - `ns.log(TAG, ...)`, never `print`. Tags: `LOADED`, `RUN`, `KILL`, `PROBE`, `UI`. Work done only
   to feed a log line goes inside `if ns.dev.enabled then`.
 - No custom art. Borders, insets, scroll bars, fonts, highlights and colours come from Blizzard
@@ -50,8 +50,28 @@ One step, one PR: `feat(foreverdungeonxp): add a dungeon experience journal`.
   global the client defines (a format whose first argument is a string is a creature kill), so
   the probe and the tracker are checked in one in-game session. Cost if wrong: the matcher rule
   is adjusted after the probe's `strings` lines.
-- **Secret kill messages are paired with XP-bar changes within 2 seconds, either order**
-  (`Tracker.lua`), since the order of the two events is unknown until the probe shows it.
+- **Secret kill messages take their XP by accounting, not pairing** (`Tracker.lua`): once a
+  secret kill is seen, the run's unknown bucket holds what the XP bar gained while the run was
+  recorded minus what readable messages explain. Any event order gives the same total. *(The
+  first build paired each message with a bar change within 2 seconds; the step review showed it
+  lost XP whenever several kills landed together.)* Known limit: a gain the client sends no
+  message for, within 3 seconds before the first secret kill or any time after it, is counted.
+- **Changes from the step review** (seven reviewers, all findings verified against the code):
+  `Logic/XPBar.lua` handles a level-up delivered as one event or as XP and level size apart in
+  either order; a copy number matching an earlier run merges the provisional run into it; the
+  died flag clears on entry; the `ResetInstances` hook acts only outside an instance, alone or
+  as leader; a loading screen inside the recorded dungeon keeps the run; the hidden-name kills
+  are `run.unknown`, not a `"?"` creature; `Character()` repairs a damaged section; the window
+  drags by `PanelDragBarTemplate`, keeps its right inset when empty, uses the blue list
+  highlight bar and Blizzard's inset offsets; the minimap button follows `GetMinimapShape()` and
+  minimap resizes and leaves itself alone once another addon has taken it off the minimap.
+- **Not taken from the review:** a cap on stored runs (the design keeps runs until deleted); a
+  bar behind the dungeon headers and a rule under the creature headings (plainer than Blizzard's
+  lists, still native); saving the window's position (Blizzard's panels don't either).
+- **Known and unverified:** any `COMBATLOG_XPGAIN*` format whose first argument is a string is
+  read as a creature kill. If the client has one for another unit ("%s gains %d experience."),
+  it would be recorded as a kill; `KILL parsed` logs the format's name so one run shows it. A
+  readable kill that crosses a level-up measures its share against one level's size.
 - **No ledger workspace, no TDD cycle:** the repo has no test runner; `scripts/lint.sh` gates each
   task and the pure logic was run under LuaJIT against the examples in its comments.
 
@@ -74,7 +94,7 @@ One step, one PR: `feat(foreverdungeonxp): add a dungeon experience journal`.
 ```
 addons/ForeverDungeonXP/
   ForeverDungeonXP.toc   metadata, SavedVariables, load order, compartment func, Dev block
-  .pkgmeta                    externals (4 libs under Libs/), ignore Dev, manual changelog
+  .pkgmeta                    ignore Dev, manual changelog (no externals)
   CHANGELOG.md
   Core.lua                    dev shim, ns.OnInitialize, load + migrate, ns.CharacterKey()
   Strings.lua                 ns.L
@@ -83,15 +103,15 @@ addons/ForeverDungeonXP/
   Logic/RunRules.lua          pure: GUID -> copy number, continue-or-new decision
   Logic/Format.lua            pure: duration, XP per hour, share text
   Tracker.lua                 events: instance entry, kills, XP deltas, death, GUID sources, resets
-  Launcher.lua                LDB object + LibDBIcon button, compartment func, /fdxp
+  Launcher.lua                hand-built minimap button, compartment func, /fdxp
   UI/Templates.xml            row templates: dungeon header, run row, creature row
   UI/Journal.lua              the window, run list, run detail, delete menu
   Dev/Probe.lua               dev-only: global strings, kill text, GUID secrecy, instance info
 .luacheckrc                   globals entry for the addon
-types/forever.lua             stubs for global strings / constants LuaLS lacks
+Logic/XPBar.lua, Logic/Edge.lua  added in the review: XP-bar gains across a level-up; minimap edge maths
 ```
 
-TOC load order: Libs (LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0), `Core.lua`,
+TOC load order: `Core.lua`,
 `Strings.lua`, `Database.lua`, `Logic/*`, `Tracker.lua`, `UI/Templates.xml`, `UI/Journal.lua`,
 `Launcher.lua`, then `Dev/Probe.lua` inside `#@do-not-package@`.
 
@@ -111,8 +131,8 @@ TOC load order: Libs (LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon
 - **Existing saved data and deletion.** Deleting the selected or the open run must not leave a
   dangling `open` pointer or a selected row that no longer exists; an empty character shows the
   empty state.
-- **LibDBIcon on the Forever minimap.** It is untested on this client. If it errors on load, the
-  step falls back to a hand-rolled button; that is a design change to raise, not to patch silently.
+- **The hand-built minimap button.** Untested on this client: its place on a round, square or
+  resized minimap, dragging, and what ForeverMinimap's button bag does with it.
 
 ## Step reviewers (Phase 5)
 
@@ -127,7 +147,7 @@ The spec's table, plus:
 | Question | Tag | Expected |
 | --- | --- | --- |
 | Does `PLAYER_XP_UPDATE` fire before or after the kill message? | `PROBE` | an order, logged with both XP readings |
-| Does LibDBIcon's button show and drag on Forever's minimap, and does ForeverMinimap's bag take it? | `UI` | no errors in `devlog.sh --errors` |
+| Does the minimap button show and drag on Forever's minimap, and does ForeverMinimap's bag take it? | `UI` | `UI minimap button`, no errors in `devlog.sh --errors` |
 | Does the window look native (border, insets, scroll bar, highlight)? | none | the user's eyes |
 
 ---
@@ -154,7 +174,7 @@ The spec's table, plus:
 - [ ] **Step 2:** `.pkgmeta` like `addons/ForeverUnitFrames/.pkgmeta`: four externals under
   `Libs/` in the long form (`url:` + `tag:`). Find each library's git URL and its latest release
   tag with `git ls-remote --tags <url>`; pin the tag. `ignore: - Dev`. Run `scripts/libs.sh`,
-  then list each lib's load file in the TOC (LibStub first).
+  then list each lib's load file in the TOC. *(Superseded: no libraries, see Rulings.)*
 - [ ] **Step 3:** `CHANGELOG.md` under `## Unreleased`: `- A journal of your dungeon runs: kill
   experience per run and per creature, its share of a level, kills, time and experience per
   hour. Open it from the minimap button or with /fdxp.`
@@ -215,13 +235,13 @@ The spec's table, plus:
     and sets `run.approximate = true`.
   - `ns.DB.AddXP(run, xp, share)` (secret mode: XP arrives apart from the kill).
   - `ns.DB.DeleteRun(id)`; `ns.DB.Runs() -> array` (the character's runs, storage order);
-    `ns.DB.RunByID(id)`; `ns.DB.Minimap() -> db.minimap` (LibDBIcon's table).
+    `ns.DB.RunByID(id)`; `ns.DB.Minimap() -> db.minimap` (`{ angle }`).
 - Layout, documented in the file's header comment:
 
 ```
 ForeverDungeonXPDB (account-wide)
   version    = schema version
-  minimap    = LibDBIcon's table ({ hide, minimapPos, ... })
+  minimap    = { angle }, the minimap button's place
   characters = { ["Name-Realm"] = {
     nextID = n, open = { [instanceID] = runID },
     runs = { { id, instanceID, name, number, copy = string|nil, openedBy = "first"|"copy"|"alive"|"reset"|"gap",
@@ -232,7 +252,7 @@ ForeverDungeonXPDB (account-wide)
 ```
 
 - [ ] **Step 1:** Write the file. A run with `kills == 0` is saved only while it is open; add
-  `ns.DB.DropEmptyRun(run)` which removes it and its `open` pointer (Tracker calls it on leaving).
+  `ns.DB.DropEmptyRuns(keep)`, which removes every run without kills except `keep` (Tracker calls it on each entry).
 - [ ] **Step 2:** Lint, commit `feat(foreverdungeonxp): store runs per character`.
 - [ ] **Step 3 (gate):** dispatch `savedvariables-guard` on this commit; fix or rule on every
   finding before Task 4.
@@ -278,7 +298,7 @@ ForeverDungeonXPDB (account-wide)
 
 **Files:**
 - Create: `Tracker.lua`
-- Modify: `types/forever.lua` (stubs for the global strings Task 2 found)
+- *(Not needed: global strings are read through `_G[name]`, so `types/forever.lua` is unchanged.)*
 
 **Interfaces:**
 - Consumes: `ns.DB.*`, `ns.XPMessage.*`, `ns.RunRules.*`.
@@ -295,7 +315,7 @@ ForeverDungeonXPDB (account-wide)
   - text not secret: `Parse`; on a hit `AddKill(run, name, xp, xp / UnitXPMax("player"), GetServerTime())`,
     `parsed + 1`; on a miss log `KILL unparsed <text>` and ignore.
   - text secret: `AddKill(run, nil, 0, 0, now)`, `fallback + 1`, and switch the run to
-    delta mode: every `PLAYER_XP_UPDATE("player")` adds `AddXP(run, delta, delta / maxAtGain)`
+    accounting (see Rulings: the unknown bucket is the bar's gains minus what readable messages explain)
     where `delta` is `new - old`, or `(oldMax - old) + new` when `new < old`.
   - Always refresh the XP baseline on `PLAYER_XP_UPDATE`. Clear `run.died` on a recorded kill.
   - Build the matchers once, at initialize, from the global strings the probe found; a missing
@@ -362,10 +382,10 @@ ForeverDungeonXPDB (account-wide)
 **Interfaces:**
 - Consumes: `ns.Journal.Toggle`, `ns.DB.Minimap()`.
 
-- [ ] **Step 1:** In an initializer: a LibDataBroker launcher object (`type = "launcher"`, icon =
+- [ ] **Step 1:** In an initializer: a round button parented to `Minimap`, drawn like
   the TOC's `IconTexture`, `OnClick` toggles on left click, `OnTooltipShow` adds the title and
-  "Click to open"), registered with LibDBIcon against `ns.DB.Minimap()`. Fetch both with
-  `LibStub(name, true)` and skip the button (log `UI nolib`) if either is nil.
+  ForeverMinimap's bag button (`UI/BagButton.xml`), placed with `Logic/Edge.lua` from
+  `ns.DB.Minimap().angle`; left click toggles, dragging moves it along the edge.
 - [ ] **Step 2:** `function ForeverDungeonXP_OnAddonCompartmentClick() ns.Journal.Toggle() end`;
   `SLASH_FOREVERDUNGEONXP1 = "/fdxp"` with the same action.
 - [ ] **Step 3:** Lint, commit `feat(foreverdungeonxp): open the journal from the minimap`.

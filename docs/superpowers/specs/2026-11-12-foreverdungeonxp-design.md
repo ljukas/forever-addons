@@ -92,6 +92,8 @@ pure function, apart from event code, returning creature name and total XP gaine
 The format strings are not in `.cache/` (GlobalStrings aren't part of the UI source), so they
 must come from the game *(my call)*: the build's first task is a `Dev/` probe that logs every
 global whose name starts with `COMBATLOG_XPGAIN` or contains `INSTANCE_RESET`, with its value.
+*(Amended while building: the matchers are built at load from every `COMBATLOG_XPGAIN*` global
+the client defines, so no separate probe trip is needed; the probe's lines confirm the rule.)*
 The user reloads twice, and the matcher is written against what the devlog shows, not against
 Retail or Classic strings from memory.
 
@@ -99,12 +101,13 @@ Retail or Classic strings from memory.
 event is ignored.
 
 **When the text is secret** *(my call)*: a kill message can't be told from another gain on the
-same event, so every such event inside the dungeon is counted as one kill. The XP comes from the
-change in `UnitXP("player")` since the last reading (handling a level-up, where the bar wraps),
-and it is recorded under one "Unknown creatures" entry. The run is marked approximate in the
-saved data, and the window's detail header says "Approximate: creature names were hidden", since
-a quest turn-in inside the dungeon may then be counted. The run stores how many kills were read
-each way.
+same event, so every such event inside the dungeon is counted as one kill, under "Unknown
+creatures". The message carries no amount, so the XP comes from the XP bar *(amended in the step
+review)*: the unknown bucket holds what the bar gained while the run was recorded minus what
+readable messages explain. Nothing is paired in time, so the order of the events doesn't matter.
+The run is marked approximate in the saved data, and the window's detail header says
+"Approximate: creature names were hidden", since a quest turn-in or another gain inside the
+dungeon may then be counted. The run stores how many kills were read each way.
 
 ### Share of a level
 
@@ -125,7 +128,8 @@ field), which differs between copies of the same dungeon.
   GUID may be secret (`UnitGUID` is `SecretWhenUnitIdentityRestricted`), so it is checked with
   `issecretvalue` and never parsed when secret.
 - **Copy number known:** the same number as that dungeon's open run continues it; a different
-  number starts a new run. Kills that arrive before the number is known are held in a pending
+  number starts a new run. Kills that arrive before the number is known *(as built: stay in the run the fallback rule
+  chose, and that run is merged into the matching one once the number is read)* are held in a pending
   run and attached once it is *(my call)*.
 - **Copy number unreadable (fallback, agreed with the user):** the way the player left decides.
   Re-entering as a ghost or after dying, and a `/reload` or reconnect inside, continue the run.
@@ -173,7 +177,7 @@ Agreed with the user from a wireframe on 2026-11-12.
 - Numbers use `BreakUpLargeNumbers`. Text uses Blizzard's font objects and colour constants.
   Strings are plain ASCII where the client font may lack a glyph (the "·" in this document is a
   placeholder; the builder picks a separator the client font has).
-- The window opens on the open run if there is one, else on the newest run *(my call)*.
+- The window opens on the run being recorded if it has kills, else on the newest run *(my call)*.
 
 ### Opening it
 
@@ -197,10 +201,10 @@ Each has a log line so one run answers it (`scripts/devlog.sh --addon ForeverDun
 | --- | --- | --- |
 | Is the kill message's text readable in a dungeon? | `KILL` | text not secret, creature and XP parsed |
 | Do all message variants parse (rested, group)? | `KILL` | no `unparsed` lines |
-| Does the fallback path trigger? | `KILL` | `fallback` count 0 if the above hold |
+| Does the fallback path trigger? | `KILL` | no `KILL secret` lines (each carries the run's `fallback` count) |
 | What does `GetInstanceInfo()` return on entry? | `RUN` | `party`, a stable `instanceID` |
 | Is a creature's GUID readable in a dungeon, in and out of combat? | `PROBE` | not secret, a `zoneUID` field |
-| Does the copy number change after a reset and stay the same on re-entry? | `RUN` | `new copy` / `same copy` |
+| Does the copy number change after a reset and stay the same on re-entry? | `RUN` | `RUN copy new` / `copy same` / `copy unchanged` / `copy stamp` |
 | Which global strings hold the kill and reset messages? | `PROBE` | the `COMBATLOG_XPGAIN*` and reset strings with values |
 | Is the reset message seen by a non-leader? | `RUN` | a `reset` line after a reset |
 | Does re-entry continue the run? | `RUN` | `continue` after a corpse run |

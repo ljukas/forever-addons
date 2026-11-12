@@ -1,6 +1,6 @@
 # ForeverDungeonJournal: kill XP per dungeon run
 
-Date: 2026-11-12 · Status: draft, awaiting approval · Addon: ForeverDungeonJournal (new)
+Date: 2026-11-12 · Status: approved 2026-11-12 · Addon: ForeverDungeonJournal (new)
 
 Lines marked *(my call)* were decided by Claude, not the user. Unmarked lines are the user's.
 
@@ -63,6 +63,12 @@ for your level.
   `DefaultPanelTemplate` and `InsetFrameTemplate`; the scroll system has `WowScrollBoxList`,
   `MinimalScrollBar`, `ScrollUtil.InitScrollBoxListWithScrollBar` and `CreateDataProvider`.
 - Forever's minimap has Blizzard's addon compartment (`Blizzard_Minimap/Camelot/AddonCompartment`).
+- *(Added in planning.)* `CHAT_MSG_SYSTEM` is flagged `SecretInChatMessagingLockdown`, so a reset
+  message can't be read inside a dungeon, only outside. `UnitGUID` is documented secret for a
+  unit that "isn't player-controlled or in the party/raid" while restrictions apply, so the copy
+  number may be unreadable for dungeon creatures and the fallback rule may be the one in use.
+- *(Added in planning.)* The client's global strings (kill and reset message formats) are in no
+  file under `.cache/`; they can only be read in game.
 
 ## Behaviour
 
@@ -134,7 +140,9 @@ field), which differs between copies of the same dungeon.
 
 ### Storage
 
-- Per character (`SavedVariablesPerCharacter`), kept until the player deletes it *(my call)*.
+- Per character, kept until the player deletes it *(my call)*. *(Amended in planning: stored in
+  one account-wide table with a section per `"Name-Realm"`, the repo's existing pattern, instead
+  of `SavedVariablesPerCharacter`. The window still shows only the current character.)*
 - Layout is the builder's to design, with a `DB_VERSION` and a migration path from day one. Per
   run it must hold: dungeon `instanceID` and name, run number, start level, first and last kill
   time, total kill XP, total share of a level, and per creature the kill count and XP.

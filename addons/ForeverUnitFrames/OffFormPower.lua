@@ -3,8 +3,8 @@ local ADDON_NAME, ns = ...
 -- A druid's other powers: a row above the detached power bar with a thin bar for each of mana,
 -- energy and rage that the current form doesn't use. Rage gets a bar once the druid knows a bear
 -- form and energy once they know cat form: no bar before either, one bar across the row with one
--- of them, two side by side with both. The power bar's background and border grow over the row
--- (ns.PowerBar.SetHeadroom), so the two read as one frame
+-- of them, two side by side with both. Each wears the cast bar's border, overlapping the power bar's by a
+-- line, over the power bar's background (ns.PowerBar.SetHeadroom), so they read as one frame
 -- (docs/superpowers/specs/2026-11-12-foreverunitframes-off-form-power-design.md).
 --
 -- Display only. Power values are secret: they go from UnitPower straight into the status bars and
@@ -44,9 +44,10 @@ local ATLAS = {
 -- For the devlog.
 local NAME = { [Mana] = "mana", [Energy] = "energy", [Rage] = "rage" }
 
--- A divider is a grey line with a black line on each side, echoing the cast bar's border.
-local DIVIDER = 3
-local DIVIDER_LINE = 1
+-- How far the cast bar's border reaches past the bar it frames (CastingBarFrame.xml), which is how
+-- thick its line draws. Neighbouring bars sit this far apart and their borders overlap by it, so
+-- they share one line.
+local LINE = 2
 
 -- The powers to show, left to right: those of ORDER the druid has (known[powerType]) other than
 -- the one the current form uses. Returns up to two; either may be nil.
@@ -85,8 +86,8 @@ local border = ns.PowerBar.border
 
 -- A child of the border's frame, so it hides with the power bar's backdrop.
 local row = CreateFrame("Frame", nil, border)
-row:SetPoint("BOTTOMLEFT", holder, "TOPLEFT", 0, DIVIDER)
-row:SetPoint("BOTTOMRIGHT", holder, "TOPRIGHT", 0, DIVIDER)
+row:SetPoint("BOTTOMLEFT", holder, "TOPLEFT", 0, LINE)
+row:SetPoint("BOTTOMRIGHT", holder, "TOPRIGHT", 0, LINE)
 row:Hide()
 
 local function CreateBar()
@@ -96,64 +97,48 @@ local function CreateBar()
 	return bar
 end
 
--- The left bar takes the whole row when it is the only one. The middle divider covers the pixel
--- left of the row's centre and the two right of it, so with an even width everything sits on whole
--- pixels. The outer ends are placed by SetBars.
+-- The left bar takes the whole row when it is the only one. Two bars meet at the row's centre,
+-- under the line their borders share. The other ends are placed by SetBars.
 local leftBar, rightBar = CreateBar(), CreateBar()
-rightBar:SetPoint("TOPLEFT", row, "TOP", DIVIDER - 1, 0)
+rightBar:SetPoint("TOPLEFT", row, "TOP")
 
--- The dividers are drawn on the border's frame, above the fills and under the border's texture.
-local function CreateDivider()
-	local edge = border:CreateTexture(nil, "ARTWORK", nil, 1)
-	edge:SetColorTexture(0, 0, 0, 1)
-	local line = border:CreateTexture(nil, "ARTWORK", nil, 2)
-	line:SetColorTexture(0.6, 0.6, 0.6, 1)
-	return edge, line
+-- Each bar wears the cast bar's border, like the main bar, drawn with it on the border's frame. The
+-- borders overlap the main bar's and each other's by a line, so the lot reads as one frame with
+-- thin lines between its bars, and no border is stretched far from the height it was drawn for.
+local function CreateCell()
+	local cell = border:CreateTexture(nil, "OVERLAY")
+	cell:SetAtlas("ui-castingbar-frame")
+	return cell
 end
 
--- Between the row and the main bar, across the whole width.
-local acrossEdge, acrossLine = CreateDivider()
-acrossEdge:SetPoint("BOTTOMLEFT", holder, "TOPLEFT")
-acrossEdge:SetPoint("BOTTOMRIGHT", holder, "TOPRIGHT")
-acrossEdge:SetHeight(DIVIDER)
-acrossLine:SetPoint("LEFT", acrossEdge, "LEFT")
-acrossLine:SetPoint("RIGHT", acrossEdge, "RIGHT")
-acrossLine:SetHeight(DIVIDER_LINE)
-
--- Between the row's two halves. Its grey line runs one pixel further down, onto the divider
--- below, so the two grey lines join.
-local betweenEdge, betweenLine = CreateDivider()
-betweenEdge:SetPoint("TOPLEFT", row, "TOP", -1, 0)
-betweenEdge:SetPoint("BOTTOMLEFT", row, "BOTTOM", -1, 0)
-betweenEdge:SetWidth(DIVIDER)
-betweenLine:SetPoint("TOPLEFT", row, "TOP")
-betweenLine:SetPoint("BOTTOMLEFT", row, "BOTTOM", 0, -1)
-betweenLine:SetWidth(DIVIDER_LINE)
+local leftCell, rightCell = CreateCell(), CreateCell()
+leftCell:SetPoint("TOPLEFT", row, "TOPLEFT", -LINE, LINE)
+rightCell:SetPoint("TOPLEFT", row, "TOP", -LINE / 2, LINE)
+rightCell:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", LINE, -LINE)
 
 -- Lays the row out for this many bars (0, 1 or 2) at this height, and fits the frame around it.
 local function SetBars(count, height)
 	row:SetShown(count > 0)
-	acrossEdge:SetShown(count > 0)
-	acrossLine:SetShown(count > 0)
+	leftCell:SetShown(count > 0)
 	rightBar:SetShown(count > 1)
-	betweenEdge:SetShown(count > 1)
-	betweenLine:SetShown(count > 1)
+	rightCell:SetShown(count > 1)
 	if count == 0 then
 		ns.PowerBar.SetHeadroom(0)
 		return
 	end
 	row:SetHeight(height)
-	ns.PowerBar.SetHeadroom(height + DIVIDER)
+	ns.PowerBar.SetHeadroom(height + LINE)
 	-- The fills reach past the row under the border's ends, as far as the main bar's fill does:
-	-- their art starts and stops short. The divider is a solid line and stays inside the border
-	-- (in game it stuck out on the right when it followed the fills, 2026-11-12).
+	-- their art starts and stops short.
 	local left, right = ns.PowerBar.barOutset.left, ns.PowerBar.fillOutset.right
 	leftBar:SetPoint("TOPLEFT", row, "TOPLEFT", -left, 0)
 	rightBar:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", right, 0)
 	if count > 1 then
-		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOM", -1, 0)
+		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOM")
+		leftCell:SetPoint("BOTTOMRIGHT", row, "BOTTOM", LINE / 2, -LINE)
 	else
 		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", right, 0)
+		leftCell:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", LINE, -LINE)
 	end
 end
 SetBars(0)

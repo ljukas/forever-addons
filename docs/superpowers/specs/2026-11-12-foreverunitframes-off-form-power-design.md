@@ -25,9 +25,11 @@ it."
 
   One bar spans the row, so with the main bar it is two bars of equal width; two bars split the
   row in half.
-- **One frame** (the user's words): the row and the main bar share the cast bar's background and
-  border, which grow upward over the row. A thin divider line separates the row from the main bar
-  and the two halves from each other. No gaps, no second border.
+- **One frame** (the user's words), with borders that fit the bar's look: each bar in the row
+  wears the cast bar's border, like the main bar, and neighbouring borders overlap by their line,
+  so the bars share one thin line between them. The main bar's border is left as it is: the art
+  isn't sliced, and stretched over the row its top and bottom lines grew thicker and crowded the
+  bar's text (in game, 2026-11-12). The background grows upward behind the row.
 - The bars use Blizzard's player-frame bar art per power
   (`UI-HUD-UnitFrame-Player-PortraitOn-Bar-<Mana|Energy|Rage>`, from `PowerBarColor`), with no
   text, pulse or spend flash. They slide to new values when the bar's Smooth Fill is on.
@@ -59,8 +61,6 @@ it."
 
 - The order mana, energy, rage, and showing energy + rage in caster form.
 - Reading known forms from the stance bar (`GetShapeshiftFormInfo`) by spell ID.
-- The divider: a 1 px grey line with a 1 px black line on each side, to echo the border. To be
-  tuned from a screenshot.
 - The height slider, since pixel tuning goes in options sliders.
 
 ## In-game checks

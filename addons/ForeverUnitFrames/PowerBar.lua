@@ -72,10 +72,12 @@ borderTexture:SetPoint("BOTTOMRIGHT", 2, -2)
 -- parented to it.
 ns.PowerBar.border = border
 
--- Grows the background and the border upward by this many pixels, over a row above the bar, so the
--- row and the bar read as one frame. Only a new value moves anything: the background is the
--- holder's texture, and the holder may be protected in combat (Blizzard's bar is anchored into it).
--- The value changes with the settings and with a form learned, neither of which happens in combat.
+-- Grows the background upward by this many pixels, behind a row above the bar. The border stays as
+-- it is: its art isn't sliced, so stretched over the row its top and bottom lines grew thicker and
+-- crowded the bar's text (in game, 2026-11-12); the row brings borders of its own. Only a new value
+-- moves anything: the background is the holder's texture, and the holder may be protected in combat
+-- (Blizzard's bar is anchored into it). The value changes with the settings and with a form
+-- learned, neither of which happens in combat.
 local headroom = 0
 function ns.PowerBar.SetHeadroom(pixels)
 	if pixels == headroom then
@@ -83,7 +85,6 @@ function ns.PowerBar.SetHeadroom(pixels)
 	end
 	headroom = pixels
 	background:SetPoint("TOPLEFT", -1, 1 + pixels)
-	borderTexture:SetPoint("TOPLEFT", -2, 2 + pixels)
 end
 
 -- The fill players see. Blizzard's bar snaps to each new value; this one eases toward it when the

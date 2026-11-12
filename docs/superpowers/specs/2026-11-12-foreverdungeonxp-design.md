@@ -1,6 +1,9 @@
-# ForeverDungeonJournal: kill XP per dungeon run
+# ForeverDungeonXP: kill XP per dungeon run
 
-Date: 2026-11-12 · Status: approved 2026-11-12 · Addon: ForeverDungeonJournal (new)
+Date: 2026-11-12 · Status: approved 2026-11-12 · Addon: ForeverDungeonXP (new)
+
+*(Amended while building: first named ForeverDungeonJournal. An unrelated third-party addon is
+published under that exact folder name, so this one is ForeverDungeonXP, with `/fdxp`.)*
 
 Lines marked *(my call)* were decided by Claude, not the user. Unmarked lines are the user's.
 
@@ -174,19 +177,21 @@ Agreed with the user from a wireframe on 2026-11-12.
 
 ### Opening it
 
-- **Minimap button.** A round minimap button, left-click toggles the window. Built with
-  LibDataBroker and LibDBIcon via `.pkgmeta` externals *(my call)*: it is the de-facto standard,
-  it handles dragging and saved position, and ForeverMinimap's button bag already recognises
-  LibDBIcon buttons. Hand-rolling a button would re-implement that for no gain.
+- **Minimap button.** A round minimap button, left-click toggles the window, dragging moves it
+  around the minimap's edge. *(Amended while building: hand-built from Blizzard's minimap-button
+  art (`MiniMap-TrackingBorder`, `UI-Minimap-Background`, the zoom button's highlight) at
+  LibDBIcon's size, not with LibDBIcon. That library and the two it needs are published as SVN
+  repositories, and `scripts/libs.sh` fetches git only; changing the repo's tooling for one
+  button wasn't worth it. Cost: addons that only list LibDataBroker launchers won't show it.)*
 - **Addon compartment entry** in Blizzard's minimap dropdown, same action *(my call)*.
-- **Slash command** `/fdj`, same action *(my call)*.
+- **Slash command** `/fdxp`, same action *(my call)*.
 
 This is the user's decision against the workflow's "native, not standalone" default: the journal
 has no Blizzard window to live in, so it gets its own, on the condition in Goal 6.
 
 ## In-game checks
 
-Each has a log line so one run answers it (`scripts/devlog.sh --addon ForeverDungeonJournal`).
+Each has a log line so one run answers it (`scripts/devlog.sh --addon ForeverDungeonXP`).
 
 | Question | Tag | Expected |
 | --- | --- | --- |

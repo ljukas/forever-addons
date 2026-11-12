@@ -1,4 +1,4 @@
-# ForeverDungeonJournal Implementation Plan
+# ForeverDungeonXP Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -14,16 +14,16 @@ because the kill message's wording and the secrecy of creature GUIDs can only be
 SharedXML templates and ScrollBox, `MenuUtil`, LibStub + CallbackHandler-1.0 + LibDataBroker-1.1 +
 LibDBIcon-1.0 via `.pkgmeta` externals, ForeverDev for logging.
 
-**Spec:** `docs/superpowers/specs/2026-11-12-foreverdungeonjournal-design.md`. Read it with this plan.
+**Spec:** `docs/superpowers/specs/2026-11-12-foreverdungeonxp-design.md`. Read it with this plan.
 Process: `docs/feature-workflow.md` (Phases 4-7), conventions: `CLAUDE.md`.
 
-One step, one PR: `feat(foreverdungeonjournal): add a dungeon experience journal`.
+One step, one PR: `feat(foreverdungeonxp): add a dungeon experience journal`.
 
 ## Global Constraints
 
 - Interface `16001`; Lua 5.1; every file starts `local ADDON_NAME, ns = ...`; no globals except
-  `ForeverDungeonJournalDB`, `ForeverDungeonJournal_OnAddonCompartmentClick`,
-  `SLASH_FOREVERDUNGEONJOURNAL1` and the window's frame name `ForeverDungeonJournalFrame`.
+  `ForeverDungeonXPDB`, `ForeverDungeonXP_OnAddonCompartmentClick`,
+  `SLASH_FOREVERDUNGEONXP1` and the window's frame name `ForeverDungeonXPFrame`.
 - Never compare, do arithmetic on, concatenate, use as a table key or branch on a value before
   `issecretvalue(v)` says it is not secret. `ns.log` accepts secrets (prints `<secret>`).
 - Verify each API in `.cache/wow-ui-source` before first use. Global strings and colour constants
@@ -38,6 +38,22 @@ One step, one PR: `feat(foreverdungeonjournal): add a dungeon experience journal
   `git add <paths>` (never `-A`) with `git branch --show-current` in the same command, one
   conventional commit.
 - Player-visible strings live in `Strings.lua` (`ns.L`), plain ASCII.
+
+## Rulings made while building
+
+- **Renamed to ForeverDungeonXP** (`/fdxp`): a third-party addon already uses the folder name
+  ForeverDungeonJournal, its SavedVariables name and its compartment function name.
+- **No libraries; the minimap button is hand-built** (Task 1 Step 2 and Task 7 Step 1 as written
+  no longer apply): LibStub, CallbackHandler and LibDBIcon are SVN-only and `scripts/libs.sh`
+  fetches git. `db.minimap` holds `{ angle }`.
+- **No stop after Task 2.** The kill matchers are built at load from every `COMBATLOG_XPGAIN*`
+  global the client defines (a format whose first argument is a string is a creature kill), so
+  the probe and the tracker are checked in one in-game session. Cost if wrong: the matcher rule
+  is adjusted after the probe's `strings` lines.
+- **Secret kill messages are paired with XP-bar changes within 2 seconds, either order**
+  (`Tracker.lua`), since the order of the two events is unknown until the probe shows it.
+- **No ledger workspace, no TDD cycle:** the repo has no test runner; `scripts/lint.sh` gates each
+  task and the pure logic was run under LuaJIT against the examples in its comments.
 
 ## Design refinements over the spec (found in Phase 2)
 
@@ -56,8 +72,8 @@ One step, one PR: `feat(foreverdungeonjournal): add a dungeon experience journal
 ## File Structure
 
 ```
-addons/ForeverDungeonJournal/
-  ForeverDungeonJournal.toc   metadata, SavedVariables, load order, compartment func, Dev block
+addons/ForeverDungeonXP/
+  ForeverDungeonXP.toc   metadata, SavedVariables, load order, compartment func, Dev block
   .pkgmeta                    externals (4 libs under Libs/), ignore Dev, manual changelog
   CHANGELOG.md
   Core.lua                    dev shim, ns.OnInitialize, load + migrate, ns.CharacterKey()
@@ -67,7 +83,7 @@ addons/ForeverDungeonJournal/
   Logic/RunRules.lua          pure: GUID -> copy number, continue-or-new decision
   Logic/Format.lua            pure: duration, XP per hour, share text
   Tracker.lua                 events: instance entry, kills, XP deltas, death, GUID sources, resets
-  Launcher.lua                LDB object + LibDBIcon button, compartment func, /fdj
+  Launcher.lua                LDB object + LibDBIcon button, compartment func, /fdxp
   UI/Templates.xml            row templates: dungeon header, run row, creature row
   UI/Journal.lua              the window, run list, run detail, delete menu
   Dev/Probe.lua               dev-only: global strings, kill text, GUID secrecy, instance info
@@ -119,37 +135,37 @@ The spec's table, plus:
 ### Task 1: Scaffold the addon
 
 **Files:**
-- Create: `addons/ForeverDungeonJournal/` via `scripts/new-addon.sh ForeverDungeonJournal`, then
-  `ForeverDungeonJournal.toc`, `.pkgmeta`, `Core.lua`, `Strings.lua`, `CHANGELOG.md`
-- Modify: `.luacheckrc` (add `files["addons/ForeverDungeonJournal/**"].globals` with the four
+- Create: `addons/ForeverDungeonXP/` via `scripts/new-addon.sh ForeverDungeonXP`, then
+  `ForeverDungeonXP.toc`, `.pkgmeta`, `Core.lua`, `Strings.lua`, `CHANGELOG.md`
+- Modify: `.luacheckrc` (add `files["addons/ForeverDungeonXP/**"].globals` with the four
   globals from Global Constraints)
 
 **Interfaces:**
 - Produces: `ns.OnInitialize(func)`, `ns.CharacterKey() -> "Name-Realm"` (valid from
   `PLAYER_LOGIN`), `ns.L`, `ns.log`, `ns.dev`. Core's load handler sets
-  `ForeverDungeonJournalDB = ForeverDungeonJournalDB or {}`, `ns.db`, calls `ns.DB.Migrate(ns.db)`
+  `ForeverDungeonXPDB = ForeverDungeonXPDB or {}`, `ns.db`, calls `ns.DB.Migrate(ns.db)`
   then the initializers (copy `addons/ForeverProfessions/Core.lua:111-129`).
 
 - [ ] **Step 1:** Run the scaffold script. TOC: `## Notes: Records the experience you gain from
   kills in each dungeon run.`, `## IconTexture: Interface\Icons\INV_Misc_Book_09` (verify the
   icon exists in Blizzard's own usage or pick one that does), `## X-Category: Dungeons`,
-  `## SavedVariables: ForeverDungeonJournalDB`,
-  `## AddonCompartmentFunc: ForeverDungeonJournal_OnAddonCompartmentClick`.
+  `## SavedVariables: ForeverDungeonXPDB`,
+  `## AddonCompartmentFunc: ForeverDungeonXP_OnAddonCompartmentClick`.
 - [ ] **Step 2:** `.pkgmeta` like `addons/ForeverUnitFrames/.pkgmeta`: four externals under
   `Libs/` in the long form (`url:` + `tag:`). Find each library's git URL and its latest release
   tag with `git ls-remote --tags <url>`; pin the tag. `ignore: - Dev`. Run `scripts/libs.sh`,
   then list each lib's load file in the TOC (LibStub first).
 - [ ] **Step 3:** `CHANGELOG.md` under `## Unreleased`: `- A journal of your dungeon runs: kill
   experience per run and per creature, its share of a level, kills, time and experience per
-  hour. Open it from the minimap button or with /fdj.`
+  hour. Open it from the minimap button or with /fdxp.`
 - [ ] **Step 4:** `scripts/lint.sh` clean (Database.lua doesn't exist yet: keep Core's
   `ns.DB.Migrate` call for Task 3 and make this commit load without it). Commit:
-  `feat(foreverdungeonjournal): scaffold the addon`.
+  `feat(foreverdungeonxp): scaffold the addon`.
 
 ### Task 2: The probe, then a checkpoint with the user
 
 **Files:**
-- Create: `addons/ForeverDungeonJournal/Dev/Probe.lua` (TOC: inside `#@do-not-package@`)
+- Create: `addons/ForeverDungeonXP/Dev/Probe.lua` (TOC: inside `#@do-not-package@`)
 
 **Interfaces:**
 - Produces: devlog lines only. Starts with `if not ns.dev.enabled then return end`.
@@ -169,12 +185,12 @@ The spec's table, plus:
   - `CHAT_MSG_SYSTEM`: the text, only when not secret, only lines containing the word "reset"
     (after the secret check).
   - `PLAYER_DEAD`, `PLAYER_UNGHOST`: `UnitIsDeadOrGhost`, `UnitIsGhost`, `IsInInstance()`.
-- [ ] **Step 3:** Lint, commit `feat(foreverdungeonjournal): probe the kill message and creature ids`.
+- [ ] **Step 3:** Lint, commit `feat(foreverdungeonxp): probe the kill message and creature ids`.
 - [ ] **Step 4 (checkpoint, stop here):** `scripts/worktree.sh status` to confirm the game loads
   the addon from this worktree. Ask the user to: restart the client (new addon folder), kill two
   creatures in the open world (one rested if possible), enter a dungeon, target a creature out of
   combat, kill a pack, die or walk out and back in if convenient, then `/rl`. Read
-  `scripts/devlog.sh --addon ForeverDungeonJournal --tag PROBE`. Record the answers in the spec's
+  `scripts/devlog.sh --addon ForeverDungeonXP --tag PROBE`. Record the answers in the spec's
   "What the client gives us" section (dated, "confirmed in game"), and tell the user which paths
   are real before continuing. If the user can't reach a dungeon now, continue with the open-world
   answers and keep the dungeon questions as in-game checks.
@@ -182,7 +198,7 @@ The spec's table, plus:
 ### Task 3: Saved data (SavedVariables gate)
 
 **Files:**
-- Create: `addons/ForeverDungeonJournal/Database.lua`
+- Create: `addons/ForeverDungeonXP/Database.lua`
 
 **Interfaces:**
 - Produces (the only file that reads or writes the layout):
@@ -203,7 +219,7 @@ The spec's table, plus:
 - Layout, documented in the file's header comment:
 
 ```
-ForeverDungeonJournalDB (account-wide)
+ForeverDungeonXPDB (account-wide)
   version    = schema version
   minimap    = LibDBIcon's table ({ hide, minimapPos, ... })
   characters = { ["Name-Realm"] = {
@@ -217,7 +233,7 @@ ForeverDungeonJournalDB (account-wide)
 
 - [ ] **Step 1:** Write the file. A run with `kills == 0` is saved only while it is open; add
   `ns.DB.DropEmptyRun(run)` which removes it and its `open` pointer (Tracker calls it on leaving).
-- [ ] **Step 2:** Lint, commit `feat(foreverdungeonjournal): store runs per character`.
+- [ ] **Step 2:** Lint, commit `feat(foreverdungeonxp): store runs per character`.
 - [ ] **Step 3 (gate):** dispatch `savedvariables-guard` on this commit; fix or rule on every
   finding before Task 4.
 
@@ -256,7 +272,7 @@ ForeverDungeonJournalDB (account-wide)
   function (the repo has no test runner; a reviewer checks these by reading). Include: a format
   with a trailing bonus clause, a positional format, a creature name containing `-` and `'`,
   a `Player-` GUID (nil), each `Decide` branch.
-- [ ] **Step 2:** Lint, commit `feat(foreverdungeonjournal): parse kill messages and decide runs`.
+- [ ] **Step 2:** Lint, commit `feat(foreverdungeonxp): parse kill messages and decide runs`.
 
 ### Task 5: The tracker
 
@@ -267,7 +283,7 @@ ForeverDungeonJournalDB (account-wide)
 **Interfaces:**
 - Consumes: `ns.DB.*`, `ns.XPMessage.*`, `ns.RunRules.*`.
 - Produces: `ns.Tracker.CurrentRun() -> run|nil` (the run being recorded, nil outside a party
-  instance); fires `EventRegistry:TriggerEvent("ForeverDungeonJournal.RunsChanged")` after any
+  instance); fires `EventRegistry:TriggerEvent("ForeverDungeonXP.RunsChanged")` after any
   change to saved runs.
 
 - [ ] **Step 1: Entry and exit.** On `PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)`:
@@ -296,7 +312,7 @@ ForeverDungeonJournalDB (account-wide)
   `CHAT_MSG_SYSTEM(text)` when not secret and matching the reset format string from the probe
   (dungeon name captured): close the open run whose `name` equals it, log `RUN reset <name>`.
   If the probe found no such string, leave this handler out and say so in the PR.
-- [ ] **Step 5:** Lint, commit `feat(foreverdungeonjournal): record kills into runs`.
+- [ ] **Step 5:** Lint, commit `feat(foreverdungeonxp): record kills into runs`.
 
 ### Task 6: The journal window
 
@@ -306,13 +322,13 @@ ForeverDungeonJournalDB (account-wide)
 
 **Interfaces:**
 - Consumes: `ns.DB.Runs/RunByID/DeleteRun`, `ns.Tracker.CurrentRun`, `ns.Format.*`,
-  the `ForeverDungeonJournal.RunsChanged` event.
+  the `ForeverDungeonXP.RunsChanged` event.
 - Produces: `ns.Journal.Toggle()`.
 
 - [ ] **Step 1: Frame.** Created on first `Toggle()`: `CreateFrame("Frame",
-  "ForeverDungeonJournalFrame", UIParent, "ButtonFrameTemplate")`, `ButtonFrameTemplate_HidePortrait`,
+  "ForeverDungeonXPFrame", UIParent, "ButtonFrameTemplate")`, `ButtonFrameTemplate_HidePortrait`,
   `ButtonFrameTemplate_HideButtonBar`, `:SetTitle(ns.L.TITLE)`, about 700x460, centred,
-  `tinsert(UISpecialFrames, "ForeverDungeonJournalFrame")`, shown and hidden with plain
+  `tinsert(UISpecialFrames, "ForeverDungeonXPFrame")`, shown and hidden with plain
   `Show()`/`Hide()` (no `UIPanelWindows`, so it opens in combat). Movable by dragging the title
   bar; position not saved. The template's `Inset` is re-anchored as the left list (about 250
   wide); a second `InsetFrameTemplate` frame is the right detail pane.
@@ -336,7 +352,7 @@ ForeverDungeonJournalDB (account-wide)
   selection if its run still exists, else select `ns.Tracker.CurrentRun()` or the newest run.
   With no runs: empty list, detail pane hidden, `ns.L.EMPTY` ("Run a dungeon to start your
   journal.") centred in `GameFontDisable`. Log `UI show runs=<n>`.
-- [ ] **Step 5:** Lint, commit `feat(foreverdungeonjournal): show runs in a journal window`.
+- [ ] **Step 5:** Lint, commit `feat(foreverdungeonxp): show runs in a journal window`.
 
 ### Task 7: Minimap button, compartment entry, slash command
 
@@ -350,9 +366,9 @@ ForeverDungeonJournalDB (account-wide)
   the TOC's `IconTexture`, `OnClick` toggles on left click, `OnTooltipShow` adds the title and
   "Click to open"), registered with LibDBIcon against `ns.DB.Minimap()`. Fetch both with
   `LibStub(name, true)` and skip the button (log `UI nolib`) if either is nil.
-- [ ] **Step 2:** `function ForeverDungeonJournal_OnAddonCompartmentClick() ns.Journal.Toggle() end`;
-  `SLASH_FOREVERDUNGEONJOURNAL1 = "/fdj"` with the same action.
-- [ ] **Step 3:** Lint, commit `feat(foreverdungeonjournal): open the journal from the minimap`.
+- [ ] **Step 2:** `function ForeverDungeonXP_OnAddonCompartmentClick() ns.Journal.Toggle() end`;
+  `SLASH_FOREVERDUNGEONXP1 = "/fdxp"` with the same action.
+- [ ] **Step 3:** Lint, commit `feat(foreverdungeonxp): open the journal from the minimap`.
 
 ### Task 8: Review, verify, ship (workflow Phases 5-7)
 
@@ -361,7 +377,7 @@ ForeverDungeonJournalDB (account-wide)
   the step is wrong. Verify each finding, fix confirmed ones one commit per concern.
 - [ ] **Step 2:** Pre-PR gate (`docs/feature-workflow.md`), then in game: a full dungeon run with
   a corpse run or a walk-out, `/rl`, `scripts/devlog.sh --errors` clean, and the in-game check
-  tables answered from `--addon ForeverDungeonJournal`. Unanswered checks go in a
-  `foreverdungeonjournal-launch-checks` memory and the PR says so.
+  tables answered from `--addon ForeverDungeonXP`. Unanswered checks go in a
+  `foreverdungeonxp-launch-checks` memory and the PR says so.
 - [ ] **Step 3:** Open the PR with the template; `scripts/worktree.sh restore` before the
   worktree is removed.

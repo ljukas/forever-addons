@@ -1,0 +1,31 @@
+local _, ns = ...
+
+-- Player-visible text. Plain ASCII: the client font may lack other glyphs.
+ns.L = {
+	TITLE = "Dungeon experience journal",
+	EMPTY = "Run a dungeon to start your journal.",
+	DUNGEON_HEADER = "%s - %d runs",
+	DUNGEON_HEADER_ONE = "%s - 1 run",
+	RUN_TITLE = "Run %d - %s",
+	RUN_SUMMARY = "%s XP - %s kills - %s",
+	DETAIL_HEADER = "%s - run %d - level %d",
+	APPROXIMATE = "Approximate: creature names were hidden",
+	UNKNOWN_CREATURES = "Unknown creatures",
+	DELETE_RUN = "Delete run",
+	STAT_XP = "Kill XP",
+	STAT_SHARE = "Of a level",
+	STAT_KILLS = "Kills",
+	STAT_TIME = "Time",
+	STAT_PER_HOUR = "XP per hour",
+	COLUMN_CREATURE = "Creature",
+	COLUMN_KILLS = "Kills",
+	COLUMN_EACH = "XP each",
+	COLUMN_TOTAL = "Total",
+	NONE = "-",
+	MINUTES = "%d min",
+	UNDER_A_MINUTE = "< 1 min",
+	HOURS_MINUTES = "%d h %d min",
+	PERCENT = "%d%%",
+	UNDER_ONE_PERCENT = "< 1%",
+	TOOLTIP_HINT = "Click to open the journal. Drag to move this button.",
+}

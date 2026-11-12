@@ -1,0 +1,28 @@
+## Interface: 16001
+## Title: ForeverDungeonXP
+## Notes: Records the experience you gain from kills in each dungeon run.
+## Author: ljukas
+## X-License: MIT
+## Version: @project-version@
+## IconTexture: Interface\Icons\INV_Misc_Book_09
+## Category: Forever Enhanced Addons
+## X-Category: Dungeons
+## SavedVariables: ForeverDungeonXPDB
+## AddonCompartmentFunc: ForeverDungeonXP_OnAddonCompartmentClick
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua
+Strings.lua
+Database.lua
+Logic\XPMessage.lua
+Logic\RunRules.lua
+Logic\Format.lua
+Tracker.lua
+UI\Templates.xml
+UI\Journal.lua
+Launcher.lua
+#@do-not-package@
+Dev\Probe.lua
+#@end-do-not-package@

@@ -113,6 +113,8 @@ end
 
 -- Between the row and the main bar, across the whole width.
 local acrossEdge, acrossLine = CreateDivider()
+acrossEdge:SetPoint("BOTTOMLEFT", holder, "TOPLEFT")
+acrossEdge:SetPoint("BOTTOMRIGHT", holder, "TOPRIGHT")
 acrossEdge:SetHeight(DIVIDER)
 acrossLine:SetPoint("LEFT", acrossEdge, "LEFT")
 acrossLine:SetPoint("RIGHT", acrossEdge, "RIGHT")
@@ -142,13 +144,12 @@ local function SetBars(count, height)
 	end
 	row:SetHeight(height)
 	ns.PowerBar.SetHeadroom(height + DIVIDER)
-	-- The fills and the divider below them reach past the row under the border's ends, as far as
-	-- the main bar's fill does.
+	-- The fills reach past the row under the border's ends, as far as the main bar's fill does:
+	-- their art starts and stops short. The divider is a solid line and stays inside the border
+	-- (in game it stuck out on the right when it followed the fills, 2026-11-12).
 	local left, right = ns.PowerBar.barOutset.left, ns.PowerBar.fillOutset.right
 	leftBar:SetPoint("TOPLEFT", row, "TOPLEFT", -left, 0)
 	rightBar:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", right, 0)
-	acrossEdge:SetPoint("BOTTOMLEFT", holder, "TOPLEFT", -left, 0)
-	acrossEdge:SetPoint("BOTTOMRIGHT", holder, "TOPRIGHT", right, 0)
 	if count > 1 then
 		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOM", -1, 0)
 	else

@@ -17,7 +17,7 @@ ns.PowerBar.DEFAULTS = {
 	smooth = true,
 	-- A druid's other powers, in a row above the bar (OffFormPower.lua).
 	offForm = true,
-	offFormHeight = 6,
+	offFormHeight = 10,
 }
 
 local DEFAULTS = ns.PowerBar.DEFAULTS

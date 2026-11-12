@@ -35,7 +35,7 @@ it."
   grows upward from it.
 - Druids only. Other classes see no row and no settings for it.
 - Two settings in the bar's Edit Mode dialog, per layout like the others, shown only to druids:
-  **Other Powers** (checkbox, on by default) and **Other Powers Height** (slider, 3–20, default 6).
+  **Other Powers** (checkbox, on by default) and **Other Powers Height** (slider, 3–20, default 10).
 
 ## Constraints
 

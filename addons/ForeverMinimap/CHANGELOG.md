@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The button bag slides and fades open and shut, out of its button in the direction it opens.
 - The button bag's minimap button wears the same gold ring as the minimap's day and night
   indicator, so it matches the rest of the minimap.
 - Now grouped under "Forever Enhanced Addons" in the AddOns list.

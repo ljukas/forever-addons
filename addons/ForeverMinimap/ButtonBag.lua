@@ -532,6 +532,33 @@ local function OnOptionChanged()
 	end
 end
 
+-- Opening and closing slides the strip SLIDE pixels and fades it, as Blizzard's flat panels (the
+-- loot window) do: it comes out of our button the way the strip grows and goes back into it.
+local SLIDE, SLIDE_SECONDS = 10, 0.1
+
+-- An animation that moves the strip towards our button while fading it out. Played forwards it
+-- closes the strip; played in reverse it opens it.
+local function CreateSlide(frame)
+	local group = frame:CreateAnimationGroup()
+	group:SetToFinalAlpha(true)
+	local translation = group:CreateAnimation("Translation")
+	translation:SetDuration(SLIDE_SECONDS)
+	translation:SetSmoothing("IN")
+	group.Translation = translation
+	local alpha = group:CreateAnimation("Alpha")
+	alpha:SetDuration(SLIDE_SECONDS)
+	alpha:SetSmoothing("IN")
+	alpha:SetFromAlpha(1)
+	alpha:SetToAlpha(0)
+	return group
+end
+
+-- Points the slide at our button: against the direction the strip grows in.
+local function AimSlide(group)
+	local x, y = ns.Strip.Offset(1, Direction(), ns.Strip.PER_LINE, SLIDE, 0)
+	group.Translation:SetOffset(-x, -y)
+end
+
 -- Runs after UI/BagButton.lua's initializer (TOC order), which creates ns.BagButton.
 ns.OnInitialize(function()
 	container = CreateFrame("Frame", nil, ns.BagButton)
@@ -540,8 +567,33 @@ ns.OnInitialize(function()
 	container:SetSize(1, 1)
 	container:SetPoint("CENTER", ns.BagButton, "CENTER")
 	container:SetShown(ns.BagButton:IsOpen())
+	local showAnim, hideAnim = CreateSlide(container), CreateSlide(container)
+	hideAnim:SetScript("OnFinished", function()
+		container:Hide()
+	end)
+	-- The bag button hidden mid-close (the bag turned off, the whole UI hidden) stops the closing
+	-- animation before it could hide the strip, which would then come back with the button.
+	container:SetScript("OnHide", function(self)
+		showAnim:Stop()
+		hideAnim:Stop()
+		if not ns.BagButton:IsOpen() then
+			self:Hide()
+		end
+	end)
 	ns.callbacks:RegisterCallback("BagToggled", function(_, open)
-		container:SetShown(open)
+		showAnim:Stop()
+		hideAnim:Stop()
+		if open then
+			container:Show()
+			-- Reversed: from faded out beside our button to its place.
+			AimSlide(showAnim)
+			showAnim:Play(true)
+		elseif container:IsVisible() then
+			AimSlide(hideAnim)
+			hideAnim:Play()
+		else
+			container:Hide()
+		end
 	end, ns.ButtonBag)
 	lastEnabled, lastDirection, lastScale = Enabled(), Direction(), Scale()
 	ns.callbacks:RegisterCallback("OptionChanged", OnOptionChanged, ns.ButtonBag)

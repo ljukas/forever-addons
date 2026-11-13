@@ -166,24 +166,47 @@ slide:SetScript("OnFinished", function()
 	end
 end)
 
+-- Puts the row where it belongs at once, ending any slide.
+local function SnapRow()
+	slide:Stop()
+	row:SetShown(rowShown)
+end
+
+-- A slide cut short by the power bar's backdrop hiding never finishes, so it ends here.
+clip:SetScript("OnHide", SnapRow)
+
+-- Nothing slides while the loading screen is up: at login the forms and the power in use arrive
+-- after the first layout, and the row is simply there when the world shows.
+local inWorld = false
+EventUtil.RegisterOnceFrameEventAndCallback("LOADING_SCREEN_DISABLED", function()
+	inWorld = true
+end)
+
 -- Shows or hides the row, sliding when asked to and when there is something to see. A slide the
 -- other way, still under way, turns around where it is.
 local function SetRowShown(shown, animate)
-	if not animate or not clip:IsVisible() then
-		slide:Stop()
+	if not animate or not inWorld or not clip:IsVisible() then
 		rowShown = shown
-		row:SetShown(shown)
+		SnapRow()
 		return
 	end
 	if shown == rowShown then
 		return
 	end
+	-- The part of the new slide the old one leaves it to skip, in seconds. That a slide's progress
+	-- counts from its own start whichever way it plays is unconfirmed; the log has what settles it.
 	local offset = 0
 	if slide:IsPlaying() then
-		offset = (1 - slide:GetProgress()) * SLIDE_DURATION
+		local progress = slide:GetProgress()
+		offset = (1 - progress) * SLIDE_DURATION
+		ns.log("OFFFORM", "turn", "progress", progress, "reverse", slide:IsReverse())
+	end
+	rowShown = shown
+	if offset >= SLIDE_DURATION then
+		SnapRow()
+		return
 	end
 	slide:Stop()
-	rowShown = shown
 	row:Show()
 	slide:Play(shown, offset)
 	ns.log("OFFFORM", "slide", shown and "in" or "out", "from", offset)
@@ -199,8 +222,8 @@ local function SetBars(count, height, animate)
 	rightBar:SetShown(count > 1)
 	rightCell:SetShown(count > 1)
 	row:SetHeight(height)
-	-- Up to the top of the row's border.
-	clip:SetHeight(height + 2 * LINE)
+	-- Up to the top of the row's border, and a pixel to spare.
+	clip:SetHeight(height + 2 * LINE + 1)
 	slideMove:SetOffset(0, -(height + LINE))
 	-- The fills reach past the row under the border's ends, as far as the main bar's fill does:
 	-- their art starts and stops short.

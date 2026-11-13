@@ -37,8 +37,9 @@ ahead with the rest.
   growing upward. `ns.PowerBar.SetHeadroom` goes away.
 - The row sits in a clipping frame whose bottom edge is the power bar's top, so the row comes out
   from behind the power bar instead of crossing its text.
-- `SetRowShown(shown, animate)` is the one place the row shows or hides. Without `animate`, or with
-  the backdrop hidden, it snaps. A slide the other way that is still playing turns around from where
+- `SetRowShown(shown, animate)` is the one place the row shows or hides. Without `animate`, with
+  the backdrop hidden, or before the loading screen is gone, it snaps. The backdrop hiding mid-slide
+  snaps the row too. A slide the other way that is still playing turns around from where
   it is: the new play starts `(1 - progress) * duration` in.
 - Only the event handler (`UNIT_DISPLAYPOWER`, `UPDATE_SHAPESHIFT_FORMS`, `SPELLS_CHANGED`) asks for
   animation; `SetLayout` never does.
@@ -52,5 +53,5 @@ ahead with the rest.
 | The row comes out from behind the power bar (the clip applies to an animated child) | Watch the slide; no bars over the power bar's text |
 | No flash of the full row at the end of the slide out | Watch the last frame of leaving |
 | The row at rest looks as before, now that its background is its own texture | Compare with the confirmed one-bar look; no seam between row and power bar |
-| A slide turned around mid-way continues from where it was | Shift out and back within 0.2 s; `OFFFORM slide … from <offset>` is above 0 |
-| No slide at login or `/reload` in a form | `/rl` in bear form; if it slides, the forms weren't known at the first layout |
+| A slide turned around mid-way continues from where it was | Shift out and back within 0.2 s; `OFFFORM turn progress <p> reverse <bool>` shows whether progress counts from the play’s own start (the offset maths assumes it does) |
+| No slide at login or `/reload` in a form | Log in and `/rl` in bear form; no `OFFFORM slide` line before the first shift (nothing slides until `LOADING_SCREEN_DISABLED`) |

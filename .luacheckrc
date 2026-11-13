@@ -43,6 +43,12 @@ files["addons/ForeverDev/**"].globals = {
 	"SLASH_FOREVERDEV_RELOAD1",
 }
 
+files["addons/ForeverDungeonXP/**"].globals = {
+	"ForeverDungeonXPDB",
+	"ForeverDungeonXP_OnAddonCompartmentClick",
+	"SLASH_FOREVERDUNGEONXP1",
+}
+
 files["addons/ForeverMinimap/**"].globals = {
 	"ForeverMinimapDB",
 	"ForeverMinimapBagButtonMixin",

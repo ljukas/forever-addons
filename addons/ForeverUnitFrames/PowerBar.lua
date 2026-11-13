@@ -52,15 +52,22 @@ ns.PowerBar.holder = holder
 local slot = CreateFrame("Frame", nil, holder)
 slot:SetSize(1, 1)
 
--- The cast bar's background and border (Blizzard_UIPanels_Game/Mainline/CastingBarFrame.xml, same
--- offsets), so the bar matches the other free-standing bars. The border sits above the bar's fill.
-local background = holder:CreateTexture(nil, "BACKGROUND")
-background:SetAtlas("ui-castingbar-background")
+-- The cast bar's background, darker than there, so a little rage or energy (dark red, yellow)
+-- stands out against it. Also for what else joins the frame (OffFormPower.lua's row); the caller
+-- anchors it.
+function ns.PowerBar.CreateBackground(frame)
+	local texture = frame:CreateTexture(nil, "BACKGROUND")
+	texture:SetAtlas("ui-castingbar-background")
+	texture:SetVertexColor(0.35, 0.35, 0.35)
+	return texture
+end
+
+local background = ns.PowerBar.CreateBackground(holder)
 background:SetPoint("TOPLEFT", -1, 1)
 background:SetPoint("BOTTOMRIGHT", 1, -1)
--- Darker than the cast bar's, so a little rage or energy (dark red, yellow) stands out against it.
-background:SetVertexColor(0.35, 0.35, 0.35)
 
+-- The cast bar's border too (Blizzard_UIPanels_Game/Mainline/CastingBarFrame.xml, same offsets as
+-- the background's), so the bar matches the other free-standing bars. It sits above the bar's fill.
 local border = CreateFrame("Frame", nil, holder)
 border:SetAllPoints()
 border:SetFrameLevel(holder:GetFrameLevel() + 5)
@@ -71,21 +78,6 @@ borderTexture:SetPoint("BOTTOMRIGHT", 2, -2)
 -- Shown and hidden with the backdrop; what else belongs to the frame (OffFormPower.lua's row) is
 -- parented to it.
 ns.PowerBar.border = border
-
--- Grows the background upward by this many pixels, behind a row above the bar. The border stays as
--- it is: its art isn't sliced, so stretched over the row its top and bottom lines grew thicker and
--- crowded the bar's text (in game, 2026-11-12); the row brings borders of its own. Only a new value
--- moves anything: the background is the holder's texture, and the holder may be protected in combat
--- (Blizzard's bar is anchored into it). The value changes with the settings and with a form
--- learned, neither of which happens in combat.
-local headroom = 0
-function ns.PowerBar.SetHeadroom(pixels)
-	if pixels == headroom then
-		return
-	end
-	headroom = pixels
-	background:SetPoint("TOPLEFT", -1, 1 + pixels)
-end
 
 -- The fill players see. Blizzard's bar snaps to each new value; this one eases toward it when the
 -- layout asks for smooth fills. It copies the values Blizzard sets (secret, but a status bar takes

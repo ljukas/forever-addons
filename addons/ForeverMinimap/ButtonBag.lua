@@ -532,6 +532,77 @@ local function OnOptionChanged()
 	end
 end
 
+-- Opening and closing slides the strip SLIDE pixels and fades it, as Blizzard's flat panels (the
+-- loot window) do: it comes out of our button the way the strip grows and goes back into it.
+local SLIDE, SLIDE_SECONDS = 10, 0.1
+
+-- An animation that moves the strip towards our button while fading it out. Played forwards it
+-- closes the strip; played in reverse it opens it.
+local function CreateSlide(frame)
+	local group = frame:CreateAnimationGroup()
+	group:SetToFinalAlpha(true)
+	local translation = group:CreateAnimation("Translation")
+	translation:SetDuration(SLIDE_SECONDS)
+	translation:SetSmoothing("IN")
+	group.Translation = translation
+	local alpha = group:CreateAnimation("Alpha")
+	alpha:SetDuration(SLIDE_SECONDS)
+	alpha:SetSmoothing("IN")
+	alpha:SetFromAlpha(1)
+	alpha:SetToAlpha(0)
+	return group
+end
+
+-- Points the slide at our button: against the direction the strip grows in.
+local function AimSlide(group)
+	local x, y = ns.Strip.Offset(1, Direction(), ns.Strip.PER_LINE, SLIDE, 0)
+	group.Translation:SetOffset(-x, -y)
+end
+
+-- The open bag closes itself once the cursor has been off our button and the gathered ones for
+-- IDLE_SECONDS, looked at every IDLE_CHECK seconds.
+local IDLE_SECONDS, IDLE_CHECK = 5, 0.5
+local idleTicker, lastHover
+
+-- Whether the cursor is on our button or a gathered one. An answer we can't read counts as yes,
+-- so the bag is never closed under the cursor.
+local function Hovered()
+	local over = ns.BagButton:IsMouseOver()
+	if IsSecret(over) or over then
+		return true
+	end
+	for frame in pairs(collected) do
+		local isShown = frame:IsShown()
+		if not IsSecret(isShown) and isShown then
+			over = frame:IsMouseOver()
+			if IsSecret(over) or over then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- Starts the idle watch when the bag opens and stops it when the bag closes.
+local function WatchIdle(open)
+	if idleTicker then
+		idleTicker:Cancel()
+		idleTicker = nil
+	end
+	if not open then
+		return
+	end
+	lastHover = GetTime()
+	idleTicker = C_Timer.NewTicker(IDLE_CHECK, function()
+		if Hovered() then
+			lastHover = GetTime()
+		elseif GetTime() - lastHover >= IDLE_SECONDS then
+			ns.log("BAG", "idle", "close")
+			ns.BagButton:SetOpen(false)
+		end
+	end)
+end
+
 -- Runs after UI/BagButton.lua's initializer (TOC order), which creates ns.BagButton.
 ns.OnInitialize(function()
 	container = CreateFrame("Frame", nil, ns.BagButton)
@@ -540,8 +611,38 @@ ns.OnInitialize(function()
 	container:SetSize(1, 1)
 	container:SetPoint("CENTER", ns.BagButton, "CENTER")
 	container:SetShown(ns.BagButton:IsOpen())
+	local showAnim, hideAnim = CreateSlide(container), CreateSlide(container)
+	hideAnim:SetScript("OnFinished", function()
+		if not ns.BagButton:IsOpen() then
+			container:Hide()
+		end
+	end)
+	-- The bag button hidden mid-close (the bag turned off, the whole UI hidden) stops the closing
+	-- animation before it could hide the strip, which would then come back with the button.
+	container:SetScript("OnHide", function(self)
+		showAnim:Stop()
+		hideAnim:Stop()
+		-- A finished closing animation leaves the strip faded out.
+		self:SetAlpha(1)
+		if not ns.BagButton:IsOpen() then
+			self:Hide()
+		end
+	end)
 	ns.callbacks:RegisterCallback("BagToggled", function(_, open)
-		container:SetShown(open)
+		showAnim:Stop()
+		hideAnim:Stop()
+		WatchIdle(open)
+		if open then
+			container:Show()
+			-- Reversed: from faded out beside our button to its place.
+			AimSlide(showAnim)
+			showAnim:Play(true)
+		elseif container:IsVisible() then
+			AimSlide(hideAnim)
+			hideAnim:Play()
+		else
+			container:Hide()
+		end
 	end, ns.ButtonBag)
 	lastEnabled, lastDirection, lastScale = Enabled(), Direction(), Scale()
 	ns.callbacks:RegisterCallback("OptionChanged", OnOptionChanged, ns.ButtonBag)

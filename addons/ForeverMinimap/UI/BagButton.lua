@@ -109,13 +109,17 @@ function ForeverMinimapBagButtonMixin:OnShow()
 	end
 end
 
--- The icon sinks 1px down-right while the button is held, as Blizzard's buttons do.
+-- The icon rests ICON_Y pixels off the button's center (BagButton.xml places it there too), where
+-- it looks centered in the ring, and sinks 1px down-right while the button is held, as Blizzard's
+-- buttons do.
+local ICON_Y = -1
+
 function ForeverMinimapBagButtonMixin:OnMouseDown()
-	self.Icon:SetPoint("CENTER", 1, -1)
+	self.Icon:SetPoint("CENTER", 1, ICON_Y - 1)
 end
 
 function ForeverMinimapBagButtonMixin:OnMouseUp()
-	self.Icon:SetPoint("CENTER", 0, 0)
+	self.Icon:SetPoint("CENTER", 0, ICON_Y)
 end
 
 function ForeverMinimapBagButtonMixin:OnClick(mouseButton)

@@ -15,6 +15,7 @@ local RING_MARGIN = 10
 
 ---@class ForeverMinimapBagButtonMixin : Button
 ---@field Icon Texture
+---@field Ring Texture
 ---@field open boolean
 ---@field angle number
 ---@field dragging boolean? while a drag is moving it
@@ -160,6 +161,11 @@ ns.OnInitialize(function()
 	button:RegisterForDrag("LeftButton")
 	button.open = false
 	ChooseIcon(button.Icon)
+	-- The ring is stretched to the button, so its own size tells whether the atlas has padding.
+	if ns.dev.enabled then
+		local info = C_Texture.GetAtlasInfo("UI-HUD-Minimap-Frame-Cycle")
+		ns.dev:LogOnce("ring", "BAG", "ring", info and info.width, info and info.height)
+	end
 	-- A hand-edited angle that isn't a number falls back to the default spot.
 	local angle = ns.db.buttonBag.angle
 	if type(angle) ~= "number" then

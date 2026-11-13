@@ -2,12 +2,11 @@
 ..\..\..\..\..\WoW\Data\Interface\AddOns\Blizzard_SharedXML\UI.xsd">
 	<Script file="BagButton.lua"/>
 
-	<!-- The button on the minimap ring that opens the button bag, drawn like every other addon's
-	     minimap button (LibDBIcon's, Cinematic's): the minimap's dark round background, the gold
-	     tracking-button ring and the zoom buttons' highlight. Forever's own minimap buttons use the
-	     Camelot ui-hud-minimap-* art, which has no plain round button. The ring texture's circle
-	     fills its top-left, so at 50 pixels anchored TOPLEFT it centres on the 31-pixel button.
-	     It is created in BagButton.lua with Minimap as its parent, and its icon is picked there. -->
+	<!-- The button on the minimap ring that opens the button bag: the minimap's dark round
+	     background, an icon, and the gold ring Forever draws round its day and night indicator
+	     (BorderAtlas in Blizzard_Minimap/Camelot/Diel.lua), so it matches the minimap's own art.
+	     The zoom buttons' highlight shows on mouseover. It is created in BagButton.lua with
+	     Minimap as its parent, and its icon is picked there. -->
 	<Button name="ForeverMinimapBagButtonTemplate" mixin="ForeverMinimapBagButtonMixin" virtual="true">
 		<Size x="31" y="31"/>
 		<Layers>
@@ -28,12 +27,7 @@
 				</Texture>
 			</Layer>
 			<Layer level="OVERLAY">
-				<Texture file="Interface\Minimap\MiniMap-TrackingBorder">
-					<Size x="50" y="50"/>
-					<Anchors>
-						<Anchor point="TOPLEFT"/>
-					</Anchors>
-				</Texture>
+				<Texture parentKey="Ring" atlas="UI-HUD-Minimap-Frame-Cycle" setAllPoints="true"/>
 			</Layer>
 		</Layers>
 		<Scripts>

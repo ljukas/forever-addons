@@ -199,7 +199,9 @@ local function SetRowShown(shown, animate)
 	if slide:IsPlaying() then
 		local progress = slide:GetProgress()
 		offset = (1 - progress) * SLIDE_DURATION
-		ns.log("OFFFORM", "turn", "progress", progress, "reverse", slide:IsReverse())
+		if ns.dev.enabled then
+			ns.log("OFFFORM", "turn", "progress", progress, "reverse", slide:IsReverse())
+		end
 	end
 	rowShown = shown
 	if offset >= SLIDE_DURATION then

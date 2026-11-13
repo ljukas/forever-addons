@@ -21,7 +21,9 @@ Logic/XPBar.lua
 Logic/RunRules.lua
 Logic/Format.lua
 Logic/Edge.lua
+Logic/Creatures.lua
 Tracker.lua
+Ranks.lua
 UI/Templates.xml
 UI/Journal.lua
 Launcher.lua

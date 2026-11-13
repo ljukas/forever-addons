@@ -74,10 +74,17 @@
 				</FontString>
 				<FontString parentKey="Name" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="false">
 					<Anchors>
-						<Anchor point="LEFT" x="8"/>
+						<Anchor point="LEFT" x="26"/>
 						<Anchor point="RIGHT" relativeKey="$parent.Kills" relativePoint="LEFT" x="-6"/>
 					</Anchors>
 				</FontString>
+				<!-- The creature's rank: a dragon for an elite or a rare, a skull for a boss. -->
+				<Texture parentKey="Rank" hidden="true">
+					<Size x="16" y="16"/>
+					<Anchors>
+						<Anchor point="LEFT" x="6"/>
+					</Anchors>
+				</Texture>
 			</Layer>
 		</Layers>
 	</Frame>

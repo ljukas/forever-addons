@@ -24,7 +24,8 @@ local _, ns = ...
 --   approximate = true once a kill's text was secret (its XP then comes from the XP bar and may
 --                include other gains), died = true from the player's death until the next kill
 --                or entry,
---   creatures  = { [name] = { kills, xp } },
+--   creatures  = { [name] = { kills, xp, ranks } }, ranks = { [rank] = votes } for "normal",
+--                "elite", "rare" and "boss", nil until a rank was seen (Logic/Creatures.lua),
 --   unknown    = { kills, xp } for kills whose text was secret, nil without any.
 -- Runs are kept until the player deletes them (a few KB each). Only this file writes the layout;
 -- UI/Journal.lua and Tracker.lua read a run's fields.
@@ -61,7 +62,21 @@ end
 -- dungeon entry throw, and a lost nextID must not hand out an id a run already has (deleting by
 -- id would then delete the wrong run).
 local function IsBucket(bucket)
-	return type(bucket) == "table" and type(bucket.kills) == "number" and type(bucket.xp) == "number"
+	if type(bucket) ~= "table" or type(bucket.kills) ~= "number" or type(bucket.xp) ~= "number" then
+		return false
+	end
+	if bucket.ranks == nil then
+		return true
+	end
+	if type(bucket.ranks) ~= "table" then
+		return false
+	end
+	for _, votes in pairs(bucket.ranks) do
+		if type(votes) ~= "number" then
+			return false
+		end
+	end
+	return true
 end
 
 -- Whether a saved run has everything the functions below do arithmetic on.
@@ -313,6 +328,16 @@ function ns.DB.AddKill(run, creatureName, xp, share, now, level)
 	run.died = nil
 end
 
+-- Gives a creature of the run one vote for a rank ("normal", "elite", "rare" or "boss"). Does
+-- nothing for a creature the run has no kill of.
+function ns.DB.AddRank(run, creatureName, rank)
+	local creature = run.creatures[creatureName]
+	if creature then
+		creature.ranks = creature.ranks or {}
+		creature.ranks[rank] = (creature.ranks[rank] or 0) + 1
+	end
+end
+
 -- Adds experience (or takes it back, when negative) that no readable message explains, to the
 -- unknown bucket.
 function ns.DB.AddUnknownXP(run, xp, share)
@@ -329,6 +354,10 @@ function ns.DB.MergeRun(from, into)
 		local bucket = Bucket(into, name)
 		bucket.kills = bucket.kills + creature.kills
 		bucket.xp = bucket.xp + creature.xp
+		for rank, votes in pairs(creature.ranks or {}) do
+			bucket.ranks = bucket.ranks or {}
+			bucket.ranks[rank] = (bucket.ranks[rank] or 0) + votes
+		end
 	end
 	if from.unknown then
 		local bucket = Bucket(into, nil)

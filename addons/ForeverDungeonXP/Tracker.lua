@@ -253,6 +253,7 @@ local function OnKillMessage(text)
 	explained, explainedShare = explained + xp, explainedShare + share
 	if creature then
 		ns.DB.AddKill(current, creature, xp, share, GetServerTime(), PlayerLevel())
+		ns.Ranks.OnKill(current, creature)
 		if ns.dev.enabled then
 			-- Once per format and creature: a line per kill pushes a run's RUN lines out of the
 			-- log's cap.

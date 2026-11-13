@@ -21,6 +21,15 @@ local DETAIL_WIDTH = WIDTH - INSET_LEFT - LIST_WIDTH - INSET_GAP + INSET_RIGHT
 
 local frame
 local selectedID
+-- The creature table's order (Logic/Creatures.lua's keys), for the session: most experience
+-- first until a column heading is clicked.
+local sortKey, sortAscending = "xp", false
+
+-- Blizzard's own rank art: the nameplates' elite dragons and the target frame's skull.
+local RANK_ATLAS = { elite = "nameplates-icon-elite-gold", rare = "nameplates-icon-elite-silver" }
+local BOSS_TEXTURE = [[Interface\TargetingFrame\UI-TargetingFrame-Skull]]
+-- The arrow on the sorted column, as the auction house has it.
+local SORT_ARROW_ATLAS = "auctionhouse-ui-sortarrow"
 
 ----------------------------------------------------------------------------------------------
 -- Pure: saved runs to list rows.
@@ -49,25 +58,6 @@ local function BuildRunRows(runs)
 		for _, run in ipairs(dungeon.runs) do
 			table.insert(rows, { run = run })
 		end
-	end
-	return rows
-end
-
--- A run's creature rows, most experience first, then by name; the kills whose names were hidden
--- last.
-local function BuildCreatureRows(run)
-	local rows = {}
-	for name, creature in pairs(run.creatures) do
-		table.insert(rows, { name = name, kills = creature.kills, xp = creature.xp })
-	end
-	table.sort(rows, function(a, b)
-		if a.xp ~= b.xp then
-			return a.xp > b.xp
-		end
-		return a.name < b.name
-	end)
-	if run.unknown then
-		table.insert(rows, { name = L.UNKNOWN_CREATURES, kills = run.unknown.kills, xp = run.unknown.xp })
 	end
 	return rows
 end
@@ -124,6 +114,43 @@ local function InitCreature(row, data)
 	row.Kills:SetText(Number(data.kills))
 	row.Each:SetText(data.kills > 0 and Number(data.xp / data.kills) or L.NONE)
 	row.Total:SetText(Number(data.xp))
+	if data.rank == "boss" then
+		-- A reused row may still have an atlas's texture coordinates.
+		row.Rank:SetTexture(BOSS_TEXTURE)
+		row.Rank:SetTexCoord(0, 1, 0, 1)
+	elseif RANK_ATLAS[data.rank] then
+		row.Rank:SetAtlas(RANK_ATLAS[data.rank])
+	end
+	row.Rank:SetShown(data.rank ~= nil)
+end
+
+-- A column heading that sorts the creature table by key: Blizzard's list heading button (the
+-- Who list's look). A first click sorts best first (names A to Z), a second turns the order.
+local function CreateHeading(parent, text, key, justify)
+	local heading = CreateFrame("Button", nil, parent, "ColumnDisplayButtonNoScriptsTemplate")
+	heading:SetText(text)
+	local label = heading:GetFontString()
+	label:ClearAllPoints()
+	label:SetPoint(justify, justify == "LEFT" and 26 or -8, 0)
+	heading.Arrow = heading:CreateTexture(nil, "ARTWORK")
+	heading.Arrow:SetAtlas(SORT_ARROW_ATLAS, true)
+	if justify == "LEFT" then
+		heading.Arrow:SetPoint("LEFT", label, "RIGHT", 3, 0)
+	else
+		heading.Arrow:SetPoint("RIGHT", label, "LEFT", -3, 0)
+	end
+	heading.key = key
+	heading:SetScript("OnClick", function()
+		if sortKey == key then
+			sortAscending = not sortAscending
+		else
+			sortKey, sortAscending = key, key == "name"
+		end
+		PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+		Refresh()
+		frame.CreatureList:ScrollToBegin()
+	end)
+	return heading
 end
 
 -- A ScrollBox filling parent below top, with its scroll bar, anchored the way Blizzard's Forever
@@ -229,26 +256,23 @@ local function CreateJournal()
 	local columns = CreateFrame("Frame", nil, content)
 	columns:SetPoint("TOPLEFT", 4, -100)
 	columns:SetPoint("TOPRIGHT", -20, -100)
-	columns:SetHeight(18)
-	local function Column(text, justify)
-		local heading = columns:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-		heading:SetJustifyH(justify)
-		heading:SetText(text)
-		return heading
-	end
-	local total = Column(L.COLUMN_TOTAL, "RIGHT")
+	columns:SetHeight(24)
+	-- Each heading ends where its column's numbers do: the rows' text is 8 in from that edge.
+	local total = CreateHeading(columns, L.COLUMN_TOTAL, "xp", "RIGHT")
+	total:SetPoint("TOPRIGHT")
 	total:SetWidth(70)
-	total:SetPoint("RIGHT", -8, 0)
-	local each = Column(L.COLUMN_EACH, "RIGHT")
+	local each = CreateHeading(columns, L.COLUMN_EACH, "each", "RIGHT")
+	each:SetPoint("TOPRIGHT", total, "TOPLEFT")
 	each:SetWidth(70)
-	each:SetPoint("RIGHT", total, "LEFT")
-	local kills = Column(L.COLUMN_KILLS, "RIGHT")
+	local kills = CreateHeading(columns, L.COLUMN_KILLS, "kills", "RIGHT")
+	kills:SetPoint("TOPRIGHT", each, "TOPLEFT")
 	kills:SetWidth(50)
-	kills:SetPoint("RIGHT", each, "LEFT")
-	local name = Column(L.COLUMN_CREATURE, "LEFT")
-	name:SetPoint("LEFT", 8, 0)
+	local name = CreateHeading(columns, L.COLUMN_CREATURE, "name", "LEFT")
+	name:SetPoint("TOPLEFT")
+	name:SetPoint("TOPRIGHT", kills, "TOPLEFT")
+	content.Headings = { name, kills, each, total }
 
-	frame.CreatureList = CreateList(content, -120, function(factory)
+	frame.CreatureList = CreateList(content, -124, function(factory)
 		factory("ForeverDungeonXPCreatureTemplate", InitCreature)
 	end)
 
@@ -281,8 +305,13 @@ local function ShowRun(run)
 	for index, value in ipairs(values) do
 		content.Stats[index].Value:SetText(value)
 	end
+	for _, heading in ipairs(content.Headings) do
+		heading.Arrow:SetShown(heading.key == sortKey)
+		-- The art points down (largest first); turned over for ascending.
+		heading.Arrow:SetTexCoord(0, 1, sortAscending and 1 or 0, sortAscending and 0 or 1)
+	end
 	frame.CreatureList:SetDataProvider(
-		CreateDataProvider(BuildCreatureRows(run)),
+		CreateDataProvider(ns.Creatures.Rows(run, L.UNKNOWN_CREATURES, sortKey, sortAscending)),
 		ScrollBoxConstants.RetainScrollPosition
 	)
 end

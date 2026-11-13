@@ -6,6 +6,7 @@ local ADDON_NAME, ns = ...
 --   Core.lua       LOADED
 --   Tracker.lua    RUN (entering, leaving, run decisions, copy numbers, resets), KILL (each kill
 --                  message: parsed, unparsed or secret)
+--   Ranks.lua      RANK (each creature's rank from deaths, or why none; encounters won)
 --   UI/Journal.lua UI
 --   Launcher.lua   UI
 --   Dev/Probe.lua  PROBE

@@ -28,9 +28,14 @@ end
 --   950/1000 -> 950/1200 -> 50/1200           0, 0        then 100, 50/1000 + 50/1200 (size first)
 --   950/1000 -> 50/1000 -> 50/1200            0, 0        then 100, 50/1000 + 50/1200 (wrapped XP first)
 --   600/1000 -> 400/1000 -> 450/1000          0, 0        then 50, 0.05  (XP lost: not a gain)
+--   950/1000 -> 950/1200 -> 950/1200 -> 50/1200   100 in all: a repeated reading changes nothing
 --   first reading, or a size of 0 (max level) 0, 0
 function ns.XPBar.Gain(state, xp, max)
 	local oldXP, oldMax, leaving, dropped = state.xp, state.max, state.leaving, state.dropped
+	if xp == oldXP and max == oldMax then
+		-- The same reading again (two events for one change): a level-up under way stays so.
+		return 0, 0
+	end
 	state.xp, state.max, state.leaving, state.dropped = xp, max, nil, nil
 	if not oldXP or oldMax <= 0 or max <= 0 then
 		return 0, 0

@@ -162,17 +162,21 @@ local function TryCopy(unit)
 	end
 end
 
+local OnXPUpdate
+
 local function Enter(isLogin, isReload, attempt, entry)
 	if entry ~= entries then
 		return -- a later loading screen has taken over
 	end
+	-- Read the bar while the run being left is still the recorded one: a gain whose update the
+	-- loading screen swallowed still belongs to it.
+	OnXPUpdate()
 	local name, instanceType, _, _, _, _, _, instanceID = GetInstanceInfo()
 	if issecretvalue(name) or issecretvalue(instanceType) or issecretvalue(instanceID) then
 		current = nil
 		ns.log("RUN", "instance info secret")
 		return
 	end
-	ReadBar()
 
 	if instanceType ~= "party" then
 		current = nil
@@ -262,7 +266,7 @@ local function OnKillMessage(text)
 	Changed()
 end
 
-local function OnXPUpdate()
+function OnXPUpdate()
 	local gain, share = ReadBar()
 	if not current or gain <= 0 then
 		return

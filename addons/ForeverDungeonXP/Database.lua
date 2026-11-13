@@ -60,6 +60,28 @@ end
 -- Makes a character's section safe to use whatever was saved: a damaged file must not make every
 -- dungeon entry throw, and a lost nextID must not hand out an id a run already has (deleting by
 -- id would then delete the wrong run).
+local function IsBucket(bucket)
+	return type(bucket) == "table" and type(bucket.kills) == "number" and type(bucket.xp) == "number"
+end
+
+-- Whether a saved run has everything the functions below do arithmetic on.
+local function IsRun(run)
+	if type(run) ~= "table" or type(run.creatures) ~= "table" then
+		return false
+	end
+	for _, field in ipairs({ "id", "number", "instanceID", "kills", "xp", "share", "parsed", "fallback" }) do
+		if type(run[field]) ~= "number" then
+			return false
+		end
+	end
+	for _, creature in pairs(run.creatures) do
+		if not IsBucket(creature) then
+			return false
+		end
+	end
+	return run.unknown == nil or IsBucket(run.unknown)
+end
+
 local function Repair(character)
 	if type(character.open) ~= "table" then
 		character.open = {}
@@ -73,13 +95,7 @@ local function Repair(character)
 	local highest = 0
 	for index = #character.runs, 1, -1 do
 		local run = character.runs[index]
-		if
-			type(run) ~= "table"
-			or type(run.id) ~= "number"
-			or type(run.number) ~= "number"
-			or type(run.kills) ~= "number"
-			or type(run.creatures) ~= "table"
-		then
+		if not IsRun(run) then
 			table.remove(character.runs, index)
 		elseif run.id > highest then
 			highest = run.id
@@ -87,6 +103,17 @@ local function Repair(character)
 	end
 	if type(character.nextID) ~= "number" or character.nextID <= highest then
 		character.nextID = highest + 1
+	end
+	-- An open pointer must name a run of that dungeon that still exists: a later run could
+	-- otherwise get a removed run's id and be continued from another dungeon.
+	local dungeons = {}
+	for _, run in ipairs(character.runs) do
+		dungeons[run.id] = run.instanceID
+	end
+	for instanceID, id in pairs(character.open) do
+		if dungeons[id] ~= instanceID then
+			character.open[instanceID] = nil
+		end
 	end
 end
 

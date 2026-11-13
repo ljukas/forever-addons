@@ -34,7 +34,11 @@ function ns.CharacterKey()
 		local name = UnitName("player")
 		local realm = GetNormalizedRealmName()
 		-- The realm can still be empty early in a session; the key would then be wrong for good.
-		if name and realm and not issecretvalue(name) and not issecretvalue(realm) and name ~= "" and realm ~= "" then
+		-- Secrecy first: a secret value can't even be tested for nil.
+		if issecretvalue(name) or issecretvalue(realm) then
+			return nil
+		end
+		if name and realm and name ~= "" and realm ~= "" then
 			characterKey = name .. "-" .. realm
 		end
 	end

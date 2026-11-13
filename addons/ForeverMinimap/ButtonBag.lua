@@ -559,6 +559,50 @@ local function AimSlide(group)
 	group.Translation:SetOffset(-x, -y)
 end
 
+-- The open bag closes itself once the cursor has been off our button and the gathered ones for
+-- IDLE_SECONDS, looked at every IDLE_CHECK seconds.
+local IDLE_SECONDS, IDLE_CHECK = 5, 0.5
+local idleTicker, lastHover
+
+-- Whether the cursor is on our button or a gathered one. An answer we can't read counts as yes,
+-- so the bag is never closed under the cursor.
+local function Hovered()
+	local over = ns.BagButton:IsMouseOver()
+	if IsSecret(over) or over then
+		return true
+	end
+	for frame in pairs(collected) do
+		local isShown = frame:IsShown()
+		if not IsSecret(isShown) and isShown then
+			over = frame:IsMouseOver()
+			if IsSecret(over) or over then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- Starts the idle watch when the bag opens and stops it when the bag closes.
+local function WatchIdle(open)
+	if idleTicker then
+		idleTicker:Cancel()
+		idleTicker = nil
+	end
+	if not open then
+		return
+	end
+	lastHover = GetTime()
+	idleTicker = C_Timer.NewTicker(IDLE_CHECK, function()
+		if Hovered() then
+			lastHover = GetTime()
+		elseif GetTime() - lastHover >= IDLE_SECONDS then
+			ns.log("BAG", "idle", "close")
+			ns.BagButton:SetOpen(false)
+		end
+	end)
+end
+
 -- Runs after UI/BagButton.lua's initializer (TOC order), which creates ns.BagButton.
 ns.OnInitialize(function()
 	container = CreateFrame("Frame", nil, ns.BagButton)
@@ -583,6 +627,7 @@ ns.OnInitialize(function()
 	ns.callbacks:RegisterCallback("BagToggled", function(_, open)
 		showAnim:Stop()
 		hideAnim:Stop()
+		WatchIdle(open)
 		if open then
 			container:Show()
 			-- Reversed: from faded out beside our button to its place.

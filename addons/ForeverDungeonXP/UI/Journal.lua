@@ -126,12 +126,13 @@ end
 
 -- A column heading that sorts the creature table by key: Blizzard's list heading button (the
 -- Who list's look). A first click sorts best first (names A to Z), a second turns the order.
-local function CreateHeading(parent, text, key, justify)
+-- The label is offset from the heading's justify edge, to stand over its column's text.
+local function CreateHeading(parent, text, key, justify, offset)
 	local heading = CreateFrame("Button", nil, parent, "ColumnDisplayButtonNoScriptsTemplate")
 	heading:SetText(text)
 	local label = heading:GetFontString()
 	label:ClearAllPoints()
-	label:SetPoint(justify, justify == "LEFT" and 26 or -8, 0)
+	label:SetPoint(justify, offset, 0)
 	heading.Arrow = heading:CreateTexture(nil, "ARTWORK")
 	heading.Arrow:SetAtlas(SORT_ARROW_ATLAS, true)
 	if justify == "LEFT" then
@@ -205,7 +206,7 @@ local function CreateJournal()
 	dragBar:SetPoint("TOPRIGHT")
 	dragBar:SetHeight(22)
 
-	-- The template's inset becomes the run list; a second inset beside it holds the run.
+	-- The template's inset becomes the run list; the run stands beside it.
 	local list = frame.Inset
 	list:ClearAllPoints()
 	list:SetPoint("TOPLEFT", INSET_LEFT, INSET_TOP)
@@ -219,15 +220,20 @@ local function CreateJournal()
 		end
 	end)
 
-	local detail = CreateFrame("Frame", nil, frame, "InsetFrameTemplate")
+	-- The run beside the list, laid out as Blizzard's rosters are (the communities member
+	-- list): the title and totals on the panel's own background, and an inset for the creature
+	-- rows alone, with the column headings resting on its top edge.
+	local detail = CreateFrame("Frame", nil, frame)
 	detail:SetPoint("TOPLEFT", list, "TOPRIGHT", INSET_GAP, 0)
 	detail:SetPoint("BOTTOMRIGHT", INSET_RIGHT, INSET_BOTTOM)
 	frame.Detail = detail
 
-	-- With no runs the inset stays and shows only this line.
-	detail.Empty = detail:CreateFontString(nil, "ARTWORK", "GameFontDisable")
-	detail.Empty:SetPoint("CENTER")
-	detail.Empty:SetText(L.EMPTY)
+	-- With no runs an empty inset fills the place and shows only this line.
+	detail.Empty = CreateFrame("Frame", nil, detail, "InsetFrameTemplate")
+	detail.Empty:SetAllPoints()
+	local empty = detail.Empty:CreateFontString(nil, "ARTWORK", "GameFontDisable")
+	empty:SetPoint("CENTER")
+	empty:SetText(L.EMPTY)
 
 	local content = CreateFrame("Frame", nil, detail)
 	content:SetAllPoints()
@@ -252,29 +258,37 @@ local function CreateJournal()
 		content.Stats[index] = CreateStat(stats, index, (DETAIL_WIDTH - 16) / #labels, label)
 	end
 
-	-- Column headings, placed like the creature rows beneath them (UI/Templates.xml).
-	local columns = CreateFrame("Frame", nil, content)
-	columns:SetPoint("TOPLEFT", 4, -100)
-	columns:SetPoint("TOPRIGHT", -20, -100)
-	columns:SetHeight(24)
-	-- Each heading ends where its column's numbers do: the rows' text is 8 in from that edge.
-	local total = CreateHeading(columns, L.COLUMN_TOTAL, "xp", "RIGHT")
-	total:SetPoint("TOPRIGHT")
-	total:SetWidth(70)
-	local each = CreateHeading(columns, L.COLUMN_EACH, "each", "RIGHT")
-	each:SetPoint("TOPRIGHT", total, "TOPLEFT")
-	each:SetWidth(70)
-	local kills = CreateHeading(columns, L.COLUMN_KILLS, "kills", "RIGHT")
-	kills:SetPoint("TOPRIGHT", each, "TOPLEFT")
-	kills:SetWidth(50)
-	local name = CreateHeading(columns, L.COLUMN_CREATURE, "name", "LEFT")
-	name:SetPoint("TOPLEFT")
-	name:SetPoint("TOPRIGHT", kills, "TOPLEFT")
-	content.Headings = { name, kills, each, total }
-
-	frame.CreatureList = CreateList(content, -124, function(factory)
+	local rows = CreateFrame("Frame", nil, content, "InsetFrameTemplate")
+	rows:SetPoint("TOPLEFT", 0, -122)
+	rows:SetPoint("BOTTOMRIGHT")
+	frame.CreatureList = CreateList(rows, -4, function(factory)
 		factory("ForeverDungeonXPCreatureTemplate", InitCreature)
 	end)
+
+	-- Column headings on the inset's top edge, across its whole width (over the scroll bar
+	-- too), each overlapping the next by OVERLAP as ColumnDisplayMixin lays them out. The
+	-- offsets put each label over its column in the rows (UI/Templates.xml): the rows start
+	-- 4 in from the inset's left and end 20 in from its right (CreateList), their numbers 8
+	-- in from each column's right edge, their names 26 in from the left.
+	local OVERLAP, ROW_LEFT, ROW_RIGHT = 2, 4, 20
+	local function Heading(text, key, justify, offset)
+		local heading = CreateHeading(content, text, key, justify, offset)
+		heading:SetFrameLevel(rows:GetFrameLevel() + 1)
+		return heading
+	end
+	local total = Heading(L.COLUMN_TOTAL, "xp", "RIGHT", -(ROW_RIGHT + 8))
+	total:SetPoint("BOTTOMRIGHT", rows, "TOPRIGHT", 0, -2)
+	total:SetWidth(70 + ROW_RIGHT)
+	local each = Heading(L.COLUMN_EACH, "each", "RIGHT", -(OVERLAP + 8))
+	each:SetPoint("BOTTOMRIGHT", total, "BOTTOMLEFT", OVERLAP, 0)
+	each:SetWidth(70 + OVERLAP)
+	local kills = Heading(L.COLUMN_KILLS, "kills", "RIGHT", -(OVERLAP + 8))
+	kills:SetPoint("BOTTOMRIGHT", each, "BOTTOMLEFT", OVERLAP, 0)
+	kills:SetWidth(50 + OVERLAP)
+	local name = Heading(L.COLUMN_CREATURE, "name", "LEFT", ROW_LEFT + 26)
+	name:SetPoint("BOTTOMLEFT", rows, "TOPLEFT", 0, -2)
+	name:SetPoint("BOTTOMRIGHT", kills, "BOTTOMLEFT", OVERLAP, 0)
+	content.Headings = { name, kills, each, total }
 
 	frame:SetScript("OnShow", function()
 		PlaySound(SOUNDKIT.IG_CHARACTER_INFO_OPEN)

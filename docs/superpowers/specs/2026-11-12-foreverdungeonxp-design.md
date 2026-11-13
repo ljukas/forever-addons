@@ -73,6 +73,21 @@ for your level.
 - *(Added in planning.)* The client's global strings (kill and reset message formats) are in no
   file under `.cache/`; they can only be read in game.
 
+## Confirmed in game (2026-11-12)
+
+Deadmines twice and Ruins of Lordaeron, 371 kills, no Lua errors or blocked actions.
+
+- The kill message's text is readable in a dungeon in combat. All 371 kills parsed, none secret,
+  none unparsed. The only format seen was `COMBATLOG_XPGAIN_FIRSTPERSON_GROUP`; its first number
+  is what lands on the bar. "You gain 3900 experience." was read as a non-kill gain and ignored.
+- The message comes before the `PLAYER_XP_UPDATE` for the same kill. A level-up mid-run came as
+  one update and was recorded.
+- A reset started a new run (`openedBy = "reset"`).
+- No run got a copy number, so creature GUIDs were most likely secret and the fallback rule is
+  the one in use. The `PROBE guid` lines that would say so were pushed out of the capped log.
+- Not yet seen: a rested-bonus kill, a corpse run, the `strings` lines, and the user's verdict on
+  the window's look.
+
 ## Behaviour
 
 ### What counts

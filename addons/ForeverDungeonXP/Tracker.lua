@@ -249,7 +249,11 @@ local function OnKillMessage(text)
 	explained, explainedShare = explained + xp, explainedShare + share
 	if creature then
 		ns.DB.AddKill(current, creature, xp, share, GetServerTime(), PlayerLevel())
-		ns.log("KILL", "parsed", format, creature, xp, "run", current.number, "kills", current.kills, "xp", current.xp)
+		if ns.dev.enabled then
+			-- Once per format and creature: a line per kill pushes a run's RUN lines out of the
+			-- log's cap.
+			ns.dev:LogOnce("kill " .. format .. " " .. creature, "KILL", "parsed", format, creature, xp)
+		end
 	else
 		-- A quest or exploration gain: not a kill.
 		ns.log("KILL", "other", format, xp)

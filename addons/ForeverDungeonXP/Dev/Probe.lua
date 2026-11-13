@@ -17,6 +17,17 @@ local function Log(...)
 	ns.log("PROBE", ...)
 end
 
+-- True for the first lines of a kind in each situation, then false: a line per kill fills the
+-- log's cap in one dungeon run and pushes the one-off lines (strings, world, guid) out of it.
+local FEW = 6
+local counts = {}
+
+local function Few(kind)
+	local key = kind .. " " .. ForeverDev.Situation()
+	counts[key] = (counts[key] or 0) + 1
+	return counts[key] <= FEW
+end
+
 local function LogStrings()
 	local names = {}
 	for name, value in pairs(_G) do
@@ -68,6 +79,9 @@ end
 local handlers = {
 	PLAYER_LOGIN = LogStrings,
 	CHAT_MSG_COMBAT_XP_GAIN = function(text, playerName, _, _, playerName2, _, _, _, _, _, _, guid)
+		if not Few("xpmsg") then
+			return
+		end
 		Log(
 			"xpmsg",
 			ForeverDev.Situation(),
@@ -80,7 +94,9 @@ local handlers = {
 		)
 	end,
 	PLAYER_XP_UPDATE = function()
-		Log("xpupdate", ForeverDev.Situation(), "bar", XPBar())
+		if Few("xpupdate") then
+			Log("xpupdate", ForeverDev.Situation(), "bar", XPBar())
+		end
 	end,
 	PLAYER_ENTERING_WORLD = function(isLogin, isReload)
 		Log("world", "login", isLogin, "reload", isReload, "instance", GetInstanceInfo())

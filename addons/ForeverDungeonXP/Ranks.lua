@@ -71,10 +71,14 @@ local function CountIfDead(unit)
 	end
 end
 
-local function Flush()
-	local finished = batch
+-- Counts the batch whose timer this is. A batch dropped since (the run changed) is left alone,
+-- and so is the one that replaced it: that one has its own timer.
+local function Flush(finished)
+	if batch ~= finished then
+		return
+	end
 	batch = nil
-	if not finished or finished.run ~= ns.Tracker.CurrentRun() then
+	if finished.run ~= ns.Tracker.CurrentRun() then
 		return
 	end
 	for index = 1, MAX_NAMEPLATES do
@@ -127,8 +131,11 @@ function ns.Ranks.OnKill(run, creature)
 		batch = nil
 	end
 	if not batch then
-		batch = { run = run, start = GetTime(), kills = 0, names = {} }
-		C_Timer.After(WINDOW, Flush)
+		local started = { run = run, start = GetTime(), kills = 0, names = {} }
+		batch = started
+		C_Timer.After(WINDOW, function()
+			Flush(started)
+		end)
 	end
 	batch.kills = batch.kills + 1
 	batch.names[creature] = true

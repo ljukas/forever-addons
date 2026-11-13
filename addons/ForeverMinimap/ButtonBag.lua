@@ -613,13 +613,17 @@ ns.OnInitialize(function()
 	container:SetShown(ns.BagButton:IsOpen())
 	local showAnim, hideAnim = CreateSlide(container), CreateSlide(container)
 	hideAnim:SetScript("OnFinished", function()
-		container:Hide()
+		if not ns.BagButton:IsOpen() then
+			container:Hide()
+		end
 	end)
 	-- The bag button hidden mid-close (the bag turned off, the whole UI hidden) stops the closing
 	-- animation before it could hide the strip, which would then come back with the button.
 	container:SetScript("OnHide", function(self)
 		showAnim:Stop()
 		hideAnim:Stop()
+		-- A finished closing animation leaves the strip faded out.
+		self:SetAlpha(1)
 		if not ns.BagButton:IsOpen() then
 			self:Hide()
 		end

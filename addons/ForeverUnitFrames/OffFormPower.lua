@@ -5,9 +5,11 @@ local ADDON_NAME, ns = ...
 -- Form (it builds up outside cat form, see the Furor talent). Rage gets none: it is gone by the time
 -- the druid is back in bear form (in game, 2026-11-12). So: no row in caster form before Cat Form,
 -- one bar across the row otherwise, and two side by side in bear form with Cat Form known. Each
--- wears the cast bar's border, overlapping the power bar's by a line, over the power bar's
--- background (ns.PowerBar.SetHeadroom), so they read as one frame
--- (docs/superpowers/specs/2026-11-12-foreverunitframes-off-form-power-design.md).
+-- wears the cast bar's border, overlapping the power bar's by a line, over a background like the
+-- power bar's, so they read as one frame
+-- (docs/superpowers/specs/2026-11-12-foreverunitframes-off-form-power-design.md). On a form change
+-- the row slides up from behind the power bar and fades in, and leaves the same way
+-- (docs/superpowers/specs/2026-11-13-foreverunitframes-off-form-row-animation-design.md).
 --
 -- Display only. Power values are secret: they go from UnitPower straight into the status bars and
 -- are never compared, logged or calculated with.
@@ -83,11 +85,34 @@ end
 local holder = ns.PowerBar.holder
 local border = ns.PowerBar.border
 
--- A child of the border's frame, so it hides with the power bar's backdrop.
-local row = CreateFrame("Frame", nil, border)
+-- How long the row takes to slide in or out, in seconds.
+local SLIDE_DURATION = 0.2
+
+-- How far the fills and borders reach past the holder's sides at most (the fill's 3 px), with a
+-- pixel to spare: the clip is this much wider.
+local CLIP_MARGIN = 4
+
+-- Cuts the row off at the power bar's top edge, so a sliding row comes out from behind the power
+-- bar rather than across its text. A child of the border's frame, so it hides with the power bar's
+-- backdrop. Its height follows the row's (SetBars).
+local clip = CreateFrame("Frame", nil, border)
+clip:SetClipsChildren(true)
+clip:SetPoint("BOTTOMLEFT", holder, "TOPLEFT", -CLIP_MARGIN, 0)
+clip:SetPoint("BOTTOMRIGHT", holder, "TOPRIGHT", CLIP_MARGIN, 0)
+clip:SetHeight(1)
+
+-- Everything of the row is the row's or a child's, so it slides and fades as one piece. Level with
+-- the holder, whose background the row's own continues upward.
+local row = CreateFrame("Frame", nil, clip)
+row:SetFrameLevel(holder:GetFrameLevel())
 row:SetPoint("BOTTOMLEFT", holder, "TOPLEFT", 0, LINE)
 row:SetPoint("BOTTOMRIGHT", holder, "TOPRIGHT", 0, LINE)
 row:Hide()
+
+-- From a pixel past the row's top, like the power bar's, down to the power bar's own background.
+local background = ns.PowerBar.CreateBackground(row)
+background:SetPoint("TOPLEFT", -1, 1)
+background:SetPoint("BOTTOMRIGHT", 1, -LINE)
 
 local function CreateBar()
 	local bar = CreateFrame("StatusBar", nil, row)
@@ -101,11 +126,15 @@ end
 local leftBar, rightBar = CreateBar(), CreateBar()
 rightBar:SetPoint("TOPLEFT", row, "TOP")
 
--- Each bar wears the cast bar's border, like the main bar, drawn with it on the border's frame. The
--- borders overlap the main bar's and each other's by a line, so the lot reads as one frame with
--- thin lines between its bars, and no border is stretched far from the height it was drawn for.
+-- Each bar wears the cast bar's border, like the main bar, drawn level with it. The borders overlap
+-- the main bar's and each other's by a line, so the lot reads as one frame with thin lines between
+-- its bars, and no border is stretched far from the height it was drawn for.
+local cells = CreateFrame("Frame", nil, row)
+cells:SetAllPoints()
+cells:SetFrameLevel(border:GetFrameLevel())
+
 local function CreateCell()
-	local cell = border:CreateTexture(nil, "OVERLAY")
+	local cell = cells:CreateTexture(nil, "OVERLAY")
 	cell:SetAtlas("ui-castingbar-frame")
 	return cell
 end
@@ -115,18 +144,64 @@ leftCell:SetPoint("TOPLEFT", row, "TOPLEFT", -LINE, LINE)
 rightCell:SetPoint("TOPLEFT", row, "TOP", -LINE / 2, LINE)
 rightCell:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", LINE, -LINE)
 
--- Lays the row out for this many bars (0, 1 or 2) at this height, and fits the frame around it.
-local function SetBars(count, height)
-	row:SetShown(count > 0)
-	leftCell:SetShown(count > 0)
-	rightBar:SetShown(count > 1)
-	rightCell:SetShown(count > 1)
-	if count == 0 then
-		ns.PowerBar.SetHeadroom(0)
+-- The row leaving: down behind the power bar, fading out. Entering plays it backwards, as
+-- Blizzard's help buttons do (Blizzard_HelpPlate.lua), so the row at rest is simply the row. The
+-- distance follows the row's height (SetBars).
+local slide = row:CreateAnimationGroup()
+local slideMove = slide:CreateAnimation("Translation")
+slideMove:SetDuration(SLIDE_DURATION)
+slideMove:SetSmoothing("IN")
+local slideFade = slide:CreateAnimation("Alpha")
+slideFade:SetFromAlpha(1)
+slideFade:SetToAlpha(0)
+slideFade:SetDuration(SLIDE_DURATION)
+slideFade:SetSmoothing("IN")
+
+-- Whether the row is in, or on its way in.
+local rowShown = false
+
+slide:SetScript("OnFinished", function()
+	if not rowShown then
+		row:Hide()
+	end
+end)
+
+-- Shows or hides the row, sliding when asked to and when there is something to see. A slide the
+-- other way, still under way, turns around where it is.
+local function SetRowShown(shown, animate)
+	if not animate or not clip:IsVisible() then
+		slide:Stop()
+		rowShown = shown
+		row:SetShown(shown)
 		return
 	end
+	if shown == rowShown then
+		return
+	end
+	local offset = 0
+	if slide:IsPlaying() then
+		offset = (1 - slide:GetProgress()) * SLIDE_DURATION
+	end
+	slide:Stop()
+	rowShown = shown
+	row:Show()
+	slide:Play(shown, offset)
+	ns.log("OFFFORM", "slide", shown and "in" or "out", "from", offset)
+end
+
+-- Lays the row out for this many bars (0, 1 or 2) at this height. A row with no bars keeps its
+-- last layout while it slides out.
+local function SetBars(count, height, animate)
+	if count == 0 then
+		SetRowShown(false, animate)
+		return
+	end
+	rightBar:SetShown(count > 1)
+	rightCell:SetShown(count > 1)
 	row:SetHeight(height)
-	ns.PowerBar.SetHeadroom(height + LINE)
+	-- Up to the top of the row's border.
+	clip:SetHeight(height + 2 * LINE)
+	slideMove:SetOffset(0, -(height + LINE))
 	-- The fills reach past the row under the border's ends, as far as the main bar's fill does:
 	-- their art starts and stops short.
 	local left, right = ns.PowerBar.barOutset.left, ns.PowerBar.fillOutset.right
@@ -139,6 +214,7 @@ local function SetBars(count, height)
 		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", right, 0)
 		leftCell:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", LINE, -LINE)
 	end
+	SetRowShown(true, animate)
 end
 SetBars(0)
 
@@ -175,8 +251,9 @@ end
 local enabled, rowHeight = false, 0
 
 -- Picks the bars' powers from the forms the druid knows and the one they are in, and lays the row
--- out for them. Everything touched is ours and unprotected, so this is safe in combat.
-local function Refresh()
+-- out for them; with animate, a row that comes or goes slides. Everything touched is ours and
+-- unprotected, so this is safe in combat.
+local function Refresh(animate)
 	if not enabled then
 		SetPower(leftBar, nil)
 		SetPower(rightBar, nil)
@@ -187,7 +264,7 @@ local function Refresh()
 	local left, right = OtherPowers(current, KnownPowers())
 	SetPower(leftBar, left)
 	SetPower(rightBar, right)
-	SetBars((left and 1 or 0) + (right and 1 or 0), rowHeight)
+	SetBars((left and 1 or 0) + (right and 1 or 0), rowHeight, animate)
 	if ns.dev.enabled then
 		local key = tostring(left) .. "/" .. tostring(right)
 		ns.dev:LogChanged("offform", key, "OFFFORM", "powers", current, NAME[left], NAME[right])
@@ -205,12 +282,12 @@ events:SetScript("OnEvent", function(_, event, _, powerToken)
 		UpdateValues()
 	else
 		-- A new form in use, or a form learned.
-		Refresh()
+		Refresh(true)
 		UpdateValues()
 	end
 end)
 
--- Turns the row on or off, at this height.
+-- Turns the row on or off, at this height, at once: only a form change slides it.
 function ns.OffFormPower.SetLayout(shown, height)
 	ns.log("OFFFORM", "layout", shown, height)
 	enabled, rowHeight = shown, height

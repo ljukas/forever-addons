@@ -124,6 +124,27 @@ local function InitCreature(row, data)
 	row.Rank:SetShown(data.rank ~= nil)
 end
 
+local function ClassColored(class, text)
+	local color = C_ClassColor.GetClassColor(class)
+	return color and color:WrapTextInColorCode(text) or text
+end
+
+-- The party line's tooltip: each member's name, level, class and group role.
+local function ShowPartyTooltip(self)
+	GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT", 0, -2)
+	GameTooltip_SetTitle(GameTooltip, L.PARTY_TOOLTIP_TITLE)
+	for _, member in ipairs(self.members or {}) do
+		local class = LOCALIZED_CLASS_NAMES_MALE[member.class] or member.class
+		local detail = member.level and L.PARTY_TOOLTIP_MEMBER:format(member.level, class) or class
+		local role = member.role and _G[member.role]
+		if type(role) == "string" then
+			detail = L.PARTY_TOOLTIP_ROLE:format(detail, role)
+		end
+		GameTooltip:AddDoubleLine(ClassColored(member.class, member.name), detail, 1, 1, 1, 1, 1, 1)
+	end
+	GameTooltip:Show()
+end
+
 -- A column heading that sorts the creature table by key: Blizzard's list heading button (the
 -- Who list's look). A first click sorts best first (names A to Z), a second turns the order.
 -- The label is offset from the heading's justify edge, to stand over its column's text.
@@ -246,11 +267,25 @@ local function CreateJournal()
 	content.Header:SetWordWrap(false)
 
 	content.Note = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-	content.Note:SetPoint("TOPLEFT", content.Header, "BOTTOMLEFT", 0, -3)
+	content.Note:SetPoint("TOPLEFT", 12, -46)
 	content.Note:SetText(L.APPROXIMATE)
 
+	-- Who the run was with: one line of names in class colours, the details in its tooltip.
+	local party = CreateFrame("Frame", nil, content)
+	party:SetPoint("TOPLEFT", 12, -31)
+	party:SetPoint("RIGHT", -12, 0)
+	party:SetHeight(14)
+	party.Text = party:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+	party.Text:SetAllPoints()
+	party.Text:SetJustifyH("LEFT")
+	party.Text:SetWordWrap(false)
+	party:EnableMouse(true)
+	party:SetScript("OnEnter", ShowPartyTooltip)
+	party:SetScript("OnLeave", GameTooltip_Hide)
+	content.Party = party
+
 	local stats = CreateFrame("Frame", nil, content)
-	stats:SetPoint("TOPLEFT", 8, -52)
+	stats:SetPoint("TOPLEFT", 8, -64)
 	stats:SetSize(DETAIL_WIDTH - 16, 40)
 	local labels = { L.STAT_XP, L.STAT_SHARE, L.STAT_KILLS, L.STAT_TIME, L.STAT_PER_HOUR }
 	content.Stats = {}
@@ -259,7 +294,7 @@ local function CreateJournal()
 	end
 
 	local rows = CreateFrame("Frame", nil, content, "InsetFrameTemplate")
-	rows:SetPoint("TOPLEFT", 0, -122)
+	rows:SetPoint("TOPLEFT", 0, -134)
 	rows:SetPoint("BOTTOMRIGHT")
 	frame.CreatureList = CreateList(rows, -4, function(factory)
 		factory("ForeverDungeonXPCreatureTemplate", InitCreature)
@@ -307,6 +342,15 @@ local function ShowRun(run)
 	local content = frame.Detail.Content
 	content.Header:SetText(L.DETAIL_HEADER:format(run.name, run.number, run.level))
 	content.Note:SetShown(run.approximate == true)
+	local members = ns.Format.Party(run)
+	local names = {}
+	for index, member in ipairs(members) do
+		local text = member.level and L.PARTY_MEMBER:format(member.name, member.level) or member.name
+		names[index] = ClassColored(member.class, text)
+	end
+	content.Party.members = members
+	content.Party.Text:SetText(#names > 0 and L.PARTY:format(table.concat(names, ", ")) or "")
+	content.Party:SetShown(#names > 0)
 	local seconds = ns.Format.RunSeconds(run)
 	local perHour = ns.Format.PerHour(run.xp, seconds)
 	local values = {

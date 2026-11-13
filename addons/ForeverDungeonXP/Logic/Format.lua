@@ -44,3 +44,18 @@ function ns.Format.RunSeconds(run)
 	end
 	return math.max(0, run.lastKill - run.firstKill)
 end
+
+-- A run's party members { name, class, level, role } by name, for display; empty for a run
+-- alone or recorded before members were kept.
+function ns.Format.Party(run)
+	local members = {}
+	if type(run.party) == "table" then
+		for name, member in pairs(run.party) do
+			table.insert(members, { name = name, class = member.class, level = member.level, role = member.role })
+		end
+	end
+	table.sort(members, function(a, b)
+		return a.name < b.name
+	end)
+	return members
+end

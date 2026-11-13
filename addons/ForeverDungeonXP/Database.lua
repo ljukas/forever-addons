@@ -26,7 +26,10 @@ local _, ns = ...
 --                or entry,
 --   creatures  = { [name] = { kills, xp, ranks } }, ranks = { [rank] = votes } for "normal",
 --                "elite", "rare" and "boss", nil until a rank was seen (Logic/Creatures.lua),
---   unknown    = { kills, xp } for kills whose text was secret, nil without any.
+--   unknown    = { kills, xp } for kills whose text was secret, nil without any,
+--   party      = { [name] = { class, level, role } }, the party members present at a kill, nil
+--                without any: name is "Name" or "Name-Realm", class the class file name
+--                ("WARRIOR"), level the latest seen, role "TANK", "HEALER", "DAMAGER" or nil.
 -- Runs are kept until the player deletes them (a few KB each). Only this file writes the layout;
 -- UI/Journal.lua and Tracker.lua read a run's fields.
 
@@ -92,6 +95,16 @@ local function IsRun(run)
 	for _, creature in pairs(run.creatures) do
 		if not IsBucket(creature) then
 			return false
+		end
+	end
+	if run.party ~= nil then
+		if type(run.party) ~= "table" then
+			return false
+		end
+		for _, member in pairs(run.party) do
+			if type(member) ~= "table" or type(member.class) ~= "string" then
+				return false
+			end
 		end
 	end
 	return run.unknown == nil or IsBucket(run.unknown)
@@ -338,6 +351,22 @@ function ns.DB.AddRank(run, creatureName, rank)
 	end
 end
 
+-- Records a party member as present in the run, or brings their details up to date. A level
+-- the client doesn't know (0 or less, a member out of sight) keeps the one recorded.
+function ns.DB.AddPartyMember(run, name, class, level, role)
+	run.party = run.party or {}
+	local member = run.party[name]
+	if not member then
+		member = {}
+		run.party[name] = member
+	end
+	member.class = class
+	if type(level) == "number" and level > 0 then
+		member.level = level
+	end
+	member.role = role or member.role
+end
+
 -- Adds experience (or takes it back, when negative) that no readable message explains, to the
 -- unknown bucket.
 function ns.DB.AddUnknownXP(run, xp, share)
@@ -366,6 +395,10 @@ function ns.DB.MergeRun(from, into)
 	end
 	for _, field in ipairs({ "xp", "share", "kills", "parsed", "fallback" }) do
 		into[field] = into[field] + from[field]
+	end
+	for name, member in pairs(from.party or {}) do
+		into.party = into.party or {}
+		into.party[name] = into.party[name] or member
 	end
 	into.approximate = into.approximate or from.approximate
 	if from.firstKill and (not into.firstKill or from.firstKill < into.firstKill) then

@@ -224,6 +224,7 @@ local function OnKillMessage(text)
 		Touch()
 		secretKills = secretKills + 1
 		ns.DB.AddKill(current, nil, 0, 0, GetServerTime(), PlayerLevel())
+		ns.Party.OnKill(current)
 		Settle()
 		ns.log(
 			"KILL",
@@ -254,6 +255,7 @@ local function OnKillMessage(text)
 	if creature then
 		ns.DB.AddKill(current, creature, xp, share, GetServerTime(), PlayerLevel())
 		ns.Ranks.OnKill(current, creature)
+		ns.Party.OnKill(current)
 		if ns.dev.enabled then
 			-- Once per format and creature: a line per kill pushes a run's RUN lines out of the
 			-- log's cap.

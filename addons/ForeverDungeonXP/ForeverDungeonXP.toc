@@ -24,6 +24,7 @@ Logic/Edge.lua
 Logic/Creatures.lua
 Tracker.lua
 Ranks.lua
+Party.lua
 UI/Templates.xml
 UI/Journal.lua
 Launcher.lua

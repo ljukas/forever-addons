@@ -11,6 +11,7 @@ ns.L = {
 	RUN_NUMBER = "Run %d",
 	RUN_TITLE_SEPARATOR = " - ",
 	ALL_CHARACTERS = "All characters",
+	LEVEL_PREFIX = "Lv.",
 	COLUMN_DUNGEON = "Dungeon",
 	COLUMN_LEVEL = "Level",
 	RUN_SUMMARY = "%s XP - %s - %s",

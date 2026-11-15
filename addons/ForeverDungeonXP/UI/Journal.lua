@@ -347,7 +347,12 @@ local function CreateJournal()
 					text:SetHeight(20)
 					text:SetPoint("RIGHT")
 					text:SetJustifyH("RIGHT")
-					text:SetText(level)
+					-- "Lv." in Blizzard's grey, the number in its gold, as level labels are.
+					text:SetText(
+						GRAY_FONT_COLOR:WrapTextInColorCode(L.LEVEL_PREFIX)
+							.. " "
+							.. NORMAL_FONT_COLOR:WrapTextInColorCode(level)
+					)
 					local pad = 40
 					return pad + button.fontString:GetUnboundedStringWidth() + text:GetUnboundedStringWidth(), 20
 				end)

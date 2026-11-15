@@ -10,3 +10,5 @@
   again to turn the order.
 - A run shows who you ran it with: each party member's name and level in their class colour,
   with class and group role in the line's tooltip. Recorded for runs from this version on.
+- The journal shows the runs of all your characters: pick one from the dropdown above the run
+  list, without logging over to it.

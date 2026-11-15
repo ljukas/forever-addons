@@ -5,6 +5,7 @@ local _, ns = ...
 --   minimap    = { angle = degrees }, the minimap button's place on the minimap's edge, owned by
 --                Launcher.lua
 --   characters = { [characterKey] = {
+--     class  = the character's class file name ("DRUID"), nil until it next logs in,
 --     nextID = the next run's id,
 --     open   = { [instanceID] = runID }, the run each dungeon's next visit may continue,
 --     closed = { [instanceID] = "reset" }, why a dungeon has no open run, until its next run starts,
@@ -147,22 +148,89 @@ end
 
 local repaired = {}
 
--- The current character's section, or nil while the character key isn't known yet.
-function ns.DB.Character()
-	local key = ns.CharacterKey()
-	if not key then
-		return nil
-	end
+-- A character's section made safe to use, or nil if nothing usable is saved under key.
+local function Section(key)
 	local character = ns.db.characters[key]
 	if type(character) ~= "table" then
-		character = {}
-		ns.db.characters[key] = character
+		return nil
 	end
 	if not repaired[character] then
 		Repair(character)
 		repaired[character] = true
 	end
 	return character
+end
+
+-- The current character's section, or nil while the character key isn't known yet.
+function ns.DB.Character()
+	local key = ns.CharacterKey()
+	if not key then
+		return nil
+	end
+	if type(ns.db.characters[key]) ~= "table" then
+		ns.db.characters[key] = {}
+	end
+	return Section(key)
+end
+
+-- Remembers the current character's class, for showing it among the account's characters.
+function ns.DB.SetClass(class)
+	local character = ns.DB.Character()
+	if character then
+		character.class = class
+	end
+end
+
+-- The account's characters that have a run to show (one with a kill), plus the current one:
+-- { key, class } by key.
+function ns.DB.Characters()
+	local current = ns.CharacterKey()
+	local characters = {}
+	if current and not Section(current) then
+		-- Nothing saved for the current character yet: listed all the same.
+		table.insert(characters, { key = current })
+	end
+	for key in pairs(ns.db.characters) do
+		local character = type(key) == "string" and Section(key)
+		if character then
+			local shown = key == current
+			for _, run in ipairs(character.runs) do
+				shown = shown or run.kills > 0
+			end
+			if shown then
+				local class = type(character.class) == "string" and character.class or nil
+				table.insert(characters, { key = key, class = class })
+			end
+		end
+	end
+	table.sort(characters, function(a, b)
+		return a.key < b.key
+	end)
+	return characters
+end
+
+-- A character's runs in the order they started; empty for an unknown key. Not to be modified.
+function ns.DB.RunsOf(key)
+	local character = key and Section(key)
+	return character and character.runs or {}
+end
+
+-- Deletes a run of any character. For the current character's, Tracker.DeleteRun: the run may
+-- be the one being recorded.
+function ns.DB.DeleteRunOf(key, id)
+	local character = key and Section(key)
+	if not character then
+		return
+	end
+	for index, run in ipairs(character.runs) do
+		if run.id == id then
+			table.remove(character.runs, index)
+			if character.open[run.instanceID] == id then
+				character.open[run.instanceID] = nil
+			end
+			return
+		end
+	end
 end
 
 -- The current character's runs in the order they started. Not to be modified.
@@ -271,19 +339,7 @@ function ns.DB.RunByCopy(instanceID, copy)
 end
 
 function ns.DB.DeleteRun(id)
-	local character = ns.DB.Character()
-	if not character then
-		return
-	end
-	for index, run in ipairs(character.runs) do
-		if run.id == id then
-			table.remove(character.runs, index)
-			if character.open[run.instanceID] == id then
-				character.open[run.instanceID] = nil
-			end
-			return
-		end
-	end
+	ns.DB.DeleteRunOf(ns.CharacterKey(), id)
 end
 
 -- Removes every run that never got a kill, except keep (the run being recorded, or nil): a visit

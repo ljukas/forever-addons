@@ -17,10 +17,15 @@ local LIST_WIDTH = 250
 -- Blizzard's inset offsets for a panel without a portrait (SharedUIPanelTemplates.lua).
 local INSET_LEFT, INSET_TOP, INSET_RIGHT, INSET_BOTTOM = 9, -24, -6, 4
 local INSET_GAP = 4
+-- The room the character dropdown takes above the run list.
+local PICKER_HEIGHT = 30
 local DETAIL_WIDTH = WIDTH - INSET_LEFT - LIST_WIDTH - INSET_GAP + INSET_RIGHT
 
 local frame
 local selectedID
+-- The character whose runs are shown: nil for the current one, else another's key
+-- (Database.lua). Opening the journal goes back to the current character.
+local viewedKey
 -- The creature table's order (Logic/Creatures.lua's keys), for the session: most experience
 -- first until a column heading is clicked.
 local sortKey, sortAscending = "xp", false
@@ -83,7 +88,12 @@ end
 local function OpenRunMenu(owner, id)
 	MenuUtil.CreateContextMenu(owner, function(_, root)
 		root:CreateButton(L.DELETE_RUN, function()
-			ns.Tracker.DeleteRun(id)
+			if viewedKey then
+				ns.DB.DeleteRunOf(viewedKey, id)
+				Refresh()
+			else
+				ns.Tracker.DeleteRun(id)
+			end
 		end)
 	end)
 end
@@ -228,9 +238,28 @@ local function CreateJournal()
 	dragBar:SetHeight(22)
 
 	-- The template's inset becomes the run list; the run stands beside it.
+	-- Whose runs to show: Blizzard's dropdown above the run list, the account's characters in
+	-- their class colours.
+	local picker = CreateFrame("DropdownButton", nil, frame, "WowStyle1DropdownTemplate")
+	picker:SetPoint("TOPLEFT", INSET_LEFT, INSET_TOP - 2)
+	picker:SetWidth(LIST_WIDTH)
+	picker:SetupMenu(function(_, root)
+		local current = ns.CharacterKey()
+		for _, character in ipairs(ns.DB.Characters()) do
+			local key = character.key ~= current and character.key or nil
+			root:CreateRadio(ClassColored(character.class, character.key), function()
+				return viewedKey == key
+			end, function()
+				viewedKey, selectedID = key, nil
+				Refresh()
+			end)
+		end
+	end)
+	frame.Picker = picker
+
 	local list = frame.Inset
 	list:ClearAllPoints()
-	list:SetPoint("TOPLEFT", INSET_LEFT, INSET_TOP)
+	list:SetPoint("TOPLEFT", INSET_LEFT, INSET_TOP - PICKER_HEIGHT)
 	list:SetPoint("BOTTOMLEFT", INSET_LEFT, INSET_BOTTOM)
 	list:SetWidth(LIST_WIDTH)
 	frame.RunList = CreateList(list, -4, function(factory, data)
@@ -245,16 +274,15 @@ local function CreateJournal()
 	-- list): the title and totals on the panel's own background, and an inset for the creature
 	-- rows alone, with the column headings resting on its top edge.
 	local detail = CreateFrame("Frame", nil, frame)
-	detail:SetPoint("TOPLEFT", list, "TOPRIGHT", INSET_GAP, 0)
+	detail:SetPoint("TOPLEFT", list, "TOPRIGHT", INSET_GAP, PICKER_HEIGHT)
 	detail:SetPoint("BOTTOMRIGHT", INSET_RIGHT, INSET_BOTTOM)
 	frame.Detail = detail
 
 	-- With no runs an empty inset fills the place and shows only this line.
 	detail.Empty = CreateFrame("Frame", nil, detail, "InsetFrameTemplate")
 	detail.Empty:SetAllPoints()
-	local empty = detail.Empty:CreateFontString(nil, "ARTWORK", "GameFontDisable")
-	empty:SetPoint("CENTER")
-	empty:SetText(L.EMPTY)
+	detail.Empty.Text = detail.Empty:CreateFontString(nil, "ARTWORK", "GameFontDisable")
+	detail.Empty.Text:SetPoint("CENTER")
 
 	local content = CreateFrame("Frame", nil, detail)
 	content:SetAllPoints()
@@ -377,7 +405,7 @@ end
 -- Rebuilds both lists. Keeps the selection if its run still has kills to show, else selects
 -- the run being recorded, else the newest run.
 function Refresh()
-	local rows = BuildRunRows(ns.DB.Runs())
+	local rows = BuildRunRows(viewedKey and ns.DB.RunsOf(viewedKey) or ns.DB.Runs())
 	local selected, newest
 	for _, row in ipairs(rows) do
 		if row.run then
@@ -390,7 +418,7 @@ function Refresh()
 		end
 	end
 	if not selected then
-		local current = ns.Tracker.CurrentRun()
+		local current = not viewedKey and ns.Tracker.CurrentRun()
 		selected = current and current.kills > 0 and current or newest
 	end
 	selectedID = selected and selected.id or nil
@@ -398,6 +426,7 @@ function Refresh()
 	frame.RunList:SetDataProvider(CreateDataProvider(rows), ScrollBoxConstants.RetainScrollPosition)
 	frame.Detail.Content:SetShown(selected ~= nil)
 	frame.Detail.Empty:SetShown(selected == nil)
+	frame.Detail.Empty.Text:SetText(viewedKey and L.EMPTY_CHARACTER or L.EMPTY)
 	if selected then
 		ShowRun(selected)
 	end
@@ -412,8 +441,11 @@ function ns.Journal.Toggle()
 		return
 	end
 	-- Opening goes to the run being recorded, else the newest: not to an earlier selection.
-	selectedID = nil
+	viewedKey, selectedID = nil, nil
 	frame:Show()
+	-- Rebuilt on opening, not on every refresh (a kill would close the open menu): the
+	-- characters may have changed, and the dropdown's text must follow the reset above.
+	frame.Picker:GenerateMenu()
 	Refresh()
 	if ns.dev.enabled then
 		ns.log("UI", "show", "runs", #ns.DB.Runs(), "selected", selectedID)

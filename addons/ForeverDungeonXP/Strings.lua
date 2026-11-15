@@ -18,6 +18,7 @@ ns.L = {
 	PARTY_TOOLTIP_ROLE = "%s - %s",
 	APPROXIMATE = "Approximate: creature names were hidden",
 	UNKNOWN_CREATURES = "Unknown creatures",
+	EMPTY_CHARACTER = "No runs recorded for this character.",
 	DELETE_RUN = "Delete run",
 	STAT_XP = "Kill XP",
 	STAT_SHARE = "Of a level",

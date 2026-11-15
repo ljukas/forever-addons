@@ -171,6 +171,10 @@ local function Enter(isLogin, isReload, attempt, entry)
 	-- Read the bar while the run being left is still the recorded one: a gain whose update the
 	-- loading screen swallowed still belongs to it.
 	OnXPUpdate()
+	local _, class = UnitClass("player")
+	if not issecretvalue(class) and type(class) == "string" then
+		ns.DB.SetClass(class)
+	end
 	local name, instanceType, _, _, _, _, _, instanceID = GetInstanceInfo()
 	if issecretvalue(name) or issecretvalue(instanceType) or issecretvalue(instanceID) then
 		current = nil

@@ -11,4 +11,6 @@
 - A run shows who you ran it with: each party member's name and level in their class colour,
   with class and group role in the line's tooltip. Recorded for runs from this version on.
 - The journal shows the runs of all your characters: pick one from the dropdown above the run
-  list, without logging over to it.
+  list, without logging over to it, or "All characters" to see everyone's runs together.
+- The run list is grouped by dungeon or by the level you were when the run started: click the
+  Dungeon or Level heading above it, and click again to turn the order.

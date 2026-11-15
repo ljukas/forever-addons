@@ -1,6 +1,7 @@
 local _, ns = ...
 
--- The journal window: the character's runs grouped by dungeon on the left, the selected run's
+-- The journal window: one character's runs, or all characters', grouped by dungeon or by level
+-- on the left (Logic/RunList.lua), the selected run's
 -- totals and creatures on the right. Built on first use from Blizzard's own panel pieces
 -- (ButtonFrameTemplate without a portrait as the addon list uses it, InsetFrameTemplate,
 -- PanelDragBarTemplate, WowScrollBoxList, MinimalScrollBar); the rows are in UI/Templates.xml.
@@ -17,55 +18,31 @@ local LIST_WIDTH = 250
 -- Blizzard's inset offsets for a panel without a portrait (SharedUIPanelTemplates.lua).
 local INSET_LEFT, INSET_TOP, INSET_RIGHT, INSET_BOTTOM = 9, -24, -6, 4
 local INSET_GAP = 4
--- The room the character dropdown takes above the run list.
+-- The room the character dropdown takes above the run list, and the run list's headings
+-- below it (24 high, 2 of it over the list's inset).
 local PICKER_HEIGHT = 30
+local HEADINGS_HEIGHT = 22
 local DETAIL_WIDTH = WIDTH - INSET_LEFT - LIST_WIDTH - INSET_GAP + INSET_RIGHT
 
 local frame
-local selectedID
--- The character whose runs are shown: nil for the current one, else another's key
--- (Database.lua). Opening the journal goes back to the current character.
-local viewedKey
+-- The selected run: its character's key and its id (ids are numbered per character).
+local selectedKey, selectedID
+-- Whose runs are shown: every character's with viewAll, else viewedKey's: nil for the current
+-- character, else another's key (Database.lua). Opening the journal goes back to the current
+-- character.
+local viewAll, viewedKey = false, nil
 -- The creature table's order (Logic/Creatures.lua's keys), for the session: most experience
 -- first until a column heading is clicked.
 local sortKey, sortAscending = "xp", false
+-- The run list's grouping and order (Logic/RunList.lua's keys), for the session: by dungeon,
+-- A to Z, until a heading is clicked.
+local runSortKey, runSortAscending = "dungeon", true
 
 -- Blizzard's own rank art: the nameplates' elite dragons and the target frame's skull.
 local RANK_ATLAS = { elite = "nameplates-icon-elite-gold", rare = "nameplates-icon-elite-silver" }
 local BOSS_TEXTURE = [[Interface\TargetingFrame\UI-TargetingFrame-Skull]]
 -- The arrow on the sorted column, as the auction house has it.
 local SORT_ARROW_ATLAS = "auctionhouse-ui-sortarrow"
-
-----------------------------------------------------------------------------------------------
--- Pure: saved runs to list rows.
-
--- The run list's rows: per dungeon a header row, then its runs, newest first; the dungeon with
--- the newest run first. A run without kills (a visit in progress) is left out.
---   runs (ids 1..4): Deadmines 1, Wailing Caverns 2, Deadmines 3, Deadmines 4 (no kills)
---   -> header Deadmines (2 runs), run 3, run 1, header Wailing Caverns (1 run), run 2
-local function BuildRunRows(runs)
-	local dungeons, order = {}, {}
-	for index = #runs, 1, -1 do
-		local run = runs[index]
-		if run.kills > 0 then
-			local dungeon = dungeons[run.instanceID]
-			if not dungeon then
-				dungeon = { name = run.name, runs = {} }
-				dungeons[run.instanceID] = dungeon
-				table.insert(order, dungeon)
-			end
-			table.insert(dungeon.runs, run)
-		end
-	end
-	local rows = {}
-	for _, dungeon in ipairs(order) do
-		table.insert(rows, { header = true, name = dungeon.name, count = #dungeon.runs })
-		for _, run in ipairs(dungeon.runs) do
-			table.insert(rows, { run = run })
-		end
-	end
-	return rows
-end
 
 local function Number(value)
 	return BreakUpLargeNumbers(math.floor(value + 0.5))
@@ -75,46 +52,105 @@ local function Kills(count)
 	return count == 1 and L.KILL_ONE or L.KILLS:format(Number(count))
 end
 
+-- text in a class's colour; unchanged for a class not known (a character that hasn't logged in
+-- since classes were saved).
+local function ClassColored(class, text)
+	local color = class and C_ClassColor.GetClassColor(class)
+	return color and color:WrapTextInColorCode(text) or text
+end
+
+-- The runs to list as Logic/RunList.lua's entries: every character's, or the viewed one's.
+local function Entries()
+	local shown = viewedKey or ns.CharacterKey()
+	local entries = {}
+	for _, character in ipairs(ns.DB.Characters()) do
+		if viewAll or character.key == shown then
+			for _, run in ipairs(ns.DB.RunsOf(character.key)) do
+				table.insert(entries, { run = run, key = character.key, class = character.class })
+			end
+		end
+	end
+	return entries
+end
+
+-- A run row's first line: whose run it is when all characters are listed, the dungeon when the
+-- list's headers aren't dungeons (else the run's number in it), and when it started. The date
+-- stands last and is the part cut off if the row is too narrow.
+--   one character, by dungeon:   "Run 2 - 12 Nov 21:04"
+--   one character, by level:     "Deadmines - 12 Nov 21:04"
+--   all characters, by dungeon:  "Thrall - Run 2 - 12 Nov"
+local function RunTitle(data)
+	local run = data.run
+	local parts = {}
+	if viewAll then
+		table.insert(parts, ClassColored(data.class, data.key:match("^[^-]+") or data.key))
+	end
+	table.insert(parts, runSortKey == "dungeon" and L.RUN_NUMBER:format(run.number) or run.name)
+	table.insert(parts, date(#parts == 2 and "%d %b" or "%d %b %H:%M", run.firstKill))
+	return table.concat(parts, L.RUN_TITLE_SEPARATOR)
+end
+
 ----------------------------------------------------------------------------------------------
 -- The frame.
 
 local Refresh
 
-local function Select(id)
-	selectedID = id
+-- Brings the selected run into view: the list is in sorted order, so it may be anywhere. On
+-- the next frame, once the list has been laid out with its new rows.
+local function ScrollToSelected()
+	C_Timer.After(0, function()
+		if frame:IsShown() then
+			frame.RunList:ScrollToElementDataByPredicate(function(data)
+				return data.run ~= nil and data.run.id == selectedID and data.key == selectedKey
+			end, ScrollBoxConstants.AlignCenter, 0, ScrollBoxConstants.NoScrollInterpolation)
+		end
+	end)
+end
+
+local function Select(key, id)
+	selectedKey, selectedID = key, id
 	Refresh()
 end
 
-local function OpenRunMenu(owner, id)
+local function OpenRunMenu(owner, key, id)
 	MenuUtil.CreateContextMenu(owner, function(_, root)
 		root:CreateButton(L.DELETE_RUN, function()
-			if viewedKey then
-				ns.DB.DeleteRunOf(viewedKey, id)
-				Refresh()
-			else
+			if key == ns.CharacterKey() then
+				-- The tracker's: the run may be the one being recorded.
 				ns.Tracker.DeleteRun(id)
+			else
+				ns.DB.DeleteRunOf(key, id)
+				Refresh()
 			end
 		end)
 	end)
 end
 
 local function InitHeader(row, data)
-	row.Text:SetText((data.count == 1 and L.DUNGEON_HEADER_ONE or L.DUNGEON_HEADER):format(data.name, data.count))
+	if data.level then
+		row.Text:SetText(
+			data.count == 1 and L.LEVEL_HEADER_ONE:format(data.level) or L.LEVEL_HEADER:format(data.level, data.count)
+		)
+	else
+		row.Text:SetText(
+			(data.count == 1 and L.DUNGEON_HEADER_ONE or L.DUNGEON_HEADER):format(data.dungeon, data.count)
+		)
+	end
 end
 
 local function InitRun(row, data)
 	local run = data.run
-	row.Title:SetText(L.RUN_TITLE:format(run.number, date("%d %b %H:%M", run.firstKill)))
+	row.Title:SetText(RunTitle(data))
 	row.Share:SetText(ns.Format.Share(run.share))
 	row.Summary:SetText(
 		L.RUN_SUMMARY:format(Number(run.xp), Kills(run.kills), ns.Format.Duration(ns.Format.RunSeconds(run)))
 	)
-	row.SelectedBar:SetShown(run.id == selectedID)
+	row.SelectedBar:SetShown(run.id == selectedID and data.key == selectedKey)
 	row:SetScript("OnClick", function(self, button)
 		if button == "RightButton" then
-			OpenRunMenu(self, run.id)
+			OpenRunMenu(self, data.key, run.id)
 		else
-			Select(run.id)
+			Select(data.key, run.id)
 		end
 	end)
 end
@@ -134,11 +170,6 @@ local function InitCreature(row, data)
 	row.Rank:SetShown(data.rank ~= nil)
 end
 
-local function ClassColored(class, text)
-	local color = C_ClassColor.GetClassColor(class)
-	return color and color:WrapTextInColorCode(text) or text
-end
-
 -- The party line's tooltip: each member's name, level, class and group role.
 local function ShowPartyTooltip(self)
 	GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT", 0, -2)
@@ -155,10 +186,42 @@ local function ShowPartyTooltip(self)
 	GameTooltip:Show()
 end
 
--- A column heading that sorts the creature table by key: Blizzard's list heading button (the
--- Who list's look). A first click sorts best first (names A to Z), a second turns the order.
--- The label is offset from the heading's justify edge, to stand over its column's text.
-local function CreateHeading(parent, text, key, justify, offset)
+-- A click on a creature table heading: a first click sorts best first (names A to Z), a second
+-- turns the order.
+local function SortCreatures(key)
+	if sortKey == key then
+		sortAscending = not sortAscending
+	else
+		sortKey, sortAscending = key, key == "name"
+	end
+	Refresh()
+	frame.CreatureList:ScrollToBegin()
+end
+
+-- A click on a run list heading: dungeons start A to Z, levels highest first.
+local function SortRuns(key)
+	if runSortKey == key then
+		runSortAscending = not runSortAscending
+	else
+		runSortKey, runSortAscending = key, key == "dungeon"
+	end
+	Refresh()
+	frame.RunList:ScrollToBegin()
+end
+
+-- Shows the sort arrow on the heading a list is sorted by.
+local function SetArrows(headings, key, ascending)
+	for _, heading in ipairs(headings) do
+		heading.Arrow:SetShown(heading.key == key)
+		-- The art points down (largest first); turned over for ascending.
+		heading.Arrow:SetTexCoord(0, 1, ascending and 1 or 0, ascending and 0 or 1)
+	end
+end
+
+-- A column heading that sorts a list by key, through onClick(key): Blizzard's list heading
+-- button (the Who list's look). The label is offset from the heading's justify edge, to stand
+-- over its column's text.
+local function CreateHeading(parent, text, key, justify, offset, onClick)
 	local heading = CreateFrame("Button", nil, parent, "ColumnDisplayButtonNoScriptsTemplate")
 	heading:SetText(text)
 	local label = heading:GetFontString()
@@ -173,14 +236,8 @@ local function CreateHeading(parent, text, key, justify, offset)
 	end
 	heading.key = key
 	heading:SetScript("OnClick", function()
-		if sortKey == key then
-			sortAscending = not sortAscending
-		else
-			sortKey, sortAscending = key, key == "name"
-		end
 		PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
-		Refresh()
-		frame.CreatureList:ScrollToBegin()
+		onClick(key)
 	end)
 	return heading
 end
@@ -244,14 +301,23 @@ local function CreateJournal()
 	picker:SetPoint("TOPLEFT", INSET_LEFT, INSET_TOP - 2)
 	picker:SetWidth(LIST_WIDTH)
 	picker:SetupMenu(function(_, root)
+		root:CreateRadio(L.ALL_CHARACTERS, function()
+			return viewAll
+		end, function()
+			viewAll, viewedKey, selectedKey, selectedID = true, nil, nil, nil
+			Refresh()
+			ScrollToSelected()
+		end)
+		root:CreateDivider()
 		local current = ns.CharacterKey()
 		for _, character in ipairs(ns.DB.Characters()) do
 			local key = character.key ~= current and character.key or nil
 			root:CreateRadio(ClassColored(character.class, character.key), function()
-				return viewedKey == key
+				return not viewAll and viewedKey == key
 			end, function()
-				viewedKey, selectedID = key, nil
+				viewAll, viewedKey, selectedKey, selectedID = false, key, nil, nil
 				Refresh()
+				ScrollToSelected()
 			end)
 		end
 	end)
@@ -259,7 +325,7 @@ local function CreateJournal()
 
 	local list = frame.Inset
 	list:ClearAllPoints()
-	list:SetPoint("TOPLEFT", INSET_LEFT, INSET_TOP - PICKER_HEIGHT)
+	list:SetPoint("TOPLEFT", INSET_LEFT, INSET_TOP - PICKER_HEIGHT - HEADINGS_HEIGHT)
 	list:SetPoint("BOTTOMLEFT", INSET_LEFT, INSET_BOTTOM)
 	list:SetWidth(LIST_WIDTH)
 	frame.RunList = CreateList(list, -4, function(factory, data)
@@ -270,11 +336,23 @@ local function CreateJournal()
 		end
 	end)
 
+	-- The run list's headings, resting on its inset as the creature table's do: what the runs
+	-- are grouped by, and in which order.
+	local byLevel = CreateHeading(frame, L.COLUMN_LEVEL, "level", "RIGHT", -28, SortRuns)
+	byLevel:SetFrameLevel(list:GetFrameLevel() + 1)
+	byLevel:SetPoint("BOTTOMRIGHT", list, "TOPRIGHT", 0, -2)
+	byLevel:SetWidth(90)
+	local byDungeon = CreateHeading(frame, L.COLUMN_DUNGEON, "dungeon", "LEFT", 10, SortRuns)
+	byDungeon:SetFrameLevel(list:GetFrameLevel() + 1)
+	byDungeon:SetPoint("BOTTOMLEFT", list, "TOPLEFT", 0, -2)
+	byDungeon:SetPoint("BOTTOMRIGHT", byLevel, "BOTTOMLEFT", 2, 0)
+	frame.RunHeadings = { byDungeon, byLevel }
+
 	-- The run beside the list, laid out as Blizzard's rosters are (the communities member
 	-- list): the title and totals on the panel's own background, and an inset for the creature
 	-- rows alone, with the column headings resting on its top edge.
 	local detail = CreateFrame("Frame", nil, frame)
-	detail:SetPoint("TOPLEFT", list, "TOPRIGHT", INSET_GAP, PICKER_HEIGHT)
+	detail:SetPoint("TOPLEFT", list, "TOPRIGHT", INSET_GAP, PICKER_HEIGHT + HEADINGS_HEIGHT)
 	detail:SetPoint("BOTTOMRIGHT", INSET_RIGHT, INSET_BOTTOM)
 	frame.Detail = detail
 
@@ -335,7 +413,7 @@ local function CreateJournal()
 	-- in from each column's right edge, their names 26 in from the left.
 	local OVERLAP, ROW_LEFT, ROW_RIGHT = 2, 4, 20
 	local function Heading(text, key, justify, offset)
-		local heading = CreateHeading(content, text, key, justify, offset)
+		local heading = CreateHeading(content, text, key, justify, offset, SortCreatures)
 		heading:SetFrameLevel(rows:GetFrameLevel() + 1)
 		return heading
 	end
@@ -391,11 +469,7 @@ local function ShowRun(run)
 	for index, value in ipairs(values) do
 		content.Stats[index].Value:SetText(value)
 	end
-	for _, heading in ipairs(content.Headings) do
-		heading.Arrow:SetShown(heading.key == sortKey)
-		-- The art points down (largest first); turned over for ascending.
-		heading.Arrow:SetTexCoord(0, 1, sortAscending and 1 or 0, sortAscending and 0 or 1)
-	end
+	SetArrows(content.Headings, sortKey, sortAscending)
 	frame.CreatureList:SetDataProvider(
 		CreateDataProvider(ns.Creatures.Rows(run, L.UNKNOWN_CREATURES, sortKey, sortAscending)),
 		ScrollBoxConstants.RetainScrollPosition
@@ -405,30 +479,34 @@ end
 -- Rebuilds both lists. Keeps the selection if its run still has kills to show, else selects
 -- the run being recorded, else the newest run.
 function Refresh()
-	local rows = BuildRunRows(viewedKey and ns.DB.RunsOf(viewedKey) or ns.DB.Runs())
-	local selected, newest
+	local rows = ns.RunList.Rows(Entries(), runSortKey, runSortAscending)
+	-- The run being recorded, if it is among the listed ones.
+	local recording = not viewedKey and ns.Tracker.CurrentRun()
+	local recordingKey = ns.CharacterKey()
+	local selected, current, newest
 	for _, row in ipairs(rows) do
 		if row.run then
-			if row.run.id == selectedID then
-				selected = row.run
+			if row.run.id == selectedID and row.key == selectedKey then
+				selected = row
 			end
-			if not newest or row.run.id > newest.id then
-				newest = row.run
+			if recording and row.run.id == recording.id and row.key == recordingKey then
+				current = row
+			end
+			if not newest or (row.run.firstKill or 0) > (newest.run.firstKill or 0) then
+				newest = row
 			end
 		end
 	end
-	if not selected then
-		local current = not viewedKey and ns.Tracker.CurrentRun()
-		selected = current and current.kills > 0 and current or newest
-	end
-	selectedID = selected and selected.id or nil
+	selected = selected or current or newest
+	selectedKey, selectedID = selected and selected.key, selected and selected.run.id
 
+	SetArrows(frame.RunHeadings, runSortKey, runSortAscending)
 	frame.RunList:SetDataProvider(CreateDataProvider(rows), ScrollBoxConstants.RetainScrollPosition)
 	frame.Detail.Content:SetShown(selected ~= nil)
 	frame.Detail.Empty:SetShown(selected == nil)
 	frame.Detail.Empty.Text:SetText(viewedKey and L.EMPTY_CHARACTER or L.EMPTY)
 	if selected then
-		ShowRun(selected)
+		ShowRun(selected.run)
 	end
 end
 
@@ -441,12 +519,13 @@ function ns.Journal.Toggle()
 		return
 	end
 	-- Opening goes to the run being recorded, else the newest: not to an earlier selection.
-	viewedKey, selectedID = nil, nil
+	viewAll, viewedKey, selectedKey, selectedID = false, nil, nil, nil
 	frame:Show()
 	-- Rebuilt on opening, not on every refresh (a kill would close the open menu): the
 	-- characters may have changed, and the dropdown's text must follow the reset above.
 	frame.Picker:GenerateMenu()
 	Refresh()
+	ScrollToSelected()
 	if ns.dev.enabled then
 		ns.log("UI", "show", "runs", #ns.DB.Runs(), "selected", selectedID)
 	end

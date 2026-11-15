@@ -22,6 +22,7 @@ Logic/RunRules.lua
 Logic/Format.lua
 Logic/Edge.lua
 Logic/Creatures.lua
+Logic/RunList.lua
 Tracker.lua
 Ranks.lua
 Party.lua

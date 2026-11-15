@@ -63,12 +63,18 @@ function ns.XPMessage.Build(formats)
 	local matchers = {}
 	for _, entry in ipairs(formats) do
 		local pattern, captures = ns.XPMessage.Pattern(entry.format)
-		local creature, xp, xpIndex
+		local creature, xp, xpIndex, rested
+		-- The rested formats (COMBATLOG_XPGAIN_EXHAUSTION1 and 2, with their group and raid
+		-- forms): "(%s exp %s bonus)", the first %s the rested part as "+50". EXHAUSTION4 and 5
+		-- have the same shape for a penalty, so the name decides.
+		local isRested = entry.name:find("EXHAUSTION[12]") ~= nil
 		for captureIndex, capture in ipairs(captures or {}) do
 			if capture.index == 1 and not capture.number then
 				creature = captureIndex
 			elseif capture.number and (not xpIndex or capture.index < xpIndex) then
 				xp, xpIndex = captureIndex, capture.index
+			elseif isRested and capture.index == 3 and not capture.number then
+				rested = captureIndex
 			end
 		end
 		if xp then
@@ -77,6 +83,7 @@ function ns.XPMessage.Build(formats)
 				pattern = pattern,
 				creature = creature,
 				xp = xp,
+				rested = rested,
 				length = #entry.format,
 			})
 		end
@@ -90,19 +97,23 @@ function ns.XPMessage.Build(formats)
 	return matchers
 end
 
--- Returns the creature's name (nil for a gain that names none), the experience gained and the
--- matching format's name; nothing when no format matches.
---   "Defias Miner dies, you gain 72 experience."                      -> "Defias Miner", 72, name
---   "Mr. Smite dies, you gain 150 experience. (+50 exp Rested bonus)" -> "Mr. Smite", 150, name
---   "Kam Deepfury-Guard's Pet dies, you gain 9 experience."           -> "Kam Deepfury-Guard's Pet", 9, name
---   "You gain 650 experience."                                       -> nil, 650, name
+-- Returns the creature's name (nil for a gain that names none), the experience gained, the
+-- matching format's name and how much of the experience was the rested bonus (0 without one);
+-- nothing when no format matches.
+--   "Defias Miner dies, you gain 72 experience."                      -> "Defias Miner", 72, name, 0
+--   "Mr. Smite dies, you gain 150 experience. (+50 exp Rested bonus)" -> "Mr. Smite", 150, name, 50
+--   "Kam Deepfury-Guard's Pet dies, you gain 9 experience."           -> "Kam Deepfury-Guard's Pet", 9, name, 0
+--   "You gain 650 experience."                                       -> nil, 650, name, 0
 --   "You are now rested."                                            -> nothing
 function ns.XPMessage.Parse(matchers, text)
 	for _, matcher in ipairs(matchers) do
 		local captures = { text:match(matcher.pattern) }
 		local xp = tonumber(captures[matcher.xp])
 		if xp and (not matcher.creature or captures[matcher.creature]) then
-			return matcher.creature and captures[matcher.creature] or nil, xp, matcher.name
+			local rested = matcher.rested and tonumber((captures[matcher.rested] or ""):match("%d+")) or 0
+			-- Never more than the gain itself, whatever the bracket says.
+			rested = math.min(rested, xp)
+			return matcher.creature and captures[matcher.creature] or nil, xp, matcher.name, rested
 		end
 	end
 end

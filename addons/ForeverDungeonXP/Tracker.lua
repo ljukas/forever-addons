@@ -266,7 +266,7 @@ local function OnKillMessage(text)
 		return
 	end
 
-	local creature, xp, format = ns.XPMessage.Parse(matchers, text)
+	local creature, xp, format, rested = ns.XPMessage.Parse(matchers, text)
 	if not xp then
 		ns.log("KILL", "unparsed", text)
 		return
@@ -277,7 +277,11 @@ local function OnKillMessage(text)
 	Touch()
 	explained, explainedShare = explained + xp, explainedShare + share
 	if creature then
-		ns.DB.AddKill(current, creature, xp, share, GetServerTime(), PlayerLevel())
+		ns.DB.AddKill(current, creature, xp, share, GetServerTime(), PlayerLevel(), rested)
+		if rested > 0 then
+			-- Unverified in game: that the message's first number includes the rested part.
+			ns.dev:LogOnce("rested " .. format, "KILL", "rested", format, "xp", xp, "of it rested", rested)
+		end
 		ns.Ranks.OnKill(current, creature)
 		ns.Party.OnKill(current)
 		if ns.dev.enabled then

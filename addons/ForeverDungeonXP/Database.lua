@@ -21,6 +21,8 @@ local _, ns = ...
 --   firstKill, lastKill = GetServerTime() of those kills, nil before the first,
 --   xp         = kill experience gained, share = the same as a fraction of a level, summed gain
 --                by gain against the level's size at that moment,
+--   rested     = how much of xp was the rested bonus, nil without any (and for runs recorded
+--                before it was kept),
 --   kills      = kill messages counted, parsed = those whose text named a creature,
 --                fallback = those whose text was secret,
 --   approximate = true once a kill's text was secret (its XP then comes from the XP bar and may
@@ -108,6 +110,9 @@ local function IsRun(run)
 				return false
 			end
 		end
+	end
+	if run.rested ~= nil and type(run.rested) ~= "number" then
+		return false
 	end
 	return run.unknown == nil or IsBucket(run.unknown)
 end
@@ -394,8 +399,11 @@ end
 
 -- Counts one kill. creatureName nil means the kill message was secret: the kill goes to the
 -- unknown bucket and the run becomes approximate; its XP arrives through AddUnknownXP. now is
--- GetServerTime(), level the player's level.
-function ns.DB.AddKill(run, creatureName, xp, share, now, level)
+-- GetServerTime(), level the player's level, rested how much of xp was the rested bonus.
+function ns.DB.AddKill(run, creatureName, xp, share, now, level, rested)
+	if rested and rested > 0 then
+		run.rested = (run.rested or 0) + rested
+	end
 	if creatureName then
 		run.parsed = run.parsed + 1
 	else
@@ -470,6 +478,9 @@ function ns.DB.MergeRun(from, into)
 	end
 	for _, field in ipairs({ "xp", "share", "kills", "parsed", "fallback" }) do
 		into[field] = into[field] + from[field]
+	end
+	if from.rested then
+		into.rested = (into.rested or 0) + from.rested
 	end
 	-- from is the later of the two (the visit being merged into the run it continues), so its
 	-- members' details are the newer ones; what it lacks stays as into has it.

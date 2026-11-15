@@ -274,6 +274,9 @@ local function CreateStat(parent, index, width, label)
 	stat.Value:SetPoint("TOP", stat.Label, "BOTTOM", 0, -4)
 	stat.Value:SetWidth(width)
 	stat.Value:SetWordWrap(false)
+	-- A smaller line under the value, for the stats that have a second number.
+	stat.Sub = stat:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	stat.Sub:SetPoint("TOP", stat.Value, "BOTTOM", 0, -2)
 	return stat
 end
 
@@ -504,8 +507,20 @@ local function ShowRun(run)
 		ns.Format.Duration(seconds),
 		perHour and Number(perHour) or L.NONE,
 	}
+	-- With rested experience among the kills: how much of the total it was, and the hourly
+	-- rate the run would have had without it.
+	local rested = run.rested or 0
+	local unrestedPerHour = rested > 0 and ns.Format.PerHour(run.xp - rested, seconds)
+	local subs = {
+		rested > 0 and L.STAT_RESTED:format(Number(rested)) or "",
+		"",
+		"",
+		"",
+		unrestedPerHour and L.STAT_UNRESTED:format(Number(unrestedPerHour)) or "",
+	}
 	for index, value in ipairs(values) do
 		content.Stats[index].Value:SetText(value)
+		content.Stats[index].Sub:SetText(subs[index])
 	end
 	SetArrows(content.Headings, sortKey, sortAscending)
 	frame.CreatureList:SetDataProvider(

@@ -396,9 +396,10 @@ function ns.DB.MergeRun(from, into)
 	for _, field in ipairs({ "xp", "share", "kills", "parsed", "fallback" }) do
 		into[field] = into[field] + from[field]
 	end
+	-- from is the later of the two (the visit being merged into the run it continues), so its
+	-- members' details are the newer ones; what it lacks stays as into has it.
 	for name, member in pairs(from.party or {}) do
-		into.party = into.party or {}
-		into.party[name] = into.party[name] or member
+		ns.DB.AddPartyMember(into, name, member.class, member.level, member.role)
 	end
 	into.approximate = into.approximate or from.approximate
 	if from.firstKill and (not into.firstKill or from.firstKill < into.firstKill) then

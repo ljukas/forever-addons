@@ -5,6 +5,8 @@ local _, ns = ...
 --   xpmsg     each CHAT_MSG_COMBAT_XP_GAIN: its text (or <secret>), which payload fields are
 --             secret, and the XP bar at that moment
 --   xpupdate  each PLAYER_XP_UPDATE with the XP bar, so the order against xpmsg shows
+--   rest      the rested pool and rest state at each of those and at UPDATE_EXHAUSTION: the game's
+--             kill text has no rested bracket, so the pool's drop per kill is the only trace
 --   world     PLAYER_ENTERING_WORLD's flags and GetInstanceInfo()
 --   guid      whether a creature's GUID is readable, per unit token and situation
 --   system    system messages mentioning a reset, when readable
@@ -50,6 +52,18 @@ local function XPBar()
 	return ForeverDev.Describe(pcall(UnitXP, "player")) .. "/" .. ForeverDev.Describe(pcall(UnitXPMax, "player"))
 end
 
+-- The rested pool (GetXPExhaustion: nil when not rested) and the rest state's ID, name and factor.
+local function Rest()
+	local ok, id, name, factor = pcall(GetRestState)
+	local pool = ForeverDev.Describe(pcall(GetXPExhaustion))
+	return "pool",
+		pool,
+		"state",
+		ForeverDev.Describe(ok, id),
+		ForeverDev.Describe(ok, name),
+		ForeverDev.Describe(ok, factor)
+end
+
 local function LogGUID(source, unit)
 	local exists = UnitExists(unit)
 	if issecretvalue(exists) or not exists then
@@ -92,10 +106,17 @@ local handlers = {
 			"text",
 			text
 		)
+		Log("rest", "at xpmsg", Rest())
 	end,
 	PLAYER_XP_UPDATE = function()
 		if Few("xpupdate") then
 			Log("xpupdate", ForeverDev.Situation(), "bar", XPBar())
+			Log("rest", "at xpupdate", Rest())
+		end
+	end,
+	UPDATE_EXHAUSTION = function()
+		if Few("exhaustion") then
+			Log("rest", "changed", ForeverDev.Situation(), "bar", XPBar(), Rest())
 		end
 	end,
 	PLAYER_ENTERING_WORLD = function(isLogin, isReload)

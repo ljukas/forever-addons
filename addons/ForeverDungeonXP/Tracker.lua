@@ -164,6 +164,29 @@ end
 
 local OnXPUpdate
 
+-- Saves what the journal shows of a character among the account's: class, surname and level.
+-- After each loading screen, and when the journal opens (the level may have risen since).
+local function SaveCharacter()
+	local _, class = UnitClass("player")
+	if not issecretvalue(class) and type(class) == "string" then
+		ns.DB.SetClass(class)
+	end
+	-- On Forever UnitName's second value is the character's surname (Blizzard's
+	-- Camelot/NameUtil.lua; confirmed in game 15 November 2026: "RUN surname Bultsson").
+	local _, surname = UnitName("player")
+	if not issecretvalue(surname) then
+		ns.dev:LogOnce("surname", "RUN", "surname", surname)
+		if type(surname) == "string" and surname ~= "" then
+			ns.DB.SetSurname(surname)
+		end
+	end
+	local level = UnitLevel("player")
+	if not issecretvalue(level) and type(level) == "number" and level > 0 then
+		ns.DB.SetLevel(level)
+	end
+end
+ns.Tracker.SaveCharacter = SaveCharacter
+
 local function Enter(isLogin, isReload, attempt, entry)
 	if entry ~= entries then
 		return -- a later loading screen has taken over
@@ -171,10 +194,7 @@ local function Enter(isLogin, isReload, attempt, entry)
 	-- Read the bar while the run being left is still the recorded one: a gain whose update the
 	-- loading screen swallowed still belongs to it.
 	OnXPUpdate()
-	local _, class = UnitClass("player")
-	if not issecretvalue(class) and type(class) == "string" then
-		ns.DB.SetClass(class)
-	end
+	SaveCharacter()
 	local name, instanceType, _, _, _, _, _, instanceID = GetInstanceInfo()
 	if issecretvalue(name) or issecretvalue(instanceType) or issecretvalue(instanceID) then
 		current = nil

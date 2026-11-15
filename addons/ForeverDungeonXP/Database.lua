@@ -5,6 +5,7 @@ local _, ns = ...
 --   minimap    = { angle = degrees }, the minimap button's place on the minimap's edge, owned by
 --                Launcher.lua
 --   characters = { [characterKey] = {
+--     surname, level = its surname and level, likewise nil until it next logs in,
 --     class  = the character's class file name ("DRUID"), nil until it next logs in,
 --     nextID = the next run's id,
 --     open   = { [instanceID] = runID }, the run each dungeon's next visit may continue,
@@ -29,7 +30,7 @@ local _, ns = ...
 --                "elite", "rare" and "boss", nil until a rank was seen (Logic/Creatures.lua),
 --   unknown    = { kills, xp } for kills whose text was secret, nil without any,
 --   party      = { [name] = { class, level, role } }, the party members present at a kill, nil
---                without any: name is "Name" or "Name-Realm", class the class file name
+--                without any: name is "Name" or "Name Surname", class the class file name
 --                ("WARRIOR"), level the latest seen, role "TANK", "HEALER", "DAMAGER" or nil.
 -- Runs are kept until the player deletes them (a few KB each). Only this file writes the layout;
 -- UI/Journal.lua and Tracker.lua read a run's fields.
@@ -181,8 +182,24 @@ function ns.DB.SetClass(class)
 	end
 end
 
+-- Remembers the current character's surname (Forever's second name), for the same list.
+function ns.DB.SetSurname(surname)
+	local character = ns.DB.Character()
+	if character then
+		character.surname = surname
+	end
+end
+
+-- Remembers the current character's level, for the same list.
+function ns.DB.SetLevel(level)
+	local character = ns.DB.Character()
+	if character then
+		character.level = level
+	end
+end
+
 -- The account's characters that have a run to show (one with a kill), plus the current one:
--- { key, class } by key.
+-- { key, class, surname, level } by key; all but the key nil until the character next logs in.
 function ns.DB.Characters()
 	local current = ns.CharacterKey()
 	local characters = {}
@@ -199,7 +216,9 @@ function ns.DB.Characters()
 			end
 			if shown then
 				local class = type(character.class) == "string" and character.class or nil
-				table.insert(characters, { key = key, class = class })
+				local surname = type(character.surname) == "string" and character.surname or nil
+				local level = type(character.level) == "number" and character.level or nil
+				table.insert(characters, { key = key, class = class, surname = surname, level = level })
 			end
 		end
 	end

@@ -59,6 +59,11 @@ local function ClassColored(class, text)
 	return color and color:WrapTextInColorCode(text) or text
 end
 
+-- A character's name without its realm: "Thrall-Some Realm" -> "Thrall".
+local function ShortName(key)
+	return key:match("^[^-]+") or key
+end
+
 -- The runs to list as Logic/RunList.lua's entries: every character's, or the viewed one's.
 local function Entries()
 	local shown = viewedKey or ns.CharacterKey()
@@ -83,7 +88,7 @@ local function RunTitle(data)
 	local run = data.run
 	local parts = {}
 	if viewAll then
-		table.insert(parts, ClassColored(data.class, data.key:match("^[^-]+") or data.key))
+		table.insert(parts, ClassColored(data.class, ShortName(data.key)))
 	end
 	table.insert(parts, runSortKey == "dungeon" and L.RUN_NUMBER:format(run.number) or run.name)
 	table.insert(parts, date(#parts == 2 and "%d %b" or "%d %b %H:%M", run.firstKill))
@@ -310,15 +315,43 @@ local function CreateJournal()
 		end)
 		root:CreateDivider()
 		local current = ns.CharacterKey()
-		for _, character in ipairs(ns.DB.Characters()) do
+		local characters = ns.DB.Characters()
+		-- First name and surname ("Thrall Doomhammer"; the first name alone until the character
+		-- has logged in and its surname was saved), with the realm only where two would read
+		-- the same.
+		local names, sameName = {}, {}
+		for index, character in ipairs(characters) do
+			local name = ShortName(character.key)
+			name = character.surname and (name .. " " .. character.surname) or name
+			names[index] = name
+			sameName[name] = (sameName[name] or 0) + 1
+		end
+		for index, character in ipairs(characters) do
 			local key = character.key ~= current and character.key or nil
-			root:CreateRadio(ClassColored(character.class, character.key), function()
+			local name = sameName[names[index]] > 1 and character.key or names[index]
+			local level = character.level
+			local radio = root:CreateRadio(ClassColored(character.class, name), function()
 				return not viewAll and viewedKey == key
 			end, function()
 				viewAll, viewedKey, selectedKey, selectedID = false, key, nil, nil
 				Refresh()
 				ScrollToSelected()
 			end)
+			if level then
+				-- The character's level at the row's right edge, attached as Blizzard's currency
+				-- transfer menu attaches its amounts (the Menu implementation guide); the row's
+				-- width has to be worked out by hand for that.
+				radio:AddInitializer(function(button)
+					local text = button:AttachFontString()
+					text:SetFontObject(GameFontHighlightSmall)
+					text:SetHeight(20)
+					text:SetPoint("RIGHT")
+					text:SetJustifyH("RIGHT")
+					text:SetText(level)
+					local pad = 40
+					return pad + button.fontString:GetUnboundedStringWidth() + text:GetUnboundedStringWidth(), 20
+				end)
+			end
 		end
 	end)
 	frame.Picker = picker
@@ -521,6 +554,7 @@ function ns.Journal.Toggle()
 	-- Opening goes to the run being recorded, else the newest: not to an earlier selection.
 	viewAll, viewedKey, selectedKey, selectedID = false, nil, nil, nil
 	frame:Show()
+	ns.Tracker.SaveCharacter()
 	-- Rebuilt on opening, not on every refresh (a kill would close the open menu): the
 	-- characters may have changed, and the dropdown's text must follow the reset above.
 	frame.Picker:GenerateMenu()

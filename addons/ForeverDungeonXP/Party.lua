@@ -27,11 +27,13 @@ function ns.Party.OnKill(run)
 		local unit = "party" .. index
 		local exists = UnitExists(unit)
 		if not issecretvalue(exists) and exists then
-			local name, realm = UnitName(unit)
+			-- On Forever UnitName's second value is the character's surname, not a realm
+			-- (Blizzard's Camelot/NameUtil.lua).
+			local name, surname = UnitName(unit)
 			local _, class = UnitClass(unit)
 			local level = UnitLevel(unit)
 			local role = UnitGroupRolesAssigned(unit)
-			if Secret(name, realm, class, level, role) then
+			if Secret(name, surname, class, level, role) then
 				ns.dev:LogOnce("party secret", "PARTY", "a party member's details are secret")
 			elseif
 				type(name) == "string"
@@ -39,8 +41,8 @@ function ns.Party.OnKill(run)
 				and name ~= _G["UNKNOWNOBJECT"]
 				and type(class) == "string"
 			then
-				-- A member from another realm carries it; one from the player's own has none.
-				local key = (realm and realm ~= "") and (name .. "-" .. realm) or name
+				-- "Name Surname", or the name alone for a member without a surname.
+				local key = (type(surname) == "string" and surname ~= "") and (name .. " " .. surname) or name
 				ns.DB.AddPartyMember(run, key, class, level, ROLES[role] and role or nil)
 				if ns.dev.enabled then
 					ns.dev:LogChanged("party " .. key, level, "PARTY", key, class, level, role)

@@ -239,6 +239,18 @@ local function Enter(isLogin, isReload, attempt, entry)
 	Changed()
 end
 
+-- The rested part of a kill worth `xp`, read when its message arrives: the pool and bar update
+-- after it. 0 when the pool or the factor can't be read.
+local function RestedFromPool(xp)
+	local pool = GetXPExhaustion()
+	local _, _, factor = GetRestState()
+	if issecretvalue(pool) or issecretvalue(factor) then
+		ns.dev:LogOnce("rested secret", "KILL", "rested pool or factor is secret")
+		return 0
+	end
+	return ns.XPMessage.RestedPart(xp, pool, factor)
+end
+
 local function OnKillMessage(text)
 	if not current then
 		return
@@ -277,9 +289,12 @@ local function OnKillMessage(text)
 	Touch()
 	explained, explainedShare = explained + xp, explainedShare + share
 	if creature then
+		if rested == 0 then
+			-- The game's kill text names no rested part: work it out from the rested pool.
+			rested = RestedFromPool(xp)
+		end
 		ns.DB.AddKill(current, creature, xp, share, GetServerTime(), PlayerLevel(), rested)
 		if rested > 0 then
-			-- Unverified in game: that the message's first number includes the rested part.
 			ns.dev:LogOnce("rested " .. format, "KILL", "rested", format, "xp", xp, "of it rested", rested)
 		end
 		ns.Ranks.OnKill(current, creature)

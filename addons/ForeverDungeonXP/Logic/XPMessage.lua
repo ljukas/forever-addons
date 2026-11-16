@@ -97,6 +97,19 @@ function ns.XPMessage.Build(formats)
 	return matchers
 end
 
+-- How much of a kill's experience was rested bonus, from the rested pool as it stood when the
+-- kill's message arrived and the rest state's factor. Confirmed in game (16 November 2026): the
+-- kill text has no rested bracket, its number includes the bonus, and the pool drops by that
+-- whole number (a 252 XP kill at factor 2 took the pool from 7246 to 6994). So of the part the
+-- pool covered, (factor - 1) / factor was bonus. 0 without a pool or with a factor of 1 or less.
+--   252, 7246, 2 -> 126        252, 100, 2 -> 50        252, nil, 2 -> 0
+function ns.XPMessage.RestedPart(xp, pool, factor)
+	if not pool or pool <= 0 or not factor or factor <= 1 then
+		return 0
+	end
+	return math.floor(math.min(xp, pool) * (factor - 1) / factor)
+end
+
 -- Returns the creature's name (nil for a gain that names none), the experience gained, the
 -- matching format's name and how much of the experience was the rested bonus (0 without one);
 -- nothing when no format matches.

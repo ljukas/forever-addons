@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The open button bag closes by itself after 5 seconds without the cursor on one of its buttons.
+- The button bag slides and fades open and shut, out of its button in the direction it opens.
+- The button bag's minimap button wears the same gold ring as the minimap's day and night
+  indicator, so it matches the rest of the minimap.
 - Now grouped under "Forever Enhanced Addons" in the AddOns list.
 - Herbs and ore that Find Herbs and Find Minerals show on the minimap get their tracking
   icon in the minimap's gold ring, instead of a plain yellow dot. The icons stay on their

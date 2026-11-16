@@ -1,9 +1,9 @@
 local _, ns = ...
 
 -- The journal window: one character's runs, or all characters', grouped by dungeon or by level
--- on the left (Logic/RunList.lua), the selected run's
--- totals and creatures on the right. Built on first use from Blizzard's own panel pieces
--- (ButtonFrameTemplate without a portrait as the addon list uses it, InsetFrameTemplate,
+-- on the left (Logic/RunList.lua), the selected run's totals on the right, with its creatures
+-- or its timeline (Logic/Timeline.lua) under them, switched by Blizzard's panel tabs. Built on
+-- first use from Blizzard's own panel pieces (ButtonFrameTemplate without a portrait as the addon list uses it, InsetFrameTemplate,
 -- PanelDragBarTemplate, WowScrollBoxList, MinimalScrollBar); the rows are in UI/Templates.xml.
 -- It holds no secure frames, so it opens and closes in combat with plain Show and Hide, and
 -- Escape closes it through UISpecialFrames.
@@ -34,6 +34,9 @@ local viewAll, viewedKey = false, nil
 -- The creature table's order (Logic/Creatures.lua's keys), for the session: most experience
 -- first until a column heading is clicked.
 local sortKey, sortAscending = "xp", false
+-- What the run's lower part shows, for the session: its "creatures" table or its "timeline".
+local detailView = "creatures"
+local VIEWS = { "creatures", "timeline" }
 -- The run list's grouping and order (Logic/RunList.lua's keys), for the session: by dungeon,
 -- A to Z, until a heading is clicked.
 local runSortKey, runSortAscending = "dungeon", true
@@ -173,6 +176,43 @@ local function InitCreature(row, data)
 		row.Rank:SetAtlas(RANK_ATLAS[data.rank])
 	end
 	row.Rank:SetShown(data.rank ~= nil)
+end
+
+-- A timeline row (Logic/Timeline.lua's, with class added by ShowRun for the rows that name a
+-- player): when, what, and for a boss how long the fight took.
+local function InitEvent(row, data)
+	row.Time:SetText(ns.Timeline.Clock(data.offset))
+	-- Saved data is only checked for an event's time and kind: a missing field must not throw.
+	local name, text = tostring(data.name or ""), nil
+	if data.kind == "first" then
+		text = L.EVENT_FIRST
+	elseif data.kind == "last" then
+		text = L.EVENT_LAST
+	elseif data.kind == "boss" then
+		text = L.EVENT_BOSS:format(name)
+	elseif data.kind == "wipe" then
+		text = RED_FONT_COLOR:WrapTextInColorCode(L.EVENT_WIPE:format(name))
+	elseif data.kind == "death" then
+		text = L.EVENT_DEATH:format(ClassColored(data.class, name))
+	elseif data.kind == "level" then
+		text = NORMAL_FONT_COLOR:WrapTextInColorCode(L.EVENT_LEVEL:format(tonumber(data.level) or 0))
+	elseif data.kind == "loot" then
+		text = L.EVENT_LOOT:format(ClassColored(data.class, name), tostring(data.item or ""))
+	end
+	row.Text:SetText(text or "")
+	row.Detail:SetText(data.duration and ns.Timeline.Clock(data.duration) or "")
+	row.Icon:SetShown(data.kind == "boss")
+	if data.kind == "boss" then
+		row.Icon:SetTexture(BOSS_TEXTURE)
+	end
+	-- A looted item's tooltip on its row.
+	local link = data.kind == "loot" and type(data.item) == "string" and data.item:match("|H(item:.-)|h")
+	row:SetScript("OnEnter", link and function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:SetHyperlink(link)
+		GameTooltip:Show()
+	end or nil)
+	row:SetScript("OnLeave", link and GameTooltip_Hide or nil)
 end
 
 -- The party line's tooltip: each member's name, level, class and group role.
@@ -443,8 +483,18 @@ local function CreateJournal()
 	local rows = CreateFrame("Frame", nil, content, "InsetFrameTemplate")
 	rows:SetPoint("TOPLEFT", 0, -134)
 	rows:SetPoint("BOTTOMRIGHT")
-	frame.CreatureList = CreateList(rows, -4, function(factory)
+	-- The inset holds the creature table or the timeline (detailView), each in its own frame so
+	-- its list and scroll bar show and hide together.
+	content.Views = {}
+	for _, view in ipairs(VIEWS) do
+		content.Views[view] = CreateFrame("Frame", nil, rows)
+		content.Views[view]:SetAllPoints()
+	end
+	frame.CreatureList = CreateList(content.Views.creatures, -4, function(factory)
 		factory("ForeverDungeonXPCreatureTemplate", InitCreature)
+	end)
+	frame.Timeline = CreateList(content.Views.timeline, -4, function(factory)
+		factory("ForeverDungeonXPEventTemplate", InitEvent)
 	end)
 
 	-- Column headings on the inset's top edge, across its whole width (over the scroll bar
@@ -472,6 +522,42 @@ local function CreateJournal()
 	name:SetPoint("BOTTOMRIGHT", kills, "BOTTOMLEFT", OVERLAP, 0)
 	content.Headings = { name, kills, each, total }
 
+	-- The timeline's headings in the same place: labels only, they sort nothing.
+	local function Label(text, justify, offset)
+		local heading = Heading(text, nil, justify, offset)
+		heading:EnableMouse(false)
+		heading.Arrow:Hide()
+		return heading
+	end
+	local fight = Label(L.COLUMN_FIGHT, "RIGHT", -(ROW_RIGHT + 8))
+	fight:SetPoint("BOTTOMRIGHT", rows, "TOPRIGHT", 0, -2)
+	fight:SetWidth(70 + ROW_RIGHT)
+	local time = Label(L.COLUMN_TIME, "LEFT", ROW_LEFT + 22)
+	time:SetPoint("BOTTOMLEFT", rows, "TOPLEFT", 0, -2)
+	time:SetWidth(ROW_LEFT + 64)
+	local event = Label(L.COLUMN_EVENT, "LEFT", OVERLAP + 22)
+	event:SetPoint("BOTTOMLEFT", time, "BOTTOMRIGHT", -OVERLAP, 0)
+	event:SetPoint("BOTTOMRIGHT", fight, "BOTTOMLEFT", OVERLAP, 0)
+	content.TimelineHeadings = { time, event, fight }
+
+	-- Blizzard's panel tabs under the run, as the character frame has them: which of the two
+	-- the inset shows.
+	for index, text in ipairs({ L.TAB_CREATURES, L.TAB_TIMELINE }) do
+		local tab = CreateFrame("Button", nil, frame, "PanelTabButtonTemplate")
+		tab:SetID(index)
+		tab:SetText(text)
+		tab:SetScript("OnClick", function()
+			PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
+			detailView = VIEWS[index]
+			Refresh()
+		end)
+		if index == 1 then
+			tab:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", INSET_LEFT + LIST_WIDTH + INSET_GAP + 8, 2)
+		end
+	end
+	PanelTemplates_SetNumTabs(frame, #VIEWS)
+	PanelTemplates_SetTab(frame, detailView == "timeline" and 2 or 1)
+
 	frame:SetScript("OnShow", function()
 		PlaySound(SOUNDKIT.IG_CHARACTER_INFO_OPEN)
 	end)
@@ -485,7 +571,8 @@ local function CreateJournal()
 	end, frame)
 end
 
-local function ShowRun(run)
+-- class is the run's character's: the class of a timeline name that isn't a party member's.
+local function ShowRun(run, class)
 	local content = frame.Detail.Content
 	content.Header:SetText(L.DETAIL_HEADER:format(run.name, run.number, run.level))
 	content.Note:SetShown(run.approximate == true)
@@ -522,6 +609,29 @@ local function ShowRun(run)
 		content.Stats[index].Value:SetText(value)
 		content.Stats[index].Sub:SetText(subs[index])
 	end
+	for index, view in ipairs(VIEWS) do
+		content.Views[view]:SetShown(view == detailView)
+		if view == detailView then
+			PanelTemplates_SetTab(frame, index)
+		end
+	end
+	for _, heading in ipairs(content.Headings) do
+		heading:SetShown(detailView == "creatures")
+	end
+	for _, heading in ipairs(content.TimelineHeadings) do
+		heading:SetShown(detailView == "timeline")
+	end
+	if detailView == "timeline" then
+		local events = ns.Timeline.Rows(run)
+		for _, event in ipairs(events) do
+			if event.name and (event.kind == "death" or event.kind == "loot") then
+				local member = run.party and run.party[event.name]
+				event.class = member and member.class or class
+			end
+		end
+		frame.Timeline:SetDataProvider(CreateDataProvider(events), ScrollBoxConstants.RetainScrollPosition)
+		return
+	end
 	SetArrows(content.Headings, sortKey, sortAscending)
 	frame.CreatureList:SetDataProvider(
 		CreateDataProvider(ns.Creatures.Rows(run, L.UNKNOWN_CREATURES, sortKey, sortAscending)),
@@ -556,10 +666,14 @@ function Refresh()
 	SetArrows(frame.RunHeadings, runSortKey, runSortAscending)
 	frame.RunList:SetDataProvider(CreateDataProvider(rows), ScrollBoxConstants.RetainScrollPosition)
 	frame.Detail.Content:SetShown(selected ~= nil)
+	-- The tabs belong to the run: gone with it.
+	for _, tab in ipairs(frame.Tabs) do
+		tab:SetShown(selected ~= nil)
+	end
 	frame.Detail.Empty:SetShown(selected == nil)
 	frame.Detail.Empty.Text:SetText(viewedKey and L.EMPTY_CHARACTER or L.EMPTY)
 	if selected then
-		ShowRun(selected.run)
+		ShowRun(selected.run, selected.class)
 	end
 end
 

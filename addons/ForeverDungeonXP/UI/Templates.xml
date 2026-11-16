@@ -88,4 +88,39 @@
 			</Layer>
 		</Layers>
 	</Frame>
+
+	<!-- One moment in a run's timeline. UI/Journal.lua's timeline headings use the same anchors. -->
+	<Frame name="ForeverDungeonXPEventTemplate" enableMouse="true" virtual="true">
+		<Size y="20"/>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Time" inherits="GameFontDisable" justifyH="RIGHT">
+					<Size x="52"/>
+					<Anchors>
+						<Anchor point="LEFT" x="6"/>
+					</Anchors>
+				</FontString>
+				<!-- How long a boss fight took. -->
+				<FontString parentKey="Detail" inherits="GameFontDisable" justifyH="RIGHT">
+					<Size x="60"/>
+					<Anchors>
+						<Anchor point="RIGHT" x="-8"/>
+					</Anchors>
+				</FontString>
+				<!-- A skull for a boss. -->
+				<Texture parentKey="Icon" hidden="true">
+					<Size x="16" y="16"/>
+					<Anchors>
+						<Anchor point="LEFT" x="68"/>
+					</Anchors>
+				</Texture>
+				<FontString parentKey="Text" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="false">
+					<Anchors>
+						<Anchor point="LEFT" x="88"/>
+						<Anchor point="RIGHT" relativeKey="$parent.Detail" relativePoint="LEFT" x="-6"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+	</Frame>
 </Ui>

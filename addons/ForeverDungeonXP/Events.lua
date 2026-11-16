@@ -1,0 +1,140 @@
+local _, ns = ...
+
+-- Records a run's timeline events (run.events, Database.lua): bosses killed and wiped on, deaths,
+-- level-ups and rare drops. First and last kill need no event: the run has their times.
+-- Confirmed in game (Shadowfang Keep, 16 November 2026, a 5-player group):
+--   ENCOUNTER_START and ENCOUNTER_END fire for every boss with a readable name and outcome;
+--   UnitIsDeadOrGhost is readable on party units, in and out of combat;
+--   CHAT_MSG_LOOT's text and the item's quality are readable in combat. A line that hands an
+--   item to someone carries the looter as playerName2 ("Name Surname", for the player too); the
+--   roll chatter around it ("|HlootHistory:..|h[Loot]|h: X has selected Greed for ...") doesn't.
+-- Unverified in game: a wipe (ENCOUNTER_END with success 0), a feigned death being left out, and
+-- that a death is seen soon enough (party deaths are looked for when any unit dies and when
+-- combat starts or ends). Everything is still checked with issecretvalue. The EVENT log line
+-- shows each event recorded.
+
+local MAX_PARTY_MEMBERS = 4
+
+-- When each encounter in progress started, by its ID.
+local pulls = {}
+-- Who was dead at the last look, by name (a unit token passes to another member when the group
+-- changes), so a death is recorded once.
+local dead = {}
+
+local function Add(run, event)
+	event.t = GetServerTime()
+	ns.DB.AddEvent(run, event)
+	ns.log("EVENT", event.kind, event.name or event.level, event.item)
+	EventRegistry:TriggerEvent("ForeverDungeonXP.RunsChanged")
+end
+
+-- "Name Surname" as party members are keyed (Party.lua) and as loot lines name the looter; nil
+-- when unreadable.
+local function FullName(unit)
+	local name, surname = UnitName(unit)
+	if issecretvalue(name) or issecretvalue(surname) or type(name) ~= "string" or name == "" then
+		return nil
+	end
+	return (type(surname) == "string" and surname ~= "") and (name .. " " .. surname) or name
+end
+
+-- Records the death of a unit that was alive at the last look. Without a run the state is still
+-- kept, so someone already dead on entering isn't counted as dying in the run.
+local function LookForDeath(unit)
+	local exists = UnitExists(unit)
+	if issecretvalue(exists) or not exists then
+		return
+	end
+	local name = FullName(unit)
+	if not name then
+		return
+	end
+	local isDead, feigned = UnitIsDeadOrGhost(unit), UnitIsFeignDeath(unit)
+	if issecretvalue(isDead) or issecretvalue(feigned) then
+		ns.dev:LogOnce("death secret", "EVENT", "a unit's death is secret")
+		return
+	end
+	isDead = isDead and not feigned
+	local run = ns.Tracker.CurrentRun()
+	if isDead and dead[name] == false and run then
+		Add(run, { kind = "death", name = name })
+	end
+	dead[name] = isDead
+end
+
+local function LookForDeaths()
+	LookForDeath("player")
+	for index = 1, MAX_PARTY_MEMBERS do
+		LookForDeath("party" .. index)
+	end
+end
+
+local handlers = {
+	ENCOUNTER_START = function(id)
+		if not issecretvalue(id) and id then
+			pulls[id] = GetServerTime()
+		end
+	end,
+	ENCOUNTER_END = function(id, name, _, _, success)
+		local run = ns.Tracker.CurrentRun()
+		if not run or issecretvalue(id) or issecretvalue(name) or issecretvalue(success) or type(name) ~= "string" then
+			return
+		end
+		local pull = id and pulls[id]
+		if id then
+			pulls[id] = nil
+		end
+		Add(run, { kind = success == 1 and "boss" or "wipe", name = name, pull = pull })
+	end,
+	PLAYER_LEVEL_UP = function(level)
+		local run = ns.Tracker.CurrentRun()
+		if run and not issecretvalue(level) and type(level) == "number" then
+			Add(run, { kind = "level", level = level })
+		end
+	end,
+	CHAT_MSG_LOOT = function(text, _, _, _, looter)
+		local run = ns.Tracker.CurrentRun()
+		if not run or issecretvalue(text) or issecretvalue(looter) or type(looter) ~= "string" or looter == "" then
+			return
+		end
+		local link = text:match("|Hitem:.-|h%[.-%]|h")
+		if not link or text:find("^|HlootHistory") then
+			return
+		end
+		-- The quality of an item the client hasn't loaded yet is nil: the link's own colour code
+		-- ("|cnIQ3:") then says it.
+		local quality = C_Item.GetItemQualityByID(link)
+		if issecretvalue(quality) then
+			return
+		end
+		quality = quality or tonumber(text:match("|cnIQ(%d+):"))
+		if type(quality) ~= "number" or quality < Enum.ItemQuality.Rare then
+			return
+		end
+		-- The link with its colour, as the chat line has it.
+		local colored = text:match("|c.-|Hitem:.-|h%[.-%]|h|r") or link
+		Add(run, { kind = "loot", name = looter, item = colored })
+	end,
+	-- A death shows on the unit, not in an event that names it: looked for whenever something
+	-- died and when combat starts or ends.
+	UNIT_DIED = LookForDeaths,
+	PLAYER_DEAD = LookForDeaths,
+	PLAYER_REGEN_DISABLED = LookForDeaths,
+	PLAYER_REGEN_ENABLED = LookForDeaths,
+	GROUP_ROSTER_UPDATE = LookForDeaths,
+	PLAYER_ENTERING_WORLD = function()
+		wipe(pulls)
+		wipe(dead)
+		LookForDeaths()
+	end,
+}
+
+ns.OnInitialize(function()
+	local frame = CreateFrame("Frame")
+	frame:SetScript("OnEvent", function(_, event, ...)
+		handlers[event](...)
+	end)
+	for event in pairs(handlers) do
+		frame:RegisterEvent(event)
+	end
+end)

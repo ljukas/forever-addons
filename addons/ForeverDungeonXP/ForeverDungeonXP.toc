@@ -23,9 +23,11 @@ Logic/Format.lua
 Logic/Edge.lua
 Logic/Creatures.lua
 Logic/RunList.lua
+Logic/Timeline.lua
 Tracker.lua
 Ranks.lua
 Party.lua
+Events.lua
 UI/Templates.xml
 UI/Journal.lua
 Launcher.lua

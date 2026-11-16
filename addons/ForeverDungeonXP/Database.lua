@@ -33,7 +33,13 @@ local _, ns = ...
 --   unknown    = { kills, xp } for kills whose text was secret, nil without any,
 --   party      = { [name] = { class, level, role } }, the party members present at a kill, nil
 --                without any: name is "Name" or "Name Surname", class the class file name
---                ("WARRIOR"), level the latest seen, role "TANK", "HEALER", "DAMAGER" or nil.
+--                ("WARRIOR"), level the latest seen, role "TANK", "HEALER", "DAMAGER" or nil,
+--   events     = { event, ... } in the order they happened, nil without any (and for runs recorded
+--                before they were kept), at most MAX_EVENTS. An event is { t = GetServerTime(),
+--                kind, ... }: "boss" and "wipe" (an encounter won or lost) with name and pull (when
+--                it started, nil if unseen), "death" with name (a party member's as in party, or
+--                the player's own), "level" with level, "loot" with name (who got it) and item (its
+--                link); Logic/Timeline.lua reads them.
 -- Runs are kept until the player deletes them (a few KB each). Only this file writes the layout;
 -- UI/Journal.lua and Tracker.lua read a run's fields.
 
@@ -113,6 +119,16 @@ local function IsRun(run)
 	end
 	if run.rested ~= nil and type(run.rested) ~= "number" then
 		return false
+	end
+	if run.events ~= nil then
+		if type(run.events) ~= "table" then
+			return false
+		end
+		for _, event in ipairs(run.events) do
+			if type(event) ~= "table" or type(event.t) ~= "number" or type(event.kind) ~= "string" then
+				return false
+			end
+		end
 	end
 	return run.unknown == nil or IsBucket(run.unknown)
 end
@@ -450,6 +466,17 @@ function ns.DB.AddPartyMember(run, name, class, level, role)
 	member.role = role or member.role
 end
 
+-- A run keeps this many events: far more than a run has bosses, deaths, levels and rare drops.
+local MAX_EVENTS = 200
+
+-- Adds an event to the run's timeline (the layout above); dropped once the run is full.
+function ns.DB.AddEvent(run, event)
+	run.events = run.events or {}
+	if #run.events < MAX_EVENTS then
+		table.insert(run.events, event)
+	end
+end
+
 -- Adds experience (or takes it back, when negative) that no readable message explains, to the
 -- unknown bucket.
 function ns.DB.AddUnknownXP(run, xp, share)
@@ -486,6 +513,14 @@ function ns.DB.MergeRun(from, into)
 	-- members' details are the newer ones; what it lacks stays as into has it.
 	for name, member in pairs(from.party or {}) do
 		ns.DB.AddPartyMember(into, name, member.class, member.level, member.role)
+	end
+	if from.events then
+		into.events = into.events or {}
+		for _, event in ipairs(from.events) do
+			if #into.events < MAX_EVENTS then
+				table.insert(into.events, event)
+			end
+		end
 	end
 	into.approximate = into.approximate or from.approximate
 	if from.firstKill and (not into.firstKill or from.firstKill < into.firstKill) then

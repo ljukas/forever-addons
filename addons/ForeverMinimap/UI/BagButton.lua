@@ -15,6 +15,7 @@ local RING_MARGIN = 10
 
 ---@class ForeverMinimapBagButtonMixin : Button
 ---@field Icon Texture
+---@field Ring Texture
 ---@field open boolean
 ---@field angle number
 ---@field dragging boolean? while a drag is moving it
@@ -108,13 +109,17 @@ function ForeverMinimapBagButtonMixin:OnShow()
 	end
 end
 
--- The icon sinks 1px down-right while the button is held, as Blizzard's buttons do.
+-- The icon rests ICON_Y pixels off the button's center (BagButton.xml places it there too), where
+-- it looks centered in the ring, and sinks 1px down-right while the button is held, as Blizzard's
+-- buttons do.
+local ICON_Y = -1
+
 function ForeverMinimapBagButtonMixin:OnMouseDown()
-	self.Icon:SetPoint("CENTER", 1, -1)
+	self.Icon:SetPoint("CENTER", 1, ICON_Y - 1)
 end
 
 function ForeverMinimapBagButtonMixin:OnMouseUp()
-	self.Icon:SetPoint("CENTER", 0, 0)
+	self.Icon:SetPoint("CENTER", 0, ICON_Y)
 end
 
 function ForeverMinimapBagButtonMixin:OnClick(mouseButton)
@@ -160,6 +165,11 @@ ns.OnInitialize(function()
 	button:RegisterForDrag("LeftButton")
 	button.open = false
 	ChooseIcon(button.Icon)
+	-- The ring is stretched to the button, so its own size tells whether the atlas has padding.
+	if ns.dev.enabled then
+		local info = C_Texture.GetAtlasInfo("UI-HUD-Minimap-Frame-Cycle")
+		ns.dev:LogOnce("ring", "BAG", "ring", info and info.width, info and info.height)
+	end
 	-- A hand-edited angle that isn't a number falls back to the default spot.
 	local angle = ns.db.buttonBag.angle
 	if type(angle) ~= "number" then

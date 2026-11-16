@@ -353,7 +353,15 @@ local handlers = {
 		local quality = link and select(2, pcall(C_Item.GetItemQualityByID, link))
 		local who = ForeverDev.SecretNames("playerName", playerName, "playerName2", playerName2)
 		ns.dev:LogOnce("loot sample " .. situation, "PROBE", "loot", "sample", situation, "quality", quality, text)
-		if type(quality) == "number" and not issecretvalue(quality) and quality >= Enum.ItemQuality.Rare then
+		-- Roll chatter ("|HlootHistory:..|h[Loot]|h: X has selected Greed for ...") filled the first
+		-- run's log: only the lines that hand an item to someone are kept.
+		local isRoll = text:find("^|HlootHistory") ~= nil
+		if
+			not isRoll
+			and type(quality) == "number"
+			and not issecretvalue(quality)
+			and quality >= Enum.ItemQuality.Rare
+		then
 			Log("loot", "rare+", situation, "quality", quality, "secret:", who, "by", playerName2, text)
 		end
 	end,

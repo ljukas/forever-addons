@@ -7,6 +7,11 @@ local _, ns = ...
 --   xpupdate  each PLAYER_XP_UPDATE with the XP bar, so the order against xpmsg shows
 --   rest      the rested pool and rest state at each of those and at UPDATE_EXHAUSTION: the game's
 --             kill text has no rested bracket, so the pool's drop per kill is the only trace
+--   restcheck whether the pool drops by exactly the kills' experience (in a group, in a dungeon)
+--   loot, money, rep, wallet   candidate "what a run gave": the chat lines and GetMoney()
+--   encounter, partydead       candidate boss timeline: ENCOUNTER_START/END and BOSS_KILL with
+--             their arguments, and whether a party member's death is readable
+--   quest     candidate quest experience per run: QUEST_TURNED_IN's rewards
 --   world     PLAYER_ENTERING_WORLD's flags and GetInstanceInfo()
 --   guid      whether a creature's GUID is readable, per unit token and situation
 --   system    system messages mentioning a reset, when readable
@@ -90,9 +95,99 @@ local function LogGUID(source, unit)
 	)
 end
 
+-- restcheck: does the rested pool drop by exactly the kills' experience, as it did solo in the
+-- open world? The kills' experience since the last pool change is held here with the pool as it
+-- stood at the first of them. English text only: fine for a dev probe.
+local pendingXP, pendingPool = 0, nil
+
+local function HoldKill(text)
+	if issecretvalue(text) then
+		return
+	end
+	local xp = tonumber(text:match("^.+ dies, you gain (%d+) experience"))
+	local pool = GetXPExhaustion()
+	if not xp or issecretvalue(pool) then
+		return
+	end
+	if pendingXP == 0 then
+		pendingPool = pool
+	end
+	pendingXP = pendingXP + xp
+end
+
+local function CheckPool()
+	local pool = GetXPExhaustion()
+	local xp, before = pendingXP, pendingPool
+	pendingXP, pendingPool = 0, nil
+	if xp == 0 or not before or issecretvalue(pool) then
+		return
+	end
+	local drop = before - (pool or 0)
+	local outcome = drop == xp and "equal" or (pool == nil and "pool emptied" or "differs")
+	-- Once per situation and outcome, plus the first few that differ with their numbers.
+	ns.dev:LogOnce("restcheck " .. ForeverDev.Situation() .. " " .. outcome, "PROBE", "restcheck", outcome)
+	if outcome ~= "equal" and Few("restcheck") then
+		Log("restcheck", outcome, ForeverDev.Situation(), "kills xp", xp, "pool", before, "to", pool, "drop", drop)
+	end
+end
+
+-- Whether a party member's death can be read, once per situation and outcome (for a run's deaths).
+local function LogPartyDeaths()
+	for index = 1, 4 do
+		local unit = "party" .. index
+		local exists = UnitExists(unit)
+		if not issecretvalue(exists) and exists then
+			local dead = UnitIsDeadOrGhost(unit)
+			local outcome = issecretvalue(dead) and "secret" or tostring(dead)
+			ns.dev:LogOnce(
+				"partydead " .. ForeverDev.Situation() .. " " .. outcome,
+				"PROBE",
+				"partydead",
+				ForeverDev.Situation(),
+				outcome
+			)
+		end
+	end
+end
+
+-- A chat line that a feature would read (loot, money, reputation): its text and what is secret.
+local function LogChat(kind)
+	return function(text, playerName, _, _, playerName2, _, _, _, _, _, _, guid)
+		if Few(kind) then
+			Log(
+				kind,
+				ForeverDev.Situation(),
+				"secret:",
+				ForeverDev.SecretNames("text", text, "playerName", playerName, "playerName2", playerName2, "guid", guid),
+				"text",
+				text
+			)
+		end
+	end
+end
+
+-- An encounter event: its arguments, with the ones that are secret named.
+local function LogEncounter(kind)
+	return function(id, name, difficulty, size, success)
+		Log(
+			"encounter",
+			kind,
+			ForeverDev.Situation(),
+			"secret:",
+			ForeverDev.SecretNames("id", id, "name", name, "difficulty", difficulty, "size", size, "success", success),
+			id,
+			name,
+			difficulty,
+			size,
+			success
+		)
+	end
+end
+
 local handlers = {
 	PLAYER_LOGIN = LogStrings,
 	CHAT_MSG_COMBAT_XP_GAIN = function(text, playerName, _, _, playerName2, _, _, _, _, _, _, guid)
+		HoldKill(text)
 		if not Few("xpmsg") then
 			return
 		end
@@ -115,9 +210,42 @@ local handlers = {
 		end
 	end,
 	UPDATE_EXHAUSTION = function()
+		CheckPool()
 		if Few("exhaustion") then
 			Log("rest", "changed", ForeverDev.Situation(), "bar", XPBar(), Rest())
 		end
+	end,
+	PLAYER_LEVEL_UP = function(level)
+		Log("rest", "level up", level, ForeverDev.Situation(), "bar", XPBar(), Rest())
+	end,
+	-- Candidate: loot, money and reputation per run.
+	CHAT_MSG_LOOT = LogChat("loot"),
+	CHAT_MSG_MONEY = LogChat("money"),
+	CHAT_MSG_COMBAT_FACTION_CHANGE = LogChat("rep"),
+	PLAYER_MONEY = function()
+		if Few("wallet") then
+			Log("wallet", ForeverDev.Situation(), ForeverDev.Describe(pcall(GetMoney)))
+		end
+	end,
+	-- Candidate: a boss timeline per run, with wipes and deaths.
+	ENCOUNTER_START = LogEncounter("start"),
+	ENCOUNTER_END = LogEncounter("end"),
+	BOSS_KILL = LogEncounter("bosskill"),
+	PLAYER_REGEN_ENABLED = LogPartyDeaths,
+	PLAYER_REGEN_DISABLED = LogPartyDeaths,
+	-- Candidate: quest experience earned inside the dungeon, apart from kills.
+	QUEST_TURNED_IN = function(questID, xpReward, moneyReward)
+		Log(
+			"quest",
+			ForeverDev.Situation(),
+			"secret:",
+			ForeverDev.SecretNames("questID", questID, "xp", xpReward, "money", moneyReward),
+			questID,
+			xpReward,
+			moneyReward,
+			"bar",
+			XPBar()
+		)
 	end,
 	PLAYER_ENTERING_WORLD = function(isLogin, isReload)
 		Log("world", "login", isLogin, "reload", isReload, "instance", GetInstanceInfo())

@@ -9,9 +9,16 @@ local _, ns = ...
 --             kill text has no rested bracket, so the pool's drop per kill is the only trace
 --   restcheck whether the pool drops by exactly the kills' experience (in a group, in a dungeon)
 --   loot, money, rep, wallet   candidate "what a run gave": the chat lines and GetMoney()
---   encounter, partydead       candidate boss timeline: ENCOUNTER_START/END and BOSS_KILL with
---             their arguments, and whether a party member's death is readable
---   quest     candidate quest experience per run: QUEST_TURNED_IN's rewards
+-- Candidate run timeline (first and last kill, boss kills, checkpoints):
+--   encounter ENCOUNTER_START/END and BOSS_KILL with their arguments; encounterstate, engage
+--             (boss1 at INSTANCE_ENCOUNTER_ENGAGE_UNIT), objective ... and scenario ... events
+--   bosses    the dungeon's boss list from the encounter journal, by each route that may exist
+--   place     sub-zone, minimap zone and map as they change inside; position whether the
+--             player's map position is readable
+--   partydead, unitdied, partykill   whether deaths are readable: UnitIsDeadOrGhost on party
+--             units, and the GUIDs of UNIT_DIED and PARTY_KILL
+--   roster    the group's size as it changes; yell boss yells and whether they are secret;
+--   lfg completed   LFG_COMPLETION_REWARD
 --   world     PLAYER_ENTERING_WORLD's flags and GetInstanceInfo()
 --   guid      whether a creature's GUID is readable, per unit token and situation
 --   system    system messages mentioning a reset, when readable
@@ -184,6 +191,121 @@ local function LogEncounter(kind)
 	end
 end
 
+-- Timeline candidates. A global that doesn't exist reads "error ..." through the pcall.
+local function Try(fn, ...)
+	return ForeverDev.Describe(pcall(fn, ...))
+end
+
+local function InDungeon()
+	local _, instanceType = IsInInstance()
+	return instanceType == "party" or instanceType == "raid"
+end
+
+-- place: the sub-zone and map names as they change, for checkpoints like "entered the Forge".
+local function LogPlace(event)
+	if not InDungeon() then
+		return
+	end
+	local okMap, mapID = pcall(C_Map.GetBestMapForUnit, "player")
+	local mapName = "none"
+	if okMap and mapID and not issecretvalue(mapID) then
+		local info = C_Map.GetMapInfo(mapID)
+		mapName = info and info.name or "none"
+	end
+	local subZone, minimapZone = Try(GetSubZoneText), Try(GetMinimapZoneText)
+	local map = ForeverDev.Describe(okMap, mapID)
+	ns.dev:LogChanged(
+		"place",
+		subZone .. "|" .. minimapZone .. "|" .. map,
+		"PROBE",
+		"place",
+		event,
+		ForeverDev.Situation(),
+		"subzone",
+		subZone,
+		"minimap",
+		minimapZone,
+		"map",
+		map,
+		mapName
+	)
+	-- Whether the player's position on the map can be read inside (for ordering checkpoints).
+	if okMap and mapID and not issecretvalue(mapID) then
+		local okPosition, position = pcall(C_Map.GetPlayerMapPosition, mapID, "player")
+		local outcome = not okPosition and "error" or (position == nil and "none" or "readable")
+		ns.dev:LogOnce("position " .. ForeverDev.Situation() .. " " .. outcome, "PROBE", "position", outcome)
+	end
+end
+
+-- bosses: the dungeon's boss list from the encounter journal, to show the ones not yet killed
+-- and to match ENCOUNTER_START's ID. Each route is tried; Forever may have only some.
+local function LogBosses()
+	if not InDungeon() then
+		return
+	end
+	local okMap, mapID = pcall(C_Map.GetBestMapForUnit, "player")
+	if not okMap or not mapID or issecretvalue(mapID) then
+		Log("bosses", "no map", ForeverDev.Describe(okMap, mapID))
+		return
+	end
+	local okInstance, journalID = pcall(C_EncounterJournal.GetInstanceForGameMap, mapID)
+	Log("bosses", "map", mapID, "journal instance", ForeverDev.Describe(okInstance, journalID))
+	Log("bosses", "EJ_GetInstanceForMap", Try(EJ_GetInstanceForMap, mapID))
+	local okList, list = pcall(C_EncounterJournal.GetEncountersOnMap, mapID)
+	Log("bosses", "on map", okList and type(list) == "table" and #list or ForeverDev.Describe(okList, list))
+	if okList and type(list) == "table" then
+		for index, encounter in ipairs(list) do
+			if index <= 12 then
+				Log(
+					"bosses",
+					"on map",
+					index,
+					"id",
+					encounter.encounterID,
+					Try(EJ_GetEncounterInfo, encounter.encounterID)
+				)
+			end
+		end
+	end
+	if okInstance and journalID and not issecretvalue(journalID) and journalID > 0 then
+		for index = 1, 12 do
+			local ok, name, _, encounterID, _, _, _, dungeonEncounterID =
+				pcall(EJ_GetEncounterInfoByIndex, index, journalID)
+			if not ok or not name then
+				Log("bosses", "by index", index, ok and "end" or ("error " .. tostring(name)))
+				break
+			end
+			Log("bosses", "by index", index, name, "journal id", encounterID, "encounter id", dungeonEncounterID)
+		end
+	end
+	Log("bosses", "scenario", Try(C_ScenarioInfo.GetScenarioInfo))
+end
+
+-- A unit-death event whose GUID may be secret: once per event, situation and outcome, with the
+-- GUID's kind ("Creature", "Player") when readable.
+local function LogDeath(kind)
+	return function(first, second)
+		local guid = second or first
+		local outcome = issecretvalue(guid) and "secret" or tostring(guid):match("^%a+") or "none"
+		ns.dev:LogOnce(
+			kind .. " " .. ForeverDev.Situation() .. " " .. outcome,
+			"PROBE",
+			kind,
+			ForeverDev.Situation(),
+			outcome
+		)
+	end
+end
+
+-- An event whose arguments are plain values: logged with them, the first few times.
+local function LogEvent(kind)
+	return function(...)
+		if Few(kind) then
+			Log(kind, ForeverDev.Situation(), ...)
+		end
+	end
+end
+
 local handlers = {
 	PLAYER_LOGIN = LogStrings,
 	CHAT_MSG_COMBAT_XP_GAIN = function(text, playerName, _, _, playerName2, _, _, _, _, _, _, guid)
@@ -219,7 +341,22 @@ local handlers = {
 		Log("rest", "level up", level, ForeverDev.Situation(), "bar", XPBar(), Rest())
 	end,
 	-- Candidate: loot, money and reputation per run.
-	CHAT_MSG_LOOT = LogChat("loot"),
+	-- Only rare (blue) and better would be shown: those are logged, with one sample of any quality
+	-- per situation for the line's format and whether the item link and its quality are readable.
+	CHAT_MSG_LOOT = function(text, playerName, _, _, playerName2)
+		local situation = ForeverDev.Situation()
+		if issecretvalue(text) then
+			ns.dev:LogOnce("loot secret " .. situation, "PROBE", "loot", situation, "text secret")
+			return
+		end
+		local link = text:match("|Hitem:.-|h%[.-%]|h")
+		local quality = link and select(2, pcall(C_Item.GetItemQualityByID, link))
+		local who = ForeverDev.SecretNames("playerName", playerName, "playerName2", playerName2)
+		ns.dev:LogOnce("loot sample " .. situation, "PROBE", "loot", "sample", situation, "quality", quality, text)
+		if type(quality) == "number" and not issecretvalue(quality) and quality >= Enum.ItemQuality.Rare then
+			Log("loot", "rare+", situation, "quality", quality, "secret:", who, "by", playerName2, text)
+		end
+	end,
 	CHAT_MSG_MONEY = LogChat("money"),
 	CHAT_MSG_COMBAT_FACTION_CHANGE = LogChat("rep"),
 	PLAYER_MONEY = function()
@@ -233,22 +370,59 @@ local handlers = {
 	BOSS_KILL = LogEncounter("bosskill"),
 	PLAYER_REGEN_ENABLED = LogPartyDeaths,
 	PLAYER_REGEN_DISABLED = LogPartyDeaths,
-	-- Candidate: quest experience earned inside the dungeon, apart from kills.
-	QUEST_TURNED_IN = function(questID, xpReward, moneyReward)
+	ENCOUNTER_STATE_CHANGED = LogEvent("encounterstate"),
+	INSTANCE_ENCOUNTER_ENGAGE_UNIT = function()
+		local exists = UnitExists("boss1")
+		local name = UnitName("boss1")
 		Log(
-			"quest",
+			"engage",
 			ForeverDev.Situation(),
-			"secret:",
-			ForeverDev.SecretNames("questID", questID, "xp", xpReward, "money", moneyReward),
-			questID,
-			xpReward,
-			moneyReward,
-			"bar",
-			XPBar()
+			"boss1",
+			issecretvalue(exists) and "secret" or tostring(exists),
+			"name",
+			name,
+			"in progress",
+			Try(C_InstanceEncounter.IsEncounterInProgress)
 		)
+	end,
+	INSTANCE_ENCOUNTER_OBJECTIVE_START = LogEvent("objective start"),
+	INSTANCE_ENCOUNTER_OBJECTIVE_UPDATE = LogEvent("objective update"),
+	INSTANCE_ENCOUNTER_OBJECTIVE_COMPLETE = LogEvent("objective complete"),
+	SCENARIO_UPDATE = LogEvent("scenario update"),
+	SCENARIO_CRITERIA_UPDATE = LogEvent("scenario criteria"),
+	SCENARIO_COMPLETED = LogEvent("scenario completed"),
+	LFG_COMPLETION_REWARD = LogEvent("lfg completed"),
+	UNIT_DIED = LogDeath("unitdied"),
+	PARTY_KILL = LogDeath("partykill"),
+	ZONE_CHANGED = function()
+		LogPlace("ZONE_CHANGED")
+	end,
+	ZONE_CHANGED_INDOORS = function()
+		LogPlace("ZONE_CHANGED_INDOORS")
+	end,
+	ZONE_CHANGED_NEW_AREA = function()
+		LogPlace("ZONE_CHANGED_NEW_AREA")
+		-- The map may not be ready at PLAYER_ENTERING_WORLD: the boss list is tried here too.
+		if InDungeon() then
+			ns.dev:LogOnce("bosses " .. tostring(select(8, GetInstanceInfo())), "PROBE", "bosses", "listing")
+			LogBosses()
+		end
+	end,
+	GROUP_ROSTER_UPDATE = function()
+		local count = GetNumGroupMembers()
+		ns.dev:LogChanged("roster", count, "PROBE", "roster", ForeverDev.Situation(), "members", count)
+	end,
+	CHAT_MSG_MONSTER_YELL = function(text, name)
+		local outcome = ForeverDev.SecretNames("text", text, "name", name)
+		ns.dev:LogOnce("yell " .. ForeverDev.Situation() .. " " .. outcome, "PROBE", "yell", "secret:", outcome)
+		if Few("yell") then
+			Log("yell", ForeverDev.Situation(), name, text)
+		end
 	end,
 	PLAYER_ENTERING_WORLD = function(isLogin, isReload)
 		Log("world", "login", isLogin, "reload", isReload, "instance", GetInstanceInfo())
+		LogPlace("PLAYER_ENTERING_WORLD")
+		LogBosses()
 	end,
 	PLAYER_TARGET_CHANGED = function()
 		LogGUID("target", "target")
@@ -282,7 +456,11 @@ local handlers = {
 
 local frame = CreateFrame("Frame")
 frame:SetScript("OnEvent", function(_, event, ...)
-	handlers[event](...)
+	-- A probe must never break a run: its errors are logged, once each.
+	local ok, problem = pcall(handlers[event], ...)
+	if not ok then
+		ns.dev:LogOnce("error " .. event .. " " .. tostring(problem), "PROBE", "error", event, problem)
+	end
 end)
 for event in pairs(handlers) do
 	frame:RegisterEvent(event)

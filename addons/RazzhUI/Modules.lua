@@ -92,10 +92,18 @@ function Modules.SetEnabled(folder, enabled)
 	ns.log("TOGGLE", folder, enabled)
 end
 
--- Whether some module's enabled state differs from whether it is loaded, so a reload would change it.
+-- [folder] = whether it was enabled at PLAYER_LOGIN: the state this session started with, as
+-- Blizzard's AddOns list keeps its startStatus (AddonList.lua:192-208, 259-264). Nil until then.
+local atLogin
+
+-- Whether some module's enabled state differs from the state at login, so a reload would change it.
+-- A module that is enabled but can't load is not pending: reloading wouldn't change it.
 function Modules.HasPendingChange()
+	if not atLogin then
+		return false
+	end
 	for _, entry in ipairs(Modules.List()) do
-		if Modules.IsEnabled(entry.folder) ~= Modules.IsLoaded(entry.folder) then
+		if Modules.IsEnabled(entry.folder) ~= atLogin[entry.folder] then
 			return true
 		end
 	end
@@ -103,11 +111,20 @@ function Modules.HasPendingChange()
 end
 
 EventUtil.RegisterOnceFrameEventAndCallback("PLAYER_LOGIN", function()
-	if not ns.dev.enabled then
-		return
-	end
+	atLogin = {}
 	for _, entry in ipairs(Modules.List()) do
-		ns.log("MODULES", entry.folder, entry.name, Modules.IsLoaded(entry.folder), Modules.IsEnabled(entry.folder))
+		atLogin[entry.folder] = Modules.IsEnabled(entry.folder)
 	end
-	ns.log("MODULES", "GUID secret", issecretvalue(UnitGUID("player")))
+	if ns.dev.enabled then
+		for _, entry in ipairs(Modules.List()) do
+			ns.log(
+				"MODULES",
+				entry.folder,
+				entry.name,
+				"loaded=" .. tostring(Modules.IsLoaded(entry.folder)),
+				"enabled=" .. tostring(atLogin[entry.folder])
+			)
+		end
+		ns.log("MODULES", "GUID secret", issecretvalue(UnitGUID("player")))
+	end
 end)

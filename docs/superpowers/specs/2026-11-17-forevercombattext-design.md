@@ -73,9 +73,9 @@ ADR 0003 has the trade-offs. The user handed over the how; mirroring is Claude's
   | `MessageFadeOutTime` 1.3 s | Duration × 1.3 / 1.9 |
   | `MessageHeight` 25 | Font Size |
   | crit height 30 → 60 → 30 over 0.05 s / 0.2 s, and a crit stays at the start | Font Size × 1.2 → × 2.4, same times |
-  | arc radius 150, alternating sides | Scroll Length × 150 / 225 |
+  | arc radius 150, alternating sides | Scroll Length × 150 / 225 (Claude's call: Blizzard's proportions, so arc text rises two thirds of the box and swings past its sides) |
   | stagger ±10 px sideways when `isStaggered` | same |
-  | a new line starts behind the last one (line height + 10 spacing), up to 130 back, then steps 80 sideways | same, with line height = Font Size |
+  | a new line starts behind the last one (16 + 10 spacing), up to 130 back, then steps 80 sideways | same, with 16 scaled to Font Size × 16 / 25 (Claude's call: matches Blizzard at the default) |
 
 - The maths (position at time t for each mode, alpha, crit height, where a new line starts) lives
   in pure functions in `Scroll.lua`, taking plain numbers, apart from the frame code.
@@ -93,8 +93,15 @@ ADR 0003 has the trade-offs. The user handed over the how; mirroring is Claude's
   | Duration (seconds) | 0.5–5 | 0.1 | 1.9 |
   | Font Size | 10–60 | 1 | 25 |
 
-- Default position: the box's bottom centre at the centre of the screen, so an untouched install
-  looks like Blizzard's. Changing Scroll Length keeps the start edge where it is.
+- Default position (Claude's call): where Blizzard's text starts, so an untouched install looks
+  the same. Blizzard anchors each line's top to the screen's bottom edge at
+  `384 * WorldFrame:GetHeight() / 768` in UIParent units (`CombatText.lua:457`, `:484`, `:506`),
+  which is the screen's centre only at UI scale 1 and lower on screen otherwise. The default is
+  the box's start edge at that height, centred horizontally, worked out at load.
+- The start edge stays put when Scroll Length or the direction changes. LibEditMode re-derives the
+  anchor point after every drag (`normalizePosition`), so the saved point is often `CENTER` or
+  `TOP`: the position is saved as LibEditMode gives it, and the holder's height grows from the
+  start edge by re-anchoring after each move and each setting change.
 - Sample messages while Edit Mode is open (LibEditMode's enter and exit callbacks): about one a
   second, cycling a hit, a heal and a crit in Blizzard's colours, built from GlobalStrings where
   one exists. Real messages still show.

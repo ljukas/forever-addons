@@ -18,8 +18,9 @@ check (`UnitHealth / UnitHealthMax`). Those only work while that code runs untai
 Mirror. `hooksecurefunc(CombatText, "AddMessage", ...)` hands us every message Blizzard decided to
 show, already worded and coloured (`message, scrollFunction, r, g, b, displayType, isStaggered`).
 We draw it with our own font strings in our own Edit Mode box and hide Blizzard's copy with
-`CombatText:SetAlpha(0)`. We write no field on `CombatText`, `CombatTextConstants` or
-`CombatTextTypeInfo`, and never call a `CombatText` method.
+`CombatText:SetAlpha(0)`. Addon code assigns no field on `CombatText`, `CombatTextConstants` or
+`CombatTextTypeInfo` (`hooksecurefunc` installs its wrapper securely), and calls none of the
+mixin's Lua methods; `SetAlpha` is the one widget call we make on the frame.
 
 The message may be a secret string. We only pass it to `FontString:SetText`
 (`SecretArguments = "AllowedWhenTainted"`) and never read, compare or measure it.

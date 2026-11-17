@@ -1,0 +1,5 @@
+package-as: RazzhForeverEnhanced
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown

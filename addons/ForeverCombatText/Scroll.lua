@@ -23,7 +23,9 @@ local ARC_RADIUS = 150
 local CRIT_MIN, CRIT_MAX = 30, 60
 local CRIT_GROW_TIME, CRIT_SHRINK_TIME = 0.05, 0.2
 -- A new line starts this far behind the one before it, plus the spacing; never further back than
--- the limit.
+-- the limit. Blizzard measures the limit from 384 (see Display.lua), where a line scrolling down
+-- starts; scrolling up or in an arc a line starts one line (25) beyond that, so the limit is a
+-- line nearer.
 local LINE_GAP = 16
 local LINE_SPACING = 10
 local BEHIND_LIMIT = 130
@@ -63,34 +65,39 @@ function Scroll.Alpha(t, duration)
 	return math.max(1 - (t - fadeStart) / (duration - fadeStart), 0)
 end
 
--- A crit's text height t seconds in: it pops to double size and settles back.
+-- A crit's text height t seconds in: it pops to double size and settles back. The second return
+-- is true once it has settled.
 function Scroll.CritHeight(t, fontSize)
 	local small = fontSize * CRIT_MIN / BLIZZARD_HEIGHT
 	local big = fontSize * CRIT_MAX / BLIZZARD_HEIGHT
 	if t <= CRIT_GROW_TIME then
-		return small + (big - small) * t / CRIT_GROW_TIME
+		return small + (big - small) * t / CRIT_GROW_TIME, false
 	elseif t <= CRIT_SHRINK_TIME then
-		return big - (big - small) * (t - CRIT_GROW_TIME) / (CRIT_SHRINK_TIME - CRIT_GROW_TIME)
+		return big - (big - small) * (t - CRIT_GROW_TIME) / (CRIT_SHRINK_TIME - CRIT_GROW_TIME), false
 	end
-	return small
+	return small, true
 end
 
 -- Where a new line starts so it doesn't cover the ones still near the start (activeTravels: the
 -- travel of each line on screen): behind the last of them. Past the limit a crit starts on the
 -- edge anyway, and any other line starts at the limit and, second return, steps sideways.
-function Scroll.StartTravel(activeTravels, fontSize, isCrit)
+function Scroll.StartTravel(activeTravels, fontSize, isCrit, mode)
 	local gap = LINE_GAP * fontSize / BLIZZARD_HEIGHT + LINE_SPACING
+	local limit = BEHIND_LIMIT
+	if mode ~= MODE.DOWN then
+		limit = limit - BLIZZARD_HEIGHT
+	end
 	local start = 0
 	for _, travel in ipairs(activeTravels) do
 		if start >= travel - gap then
 			start = travel - gap
 		end
 	end
-	if start < -BEHIND_LIMIT then
+	if start < -limit then
 		if isCrit then
 			return 0, false
 		end
-		return -BEHIND_LIMIT, true
+		return -limit, true
 	end
 	return start, false
 end

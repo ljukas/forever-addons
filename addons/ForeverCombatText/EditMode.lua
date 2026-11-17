@@ -102,6 +102,10 @@ local function Get(layoutName, key)
 		value = saved[key]
 	end
 	if value == nil or not VALID[key](value) then
+		if key == "y" then
+			-- Where Blizzard's text starts depends on the direction it scrolls.
+			return ns.Display.DefaultY(ns.Display.Mode())
+		end
 		return DEFAULTS[key]
 	end
 	return value
@@ -123,14 +127,28 @@ local function Save(layoutName, values)
 end
 
 local function Apply(layoutName)
-	ns.Display.SetLayout({
+	local layout = {
 		point = Get(layoutName, "point"),
 		x = Get(layoutName, "x"),
 		y = Get(layoutName, "y"),
 		length = Get(layoutName, "length"),
 		duration = Get(layoutName, "duration"),
 		fontSize = Get(layoutName, "fontSize"),
-	})
+	}
+	ns.Display.SetLayout(layout)
+	if ns.dev.enabled then
+		local applied = strjoin(
+			" ",
+			tostring(layoutName),
+			layout.point,
+			layout.x,
+			layout.y,
+			layout.length,
+			layout.duration,
+			layout.fontSize
+		)
+		ns.dev:LogChanged("apply", applied, "EDITMODE", "apply", applied)
+	end
 end
 
 -- A slider for a saved number. OnSet(layoutName, value), when given, returns the fields to save.
@@ -143,6 +161,10 @@ local function Slider(key, label, desc, minValue, maxValue, valueStep, OnSet)
 		minValue = minValue,
 		maxValue = maxValue,
 		valueStep = valueStep,
+		-- What the slider shows beside it: 1.9, not 1.9000000001.
+		formatter = function(value)
+			return math.floor(value * 10 + 0.5) / 10
+		end,
 		get = function(layoutName)
 			return Get(layoutName, key)
 		end,
@@ -154,17 +176,45 @@ local function Slider(key, label, desc, minValue, maxValue, valueStep, OnSet)
 end
 
 -- The box is as tall as the text scrolls. Its start edge stays where the player put it: the saved
--- offset moves by what the anchor point would otherwise let that edge move.
+-- offset moves by what the anchor point would otherwise let that edge move. The whole position is
+-- saved with it, so a layout that was on the default keeps the place it has now.
 local function LengthChanged(layoutName, value)
 	local shift =
 		ns.Scroll.ShiftForLength(Get(layoutName, "point"), Get(layoutName, "length"), value, ns.Display.Mode())
-	return { length = value, y = Get(layoutName, "y") + shift }
+	return {
+		length = value,
+		point = Get(layoutName, "point"),
+		x = Get(layoutName, "x"),
+		y = Get(layoutName, "y") + shift,
+	}
 end
 
 -- The slider hands over 1.9000000001; one decimal is kept.
 local function DurationChanged(_, value)
 	local rounded = math.floor(value * 10 + 0.5) / 10
 	return { duration = Clamp(rounded, DURATION_MIN, DURATION_MAX) }
+end
+
+-- The layouts seen so far, by type and name, to tell which one a "create" is about.
+local knownLayouts = {}
+
+local function LayoutID(layout)
+	return layout.layoutType .. ":" .. layout.layoutName
+end
+
+local function RememberLayouts()
+	wipe(knownLayouts)
+	for _, layout in ipairs(C_EditMode.GetLayouts().layouts) do
+		knownLayouts[LayoutID(layout)] = true
+	end
+end
+
+-- The DB key for a layout from C_EditMode.GetLayouts, as Key gives for a name.
+local function KeyOf(layout)
+	if layout.layoutType == Enum.EditModeLayoutType.Character then
+		return characterKey and (layout.layoutName .. " @ " .. characterKey) or nil
+	end
+	return layout.layoutName
 end
 
 local sampleTicker
@@ -188,7 +238,9 @@ ns.OnInitialize(function()
 		Save(layoutName, { point = point, x = x, y = y })
 	end
 
-	LEM:AddFrame(holder, OnMoved, { point = DEFAULTS.point, x = DEFAULTS.x, y = DEFAULTS.y }, L.COMBAT_TEXT)
+	-- Reset Position goes where Blizzard's text starts for the direction in use at login.
+	local defaultPosition = { point = DEFAULTS.point, x = DEFAULTS.x, y = ns.Display.DefaultY(ns.Display.Mode()) }
+	LEM:AddFrame(holder, OnMoved, defaultPosition, L.COMBAT_TEXT)
 	LEM:AddFrameSettings(holder, {
 		Slider("length", L.SCROLL_LENGTH, nil, LENGTH_MIN, LENGTH_MAX, LENGTH_STEP, LengthChanged),
 		Slider("duration", L.DURATION, L.DURATION_DESC, DURATION_MIN, DURATION_MAX, DURATION_STEP, DurationChanged),
@@ -210,19 +262,27 @@ ns.OnInitialize(function()
 	-- Fires at login once the layouts have loaded, and on every layout switch.
 	LEM:RegisterCallback("layout", function(layoutName)
 		ns.log("EDITMODE", "layout", layoutName, "key", Key(layoutName))
+		RememberLayouts()
 		Apply(layoutName)
 	end)
 
 	-- A new layout starts with the box of the layout it was copied from, or the defaults.
-	LEM:RegisterCallback("create", function(layoutName, _, sourceLayoutName)
+	-- LibEditMode names the last layout in the list as the new one, but Blizzard inserts a new
+	-- account layout before the character layouts (EditModeManagerFrameMixin:MakeNewLayout), so
+	-- the new one is found here: the layout not seen before. An entry that exists is never
+	-- replaced.
+	LEM:RegisterCallback("create", function(_, _, sourceLayoutName)
 		local store = Store()
-		local newKey = Key(layoutName)
-		if not store or not newKey then
-			return
+		local sourceKey = Key(sourceLayoutName)
+		local source = store and sourceKey and store[sourceKey]
+		for _, layout in ipairs(C_EditMode.GetLayouts().layouts) do
+			local newKey = KeyOf(layout)
+			if store and newKey and not knownLayouts[LayoutID(layout)] and store[newKey] == nil then
+				store[newKey] = type(source) == "table" and CopyTable(source) or nil
+				ns.log("EDITMODE", "create", newKey, "from", sourceLayoutName)
+			end
 		end
-		local source = sourceLayoutName and store[Key(sourceLayoutName)]
-		store[newKey] = type(source) == "table" and CopyTable(source) or nil
-		ns.log("EDITMODE", "create", newKey, "from", sourceLayoutName)
+		RememberLayouts()
 	end)
 
 	-- The layout already has its new name, so Key finds its type; the old key has the same type.
@@ -238,6 +298,7 @@ ns.OnInitialize(function()
 			store[oldKey] = nil
 		end
 		ns.log("EDITMODE", "rename", oldKey, newKey)
+		RememberLayouts()
 	end)
 
 	-- The layout is gone, so its type is unknown: this character's entry if it has one, else the
@@ -251,6 +312,7 @@ ns.OnInitialize(function()
 		local key = store[characterEntry] ~= nil and characterEntry or layoutName
 		store[key] = nil
 		ns.log("EDITMODE", "delete", key)
+		RememberLayouts()
 	end)
 
 	Apply(LEM:GetActiveLayoutName())

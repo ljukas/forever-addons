@@ -228,9 +228,11 @@ ActionBarButtonRangeCheckFrame = {}
 ProfessionsFrame = nil
 
 -- Blizzard_CombatText/Shared/CombatText.xml (load-on-demand): the frame that scrolls the
--- player's own combat text. Only the member our addons hook (CombatTextMixin:AddMessage).
+-- player's own combat text. Only the members our addons hook (CombatTextMixin:AddMessage)
+-- or read (the lines on screen).
 
 ---@class CombatText : Frame
+---@field activeFontStrings FontString[]
 ---@field AddMessage fun(self: CombatText, message: string, scrollFunction: function, r: number, g: number, b: number, displayType: string?, isStaggered: number?)
 ---@type CombatText?
 CombatText = nil

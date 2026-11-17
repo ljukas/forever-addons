@@ -33,6 +33,8 @@ files["addons/ForeverCombat/**"].globals = {
 	"SLASH_FOREVERCOMBAT_PROBE1",
 }
 
+files["addons/ForeverCombatText/**"].globals = { "ForeverCombatTextDB" }
+
 files["addons/ForeverDev/**"].globals = {
 	"ForeverDev",
 	"ForeverDevDB",

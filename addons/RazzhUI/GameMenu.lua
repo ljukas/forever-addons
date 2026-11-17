@@ -1,11 +1,12 @@
 local _, ns = ...
 
 -- A RazzhUI button in the Esc menu (GameMenuFrame), as its own section directly above "AddOns"
--- (else "Edit Mode", else "Support"). The Game Menu has no API for adding a button: its buttons come
--- from a pool Blizzard rebuilds on every show and shares with Logout, Exit Game, Edit Mode and
--- Macros, so this file writes no field on the menu or its pooled buttons and calls none of its
--- mixin's methods. It only re-sets each pooled button's one point and the menu's height after
--- Blizzard's Layout has set them, and keeps its own state in locals. ns.log tag: MENU.
+-- (else "Edit Mode", else "Support"). When Blizzard puts a "Rewards" button first in that section
+-- (GameMenuFrame.lua:213-228), ours sits directly under it. The Game Menu has no API for adding a
+-- button: its buttons come from a pool Blizzard rebuilds on every show and shares with Logout, Exit
+-- Game, Edit Mode and Macros, so this file writes no field on the menu or its pooled buttons and
+-- calls none of its mixin's methods. It only re-sets each pooled button's one point and the menu's
+-- height after Blizzard's Layout has set them, and keeps its own state in locals. ns.log tag: MENU.
 --
 -- Blizzard's layout (Blizzard_SharedXML/LayoutFrame.lua): Layout lays out only shown children with
 -- a layoutIndex (:38), so our button, which has none, is left alone. It gives every pooled button
@@ -53,6 +54,10 @@ local applied = 0
 -- Moves a frame's one point down by dy, keeping its point and relative frame.
 local function MoveDown(frame, dy)
 	local point, relativeTo, relativePoint, x, y = frame:GetPoint(1)
+	-- A rebuild while shown clears the pool's anchors until the next frame's Layout (MainMenuFrameTemplates.lua:4-7).
+	if not point then
+		return
+	end
 	frame:SetPoint(point, relativeTo, relativePoint, x, y - dy)
 end
 

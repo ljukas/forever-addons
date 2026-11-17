@@ -36,6 +36,40 @@ One step, one PR: `feat(razzhforeverenhanced,forevertooltip): add the suite core
 
 The spec's table and its fallbacks. Instrumentation: `LOADED` (the four GlobalStrings: present or not), `MODULES` at `PLAYER_LOGIN` (each module: folder, short name, loaded, enabled; whether the player GUID is secret), `OPTIONS page <addon>`, `OPTIONS open <addon or root>`, `OPTIONS combat`, `TOGGLE <folder> <true|false>`, `MENU placed <anchor text>` and `MENU hidden combat` through `ns.dev:LogOnce`, `MENU click`.
 
+## Order and gates
+
+The user tests in game between tasks. Build order: **1, 2, 3, 5, Gate 1, 4, Gate 2, 6, 7, step review,
+Gate 3.** A gate is a stop: nothing after it is built until its checks pass or a fallback from the
+spec is chosen. Each gate: `scripts/worktree.sh game`, the user does the listed steps and ends
+with `/rl`, then `scripts/devlog.sh` (and `--errors`) must show the lines named.
+
+**Gate 1, after Task 5: the core, the modules page and the pilot module.** Needs a full client
+restart (new addon folder).
+
+| The user does | Expected by eye | Expected in the devlog |
+|---|---|---|
+| Opens the AddOns list | "Razzh Forever Enhanced" with Tooltip nested under it; nothing else nested | `MODULES ForeverTooltip Tooltip loaded=true enabled=true`; whether the GUID is secret |
+| Opens Options > AddOns | A "Razzh Forever Enhanced" category with a "Tooltip" page under it; no top-level ForeverTooltip entry; the tooltip options work and kept their values | `OPTIONS page ForeverTooltip`; `LOADED` with the four GlobalStrings |
+| Clicks the minimap addon dropdown entry | Options opens at our page | `OPTIONS open root` |
+| Presses Defaults on our page, then "All Settings" from the Graphics page | The Tooltip box stays ticked; no reload | no `TOGGLE` line |
+| Unticks Tooltip, presses Reload UI | After the reload: no Tooltip page, box unticked, stock tooltips | `TOGGLE ForeverTooltip false`; next session `MODULES ... loaded=false enabled=false` |
+| Ticks Tooltip, presses Reload UI | Tooltip and its settings are back | `TOGGLE ForeverTooltip true`; `MODULES ... loaded=true` |
+| Unticks Tooltip, closes Options, `/rl` without the button | Either outcome; we record which | next session's `MODULES` line |
+| Disables Razzh Forever Enhanced in the AddOns list, reloads, then enables it again | Tooltip shows as dependency-disabled and doesn't load | `devlog.sh --errors` clean throughout |
+
+**Gate 2, after Task 4: the Esc-menu button.**
+
+| The user does | Expected by eye | Expected in the devlog |
+|---|---|---|
+| Opens the Esc menu | "Razzh Forever Enhanced" above "AddOns", text fits, same look as its neighbours, nothing overlapping (EllesmereUI's button included); a screenshot | `MENU placed <anchor>` |
+| Clicks it | The menu closes, Options opens at our page | `MENU click`, `OPTIONS open root` |
+| From the Esc menu, out of combat: Logout (cancel), Exit Game (cancel), Macros, Edit Mode (enter and leave), Options | All work | `devlog.sh --errors`: no blocked action |
+| The same in combat (a target dummy or a mob) | Our button is gone, the menu looks stock, the others still work | `MENU hidden combat`; no blocked action |
+| Opens the Esc menu, enters combat with it open, leaves combat | The button goes and comes back, no gap left behind | no error |
+
+**Gate 3, after the step review's fixes:** Gates 1 and 2 again in one pass, as the PR's testing
+evidence.
+
 ## Step reviewers
 
 Core four, plus `savedvariables-guard` (new settings variables `RAZZHFOREVERENHANCED_MODULE_*`; ForeverTooltip's must be unchanged), UI reviewer (the menu button, the Settings page), shell reviewer (`scripts/`), release reviewer (new TOC and `.pkgmeta`, template TOC).
@@ -152,4 +186,4 @@ Core four, plus `savedvariables-guard` (new settings variables `RAZZHFOREVERENHA
 
 ---
 
-After Task 7: Phase 5 (one review of the whole diff by the step reviewers above), then Phase 6 (`scripts/worktree.sh game`, a client restart for the new folder, the in-game checks).
+After Task 7: Phase 5 (one review of the whole diff by the step reviewers above), its fixes, then Gate 3.

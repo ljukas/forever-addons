@@ -1,8 +1,8 @@
 local ADDON_NAME, ns = ...
 
--- Options > AddOns > Razzh Forever Enhanced: a checkbox per module that enables or disables that
+-- Options > AddOns > RazzhUI: a checkbox per module that enables or disables that
 -- addon (applied by the Reload UI button), and each module's own page as a subcategory
--- (RazzhForeverEnhanced.RegisterOptions). ns.log tags: OPTIONS, and TOGGLE (from ns.Modules.SetEnabled).
+-- (RazzhUI.RegisterOptions). ns.log tags: OPTIONS, and TOGGLE (from ns.Modules.SetEnabled).
 local L = ns.L
 
 -- Built when this file loads, not on an event, so modules (which load after the core) can call
@@ -23,7 +23,7 @@ else
 	local variables = {}
 	for _, module in ipairs(modules) do
 		local folder = module.folder
-		local variable = "RAZZHFOREVERENHANCED_MODULE_" .. folder:upper()
+		local variable = "RAZZHUI_MODULE_" .. folder:upper()
 		variables[#variables + 1] = variable
 		-- No default and no commit flag: Defaults must not switch every module back on or reload the UI.
 		local setting = Settings.RegisterProxySetting(
@@ -59,7 +59,7 @@ Settings.RegisterAddOnCategory(category)
 local pages = {}
 
 -- The module's own options page, a subcategory of the core's, created on the first call.
-function RazzhForeverEnhanced.RegisterOptions(addonName)
+function RazzhUI.RegisterOptions(addonName)
 	if type(addonName) ~= "string" then
 		error(ADDON_NAME .. ".RegisterOptions: addonName must be a string, got " .. type(addonName), 2)
 	end
@@ -86,7 +86,7 @@ function RazzhForeverEnhanced.RegisterOptions(addonName)
 end
 
 -- Opens Options at the module's page, or at the core's when addonName is nil or has no page.
-function RazzhForeverEnhanced.OpenOptions(addonName)
+function RazzhUI.OpenOptions(addonName)
 	if addonName ~= nil and type(addonName) ~= "string" then
 		error(ADDON_NAME .. ".OpenOptions: addonName must be nil or a string, got " .. type(addonName), 2)
 	end
@@ -101,6 +101,6 @@ function RazzhForeverEnhanced.OpenOptions(addonName)
 end
 
 -- Named by the TOC's ## AddonCompartmentFunc.
-function RazzhForeverEnhanced_OnAddonCompartmentClick()
-	RazzhForeverEnhanced.OpenOptions()
+function RazzhUI_OnAddonCompartmentClick()
+	RazzhUI.OpenOptions()
 end

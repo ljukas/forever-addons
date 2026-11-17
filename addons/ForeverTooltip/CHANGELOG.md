@@ -7,5 +7,5 @@
 - Creatures and NPCs you can attack get the same level colours, and a ?? level shows a skull instead of the question marks (red, unless the unit is friendly).
 - Their Alliance/Horde line shows whether they're friend or foe: red for enemies, yellow for players you can attack who aren't hostile, green for allies.
 - The health bar under unit tooltips now uses the same bar texture as your player frame, and sits in a panel with the tooltip's own border and background, joined to the tooltip.
-- ForeverTooltip now needs Razzh Forever Enhanced and is switched on and off from its page, under Options → AddOns → Razzh Forever Enhanced.
-- New option in Options → AddOns → Razzh Forever Enhanced → Tooltip: "Tooltip follows the cursor" shows tooltips for players, creatures and objects in the world next to your mouse instead of at the usual tooltip spot. Off by default. When it's on, "Tooltip grows towards" picks which side of the cursor the tooltip appears on: down and right, down and left, up and right (the default) or up and left.
+- ForeverTooltip now needs RazzhUI and is switched on and off from its page, under Options → AddOns → RazzhUI.
+- New option in Options → AddOns → RazzhUI → Tooltip: "Tooltip follows the cursor" shows tooltips for players, creatures and objects in the world next to your mouse instead of at the usual tooltip spot. Off by default. When it's on, "Tooltip grows towards" picks which side of the cursor the tooltip appears on: down and right, down and left, up and right (the default) or up and left.

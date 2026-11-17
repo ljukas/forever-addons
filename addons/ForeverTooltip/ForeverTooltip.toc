@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: Razzh Forever Enhanced: Tooltip
+## Title: |cff82c5ffRazzh|r|cffffffffUI|r Tooltip
 ## Notes: Colours the level of hovered players and creatures by how it compares to yours (a skull for ?? levels), players' names by class and their faction line by friend or foe, and can make tooltips follow the cursor.
 ## Author: ljukas
 ## X-License: MIT
@@ -8,8 +8,8 @@
 ## X-Category: Tooltip
 ## Category: Forever Enhanced Addons
 ## SavedVariables: ForeverTooltipDB
-## Dependencies: RazzhForeverEnhanced
-## Group: RazzhForeverEnhanced
+## Dependencies: RazzhUI
+## Group: RazzhUI
 #@do-not-package@
 ## OptionalDeps: ForeverDev
 #@end-do-not-package@

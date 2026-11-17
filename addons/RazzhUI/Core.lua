@@ -25,14 +25,16 @@ function ns.log(tag, ...)
 end
 
 -- The core's one global; later files add its functions. Nothing here names a module.
-RazzhForeverEnhanced = {}
+RazzhUI = {}
 
--- enUS only for now.
+-- enUS only for now. TITLE stays plain because it is the Options category's name, which Options sorts
+-- and searches by; TITLE_COLORED is for display (Battle.net blue "Razzh", white "UI").
 ns.L = {
-	TITLE = "Razzh Forever Enhanced",
-	MODULE_PREFIX = "Razzh Forever Enhanced: ",
+	TITLE = "RazzhUI",
+	TITLE_COLORED = BATTLENET_FONT_COLOR:WrapTextInColorCode("Razzh") .. HIGHLIGHT_FONT_COLOR:WrapTextInColorCode("UI"),
+	MODULE_PREFIX = "RazzhUI ",
 	MODULES = "Modules",
-	NO_MODULES = "No Forever Enhanced addons are installed.",
+	NO_MODULES = "No RazzhUI modules are installed.",
 	RELOAD_TOOLTIP = "Reload the interface to apply your changes.",
 	-- Fallback for VIDEO_OPTIONS_NEED_UIRELOAD, which exists only in the running game.
 	NEEDS_RELOAD = "Your changes need a reload of the interface to take effect.",
@@ -44,6 +46,7 @@ EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
 		for _, name in ipairs({ "RELOADUI", "ADDONS", "VIDEO_OPTIONS_NEED_UIRELOAD", "ERR_NOT_IN_COMBAT" }) do
 			ns.log("LOADED", name, _G[name] or "missing")
 		end
+		ns.log("LOADED", "BATTLENET_FONT_COLOR", BATTLENET_FONT_COLOR:GenerateHexColorNoAlpha())
 	end
 	ns.log("LOADED")
 end)

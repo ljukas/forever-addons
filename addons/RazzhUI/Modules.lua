@@ -8,8 +8,10 @@ ns.Modules = Modules
 
 local list, byFolder
 
--- The title without the module prefix; unchanged when it doesn't start with it. Pure.
+-- The title without colour codes and without the module prefix; a title that doesn't start with the
+-- prefix comes back unchanged apart from the removed codes. Pure.
 function Modules.ShortName(title)
+	title = title:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 	local prefix = ns.L.MODULE_PREFIX
 	if title:sub(1, #prefix) == prefix then
 		return title:sub(#prefix + 1)

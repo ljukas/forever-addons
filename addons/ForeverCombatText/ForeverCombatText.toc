@@ -1,0 +1,22 @@
+## Interface: 16001
+## Title: ForeverCombatText
+## Notes: Lets you move the scrolling combat text for what happens to you in Edit Mode, and set how far it scrolls, how long it lasts and how big it is.
+## Author: ljukas
+## X-License: MIT
+## Version: @project-version@
+## IconTexture: Interface\Icons\Ability_Defend
+## X-Category: Combat
+## Category: Forever Enhanced Addons
+## SavedVariables: ForeverCombatTextDB
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Libs\LibEditMode\namespaced.lua
+Libs\LibEditMode\embed.xml
+
+Core.lua
+Database.lua
+Scroll.lua
+Display.lua
+EditMode.lua

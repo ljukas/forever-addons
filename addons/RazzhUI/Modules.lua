@@ -67,15 +67,18 @@ function Modules.IsLoaded(folder)
 	return loaded and true or false
 end
 
--- The enable state is per character; the GUID is the key, the name the fallback when it is secret.
+-- The enable state is per character, keyed by GUID. When the GUID is secret (the name is then secret
+-- too, and GetAddOnEnableState rejects secret arguments), nil asks for the all-characters state, as
+-- Blizzard's list does for "All" (AddonList.lua:11-24).
 local function Character()
 	local guid = UnitGUID("player")
 	if issecretvalue(guid) then
-		return UnitName("player")
+		return nil
 	end
 	return guid
 end
 
+-- Whether this will load for this character after a reload; SetEnabled sets it for every character.
 function Modules.IsEnabled(folder)
 	return C_AddOns.GetAddOnEnableState(folder, Character()) ~= Enum.AddOnEnableState.None
 end

@@ -41,6 +41,26 @@ Confirmed in game (9 November 2026):
   +1% per stack, up to 3, no `points`) made a 650 XP quest pay 669. ForeverQuests' `XPBonus.lua`
   holds the known buffs.
 
+Confirmed in game (12 November 2026), in two 5-player dungeons, in combat:
+
+- `CHAT_MSG_COMBAT_XP_GAIN`'s `text` is readable ("Skeleton dies, you gain 9 experience. (+3
+  group bonus)"). Its first number is the total that lands on the XP bar, group bonus included.
+  The message arrives before the `PLAYER_XP_UPDATE` for the same kill.
+- A level-up arrives as one `PLAYER_XP_UPDATE` with XP and max both changed (23197/23200 to
+  6/25200 for a 9 XP kill).
+- `CHAT_MSG_SYSTEM`'s `text` is secret there, as its `SecretInChatMessagingLockdown` flag says.
+- Global strings (`COMBATLOG_XPGAIN_*` and the like) are in no file under `.cache/`; read them
+  from `_G` in game.
+
+Confirmed in game (16 November 2026), rested, solo in the open world, in combat:
+
+- Kill messages carry no rested bracket (`COMBATLOG_XPGAIN_EXHAUSTION*` exist but aren't sent):
+  a rested kill reads "Deepmoss Creeper dies, you gain 252 experience." and that number includes
+  the bonus.
+- `GetXPExhaustion()` and `GetRestState()` (1, "Rested", factor 2) are not secret. The pool
+  drops by the kill's whole gain (7246 to 6994 for 252), and not at all for gains without a kill
+  message.
+
 ## Looking up the API (do this before using any API you haven't verified)
 
 `scripts/setup.sh` fetches reference material into `.cache/` (gitignored; lint runs it if missing):

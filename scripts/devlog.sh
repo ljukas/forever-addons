@@ -48,8 +48,8 @@ if [[ -z "$addon" ]] && ! $all_addons && [[ "$ROOT" != "$main_root" ]]; then
 		shown="${addon//,/, } (the addons this worktree holds in game)"
 		# Modules log through the core, so its lines belong in every worktree's view.
 		if [[ ",$addon," != *",$CORE_ADDON,"* ]]; then
+			shown="$shown, $CORE_ADDON (the core)"
 			addon="$addon,$CORE_ADDON"
-			shown="${addon//,/, } (the addons this worktree holds in game, plus the core)"
 		fi
 		echo "Showing $shown and errors that name no addon; --all-addons shows every addon."
 	else

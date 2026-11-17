@@ -196,9 +196,10 @@ game)
 	if [[ -f "$ADDONS_DIR/$CORE_ADDON/$CORE_ADDON.toc" ]] && ! $core_linked; then
 		core_link="$target_dir/$CORE_ADDON"
 		core_holder="$(holder_of "$core_link")"
-		if [[ ! -e "$core_link" && ! -L "$core_link" ]]; then
-			echo "note: $CORE_ADDON has no link in game, so its modules won't load; link it from the main checkout (scripts/link.sh $CORE_ADDON)"
-		elif [[ -n "$core_holder" && "$core_holder" != "$ROOT" ]]; then
+		# Missing or dangling (into a removed worktree); held by main or by this checkout: no note.
+		if [[ ! -e "$core_link" ]]; then
+			echo "note: $CORE_ADDON has no working link in game, so its modules won't load; run 'scripts/worktree.sh game $CORE_ADDON' here, or 'scripts/link.sh $CORE_ADDON' in a checkout that has it"
+		elif [[ -n "$core_holder" && "$core_holder" != "$ROOT" && "$core_holder" != "$MAIN_ROOT" ]]; then
 			echo "note: $CORE_ADDON comes from $(label "$core_holder"): this worktree's modules run against that copy"
 		elif [[ -z "$core_holder" ]]; then
 			echo "note: $CORE_ADDON in game is not linked to this repo ($(readlink "$core_link" || echo "not a link")): this worktree's modules run against that copy"

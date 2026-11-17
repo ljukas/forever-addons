@@ -13,3 +13,4 @@
 #@end-do-not-package@
 
 Core.lua
+Modules.lua

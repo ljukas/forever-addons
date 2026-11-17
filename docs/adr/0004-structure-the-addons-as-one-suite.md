@@ -28,14 +28,14 @@ and layouts can still change freely.
 
 ## Decision
 
-1. **A core addon, `ForeverEnhanced`, and every other released addon a module of it.** A module's
-   TOC adds `## Dependencies: ForeverEnhanced` and `## Group: ForeverEnhanced`. Modules keep their
+1. **A core addon, `RazzhForeverEnhanced`, and every other released addon a module of it.** A module's
+   TOC adds `## Dependencies: RazzhForeverEnhanced` and `## Group: RazzhForeverEnhanced`. Modules keep their
    folders, names, saved data and code. ForeverDev stays outside the suite.
 2. **The one window is Blizzard's Options window** (the user's pick). The core registers one
-   category, "Forever Enhanced", on the AddOns tab. Its own page lists the modules with a checkbox
+   category, "Razzh Forever Enhanced", on the AddOns tab. Its own page lists the modules with a checkbox
    each. Every loaded module's options are a subcategory under it.
 3. **Options stay in the module** (the user's wish). A module asks the core for its page
-   (`ForeverEnhanced.RegisterOptions`) and fills it with the same `Settings` calls it uses today.
+   (`RazzhForeverEnhanced.RegisterOptions`) and fills it with the same `Settings` calls it uses today.
    There is no central options addon: ours total about 300 lines, so EllesmereUI's reason for one
    doesn't apply.
 4. **On/off is a real addon disable plus a reload**, as in EllesmereUI and as Blizzard's own
@@ -77,7 +77,7 @@ and layouts can still change freely.
 
 - Modules no longer load without the core.
 - The Options window also shows other addons' categories beside ours, and the on/off switches are
-  checkboxes on the "Forever Enhanced" page, not icons beside each name.
+  checkboxes on the "Razzh Forever Enhanced" page, not icons beside each name.
 - Switching a module costs a reload.
 - A Settings category can't be removed once registered (no API). That is fine with a real
   disable: the page of a module that is off is never registered.

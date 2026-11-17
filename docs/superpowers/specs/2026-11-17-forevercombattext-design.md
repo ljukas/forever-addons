@@ -57,9 +57,12 @@ ADR 0003 has the trade-offs. The user handed over the how; mirroring is Claude's
 ### Drawing
 
 - A holder frame on `UIParent` (not protected, never touched by secure code): width 200, height =
-  Scroll Length. Font strings come from a `CreateFontStringPool` on the holder, font object
-  `CombatTextFont`, as Blizzard's do. Cap of 20 lines, like Blizzard's; a message past the cap is
-  dropped.
+  Scroll Length. Font strings are the holder's own, on Blizzard's layer (`BACKGROUND`) with its
+  font object (`CombatTextFont`), kept in a free list for reuse. At most 20 lines, like Blizzard's
+  pool; with a long Duration more can be alive than Blizzard ever has, so a message past the cap
+  replaces the oldest line.
+- When the holder is hidden (the UI hidden with Alt-Z, a cinematic) its lines are dropped and new
+  messages ignored, as Blizzard's frame does.
 - Each line is anchored by its centre to the holder's start edge (bottom when scrolling up or in
   an arc, top when scrolling down) and moved every frame by the holder's `OnUpdate`. `OnUpdate`
   is only set while lines are active.
@@ -73,9 +76,10 @@ ADR 0003 has the trade-offs. The user handed over the how; mirroring is Claude's
   | `MessageFadeOutTime` 1.3 s | Duration × 1.3 / 1.9 |
   | `MessageHeight` 25 | Font Size |
   | crit height 30 → 60 → 30 over 0.05 s / 0.2 s, and a crit stays at the start | Font Size × 1.2 → × 2.4, same times |
+| a `"sticky"` line stays at the start, except in an arc (nothing passes it today) | same |
   | arc radius 150, alternating sides | Scroll Length × 150 / 225 (Claude's call: Blizzard's proportions, so arc text rises two thirds of the box and swings past its sides) |
   | stagger ±10 px sideways when `isStaggered` | same |
-  | a new line starts behind the last one (16 + 10 spacing), up to 130 back, then steps 80 sideways | same, with 16 scaled to Font Size × 16 / 25 (Claude's call: matches Blizzard at the default) |
+  | a new line starts behind the last one (16 + 10 spacing), up to 130 back of 384, then steps 80 sideways | same, with 16 scaled to Font Size × 16 / 25 (Claude's call: matches Blizzard at the default). Up and arc lines start a line (25) beyond 384, so their limit is 105 behind the start edge; down, 130. The 130, 80 and 10 are not scaled by the world frame's size as Blizzard's are |
 
 - The maths (position at time t for each mode, alpha, crit height, where a new line starts) lives
   in pure functions in `Scroll.lua`, taking plain numbers, apart from the frame code.
@@ -96,19 +100,29 @@ ADR 0003 has the trade-offs. The user handed over the how; mirroring is Claude's
 - Default position (Claude's call): where Blizzard's text starts, so an untouched install looks
   the same. Blizzard anchors each line's top to the screen's bottom edge at
   `384 * WorldFrame:GetHeight() / 768` in UIParent units (`CombatText.lua:457`, `:484`, `:506`),
-  which is the screen's centre only at UI scale 1 and lower on screen otherwise. The default is
-  the box's start edge at that height, centred horizontally, worked out at load.
+  which is the screen's centre only at UI scale 1 and lower on screen otherwise. Scrolling down,
+  a line's top starts there; scrolling up or in an arc, `AddMessage` starts it one line lower (at
+  the new string's `GetBottom()`). The default puts the box's start edge on the centre of that
+  first line for the direction in use (`ns.Display.DefaultY`): the box hangs below 384 for down
+  and stands on it for up and arc. The line's height is taken as 25; if the pool's reset leaves
+  the string at the font's native height the up and arc default is too high, which the `MSG`
+  line's measurements show.
+- Reset Position uses the direction in use at login.
 - The start edge stays put when Scroll Length changes. When the direction flips between up and
   down the box stays and the text starts from its other end. LibEditMode re-derives the
   anchor point after every drag (`normalizePosition`), so the saved point is often `CENTER` or
-  `TOP`: the position is saved as LibEditMode gives it, and the holder's height grows from the
-  start edge by re-anchoring after each move and each setting change.
-- Sample messages while Edit Mode is open (LibEditMode's enter and exit callbacks): about one a
-  second, cycling a hit, a heal and a crit in Blizzard's colours, built from GlobalStrings where
-  one exists. Real messages still show.
+  `TOP`: the position is saved as LibEditMode gives it, and a Scroll Length change shifts the
+  saved offset by what that anchor point would otherwise let the start edge move
+  (`ns.Scroll.ShiftForLength`), saving the whole position with it.
+- Sample messages while Edit Mode is open (LibEditMode's enter and exit callbacks): one a
+  second, cycling a hit, a heal and a crit in Blizzard's colours ("-25", "+120", "-250"; plain
+  amounts need no GlobalString). Real messages still show.
 - Per-layout storage is a copy of ForeverUnitFrames' `EditMode.lua` scheme: layout name as the
   key, `"<name> @ <player GUID>"` for character-specific layouts, validated on read with the
-  default as fallback, and the create, rename and delete callbacks.
+  default as fallback, and the create, rename and delete callbacks. One difference: LibEditMode
+  names the last layout in the list as the created one, but Blizzard inserts a new account layout
+  before the character layouts, so "create" finds the new layout itself (the one not seen before)
+  and never replaces an entry that exists. ForeverUnitFrames still has the original behaviour.
 
 ### Saved data
 
@@ -131,15 +145,17 @@ text    = { [layoutKey] = { point, x, y, length, duration, fontSize } }
 
 | Check | How it shows |
 |---|---|
-| The hook fires and gets Blizzard's arguments | `MSG` lines: `issecretvalue(message)`, colour, `displayType`, float mode |
+| The hook fires and gets Blizzard's arguments | `HOOK hooked`; `MSG` lines: `issecretvalue(message)`, colour, `displayType`, float mode |
+| The default box is where Blizzard's text starts | `MSG`: Blizzard's own newest line's top against the box's bottom and top, with the world frame's and UIParent's heights |
 | A secret message displays through our `SetText` | text visible in the box in a fight; `devlog.sh --errors` clean |
-| Blizzard's copy is hidden and still running | no text at the screen centre; `MSG` lines keep coming |
+| Blizzard's copy is hidden and still running | no second copy of the text anywhere; ours keeps showing |
 | Low-health warning and Blizzard's handler stay error-free | `devlog.sh --errors` after a fight that drops below 20% health |
-| Drag, sliders, layout switch, `/rl` keep their values | `SAVE`, `EDITMODE` lines |
+| Drag, sliders, layout switch, `/rl` keep their values | `SAVE` lines; `EDITMODE apply` has the values in use after each change and after `/rl` |
 | Up, down and arc all follow Options > Combat | by eye, one fight each |
 | Crit pop and stacking look like Blizzard's | by eye |
 
-The `MSG` line is logged once per message type and secrecy (`ns.dev:LogChanged`), not per hit.
+The `MSG` line is logged once per session for each secrecy, display type, colour and direction
+(`ns.dev:LogOnce`), not per hit.
 
 ## Left to the builder
 

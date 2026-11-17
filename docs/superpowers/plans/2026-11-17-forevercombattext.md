@@ -31,7 +31,7 @@ One step, one PR: `feat(forevercombattext): add movable combat text for the play
 
 ## In-game checks
 
-The spec's table. Instrumentation: `HOOK` (hooked or why not), `MSG` via `ns.dev:LogChanged` keyed by display type and secrecy (`issecretvalue(message)`, r, g, b, displayType, isStaggered, float mode), `SAVE`, `EDITMODE`.
+The spec's table. Instrumentation: `HOOK` (hooked or why not), `MSG` via `ns.dev:LogOnce` keyed by secrecy, display type, colour and direction (`issecretvalue(message)`, r, g, b, displayType, isStaggered, float mode, Blizzard's line top against our box), `SAVE`, `EDITMODE`.
 
 ## Step reviewers
 
@@ -74,12 +74,12 @@ Core four, plus `savedvariables-guard` (new SavedVariables), UI reviewer (frames
 **Files:** Create `addons/ForeverCombatText/Display.lua`; add to TOC.
 
 **Consumes:** `ns.Scroll.*`. **Produces:**
-- `ns.Display.DEFAULTS = { point, x, y, length = 225, duration = 1.9, fontSize = 25 }`; `point = "BOTTOM"`, `x = 0`, `y` = Blizzard's start height `384 * WorldFrame:GetHeight() / 768` less half a default line, rounded.
+- `ns.Display.DEFAULTS = { point, x, y, length = 225, duration = 1.9, fontSize = 25 }`; `point = "BOTTOM"`, `x = 0`, `y` from `ns.Display.DefaultY(mode)`: the box's start edge on the centre of Blizzard's first line for that direction (see the spec).
 - `ns.Display.holder` (200 wide, on `UIParent`).
 - `ns.Display.SetLayout({ point, x, y, length, duration, fontSize })`: sizes and places the holder; new values apply to lines added afterwards and to the movement of running ones.
 - `ns.Display.Add(message, r, g, b, displayType, isStaggered)`: starts one line.
 
-- [ ] Lines from `CreateFontStringPool(holder, "OVERLAY", 0, "CombatTextFont")`, at most 20 active. Each is anchored `CENTER` to the holder's start edge and moved by the holder's `OnUpdate`, which is set only while lines are active. Stagger ±10 when `isStaggered`; x direction alternates per line; a side step is 80, alternating sides (as `textOffsetAdjustment`).
+- [ ] Lines are the holder's own font strings (`BACKGROUND`, `CombatTextFont`) kept in a free list, at most 20 active; past that the oldest makes room. Each is anchored `CENTER` to the holder's start edge and moved by the holder's `OnUpdate`, which is set only while lines are active. Stagger ±10 when `isStaggered`; x direction alternates per line; a side step is 80, alternating sides (as `textOffsetAdjustment`).
 - [ ] The hook: `EventUtil.ContinueOnAddOnLoaded("Blizzard_CombatText", ...)` inside `ns.OnInitialize`; if `CombatText` and its `AddMessage` exist, `hooksecurefunc` and `CombatText:SetAlpha(0)`, else log `HOOK` with what was missing. The hook guards r, g, b, displayType and isStaggered with `issecretvalue` (white, no crit, no stagger) and calls `ns.Display.Add`.
 - [ ] `MSG` logging inside `if ns.dev.enabled then`, through `LogChanged`.
 - [ ] Lint, commit `feat(forevercombattext): draw Blizzard's combat text in our own box`.

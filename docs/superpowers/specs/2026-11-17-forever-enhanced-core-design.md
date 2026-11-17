@@ -20,18 +20,19 @@ nine addons are touched.
 - Options stay with the module they belong to.
 - It must work with parallel worktrees on different modules.
 - In the end one download. Nothing is released after this work; it is only prepared.
-- The core addon is named "RazzhUI", the way EllesmereUI is named, and the name is shown in
-  Blizzard-like colours.
+- The core addon is named "RazzhUI", the way EllesmereUI is named. "Razzh" is white and "UI" is
+  coloured, with WoW Forever's own palette as the inspiration (not Battle.net blue).
 
 Everything else below is Claude's call unless marked. That includes what follows from the name:
 
 - The folder and global are `RazzhUI`; module titles read "RazzhUI Tooltip".
-- The colours: "Razzh" in Blizzard's Battle.net blue (`BATTLENET_FONT_COLOR`, `82c5ff`) and "UI"
-  in its white (`HIGHLIGHT_FONT_COLOR`). Gold was the other candidate, but the AddOns list and
-  the Esc-menu buttons already draw text in gold, so it wouldn't show. The coloured name is used
-  where a title is drawn: TOC titles (the AddOns list and the addon dropdown) and the Esc-menu
+- The colour of "UI": the bronze Blizzard uses for text on Forever's own screens, `d6b380`
+  (`CAMELOT_NAV_BAR_TEXT_COLOR_NORMAL`, `Blizzard_CharacterSelectNavBar/Camelot/CharacterSelectNavBar.lua:1`).
+  It is a local in Blizzard's file, so the core defines the same colour itself; "Razzh" uses
+  `WHITE_FONT_COLOR`. The coloured name is used where a title is drawn: TOC titles (the AddOns
+  list and the addon dropdown, as the literal `|cffffffffRazzh|r|cffd6b380UI|r`) and the Esc-menu
   button. The Options category is plain "RazzhUI", because Options sorts and searches categories
-  by their name. In Lua the colours come from the named constants; a TOC can only hold the hex.
+  by their name.
 - `## Category: Forever Enhanced Addons` is left as it is.
 
 ## Goals
@@ -80,7 +81,7 @@ Esc-menu button).
 An addon folder whose TOC has:
 
 ```
-## Title: |cff82c5ffRazzh|r|cffffffffUI|r Tooltip
+## Title: |cffffffffRazzh|r|cffd6b380UI|r Tooltip
 ## Dependencies: RazzhUI
 ## Group: RazzhUI
 ```
@@ -91,7 +92,7 @@ An addon folder whose TOC has:
   (`AddonList.lua:450-455`).
 - With its colour codes removed the title reads "RazzhUI Tooltip". The part after `RazzhUI ` is
   the module's **short name** ("Tooltip"), used for its checkbox and its page. The folder name
-  doesn't change. The core's own title is `|cff82c5ffRazzh|r|cffffffffUI|r`.
+  doesn't change. The core's own title is `|cffffffffRazzh|r|cffd6b380UI|r`.
 - `## Notes` is the checkbox's tooltip.
 - `## Category: Forever Enhanced Addons` stays, on the modules and on the core.
 

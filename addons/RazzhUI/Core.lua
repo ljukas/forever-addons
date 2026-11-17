@@ -27,11 +27,16 @@ end
 -- The core's one global; later files add its functions. Nothing here names a module.
 RazzhUI = {}
 
+-- The bronze Blizzard gave WoW Forever's own screens: the character select nav bar's text colour
+-- (Blizzard_CharacterSelectNavBar/Camelot/CharacterSelectNavBar.lua:1, a local there). The TOC
+-- titles carry the same colour as the literal d6b380.
+local FOREVER_BRONZE = CreateColor(0.8392, 0.7020, 0.5020)
+
 -- enUS only for now. TITLE stays plain because it is the Options category's name, which Options sorts
--- and searches by; TITLE_COLORED is for display (Battle.net blue "Razzh", white "UI").
+-- and searches by; TITLE_COLORED is for display (white "Razzh", Forever bronze "UI").
 ns.L = {
 	TITLE = "RazzhUI",
-	TITLE_COLORED = BATTLENET_FONT_COLOR:WrapTextInColorCode("Razzh") .. HIGHLIGHT_FONT_COLOR:WrapTextInColorCode("UI"),
+	TITLE_COLORED = WHITE_FONT_COLOR:WrapTextInColorCode("Razzh") .. FOREVER_BRONZE:WrapTextInColorCode("UI"),
 	MODULE_PREFIX = "RazzhUI ",
 	MODULES = "Modules",
 	NO_MODULES = "No RazzhUI modules are installed.",
@@ -46,7 +51,6 @@ EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
 		for _, name in ipairs({ "RELOADUI", "ADDONS", "VIDEO_OPTIONS_NEED_UIRELOAD", "ERR_NOT_IN_COMBAT" }) do
 			ns.log("LOADED", name, _G[name] or "missing")
 		end
-		ns.log("LOADED", "BATTLENET_FONT_COLOR", BATTLENET_FONT_COLOR:GenerateHexColorNoAlpha())
 	end
 	ns.log("LOADED")
 end)

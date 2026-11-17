@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cff82c5ffRazzh|r|cffffffffUI|r
+## Title: |cffffffffRazzh|r|cffd6b380UI|r
 ## Notes: The core of the RazzhUI addons: adds an Esc-menu entry and an Options page where you switch each installed module on or off.
 ## Author: ljukas
 ## X-License: MIT

@@ -15,7 +15,7 @@ One step, one PR: `feat(razzhui,forevertooltip): add the suite core`.
 ## Global Constraints
 
 - Names: folder, TOC and global `RazzhUI`; module titles `RazzhUI <Short name>`; `## Category: Forever Enhanced Addons` unchanged.
-- Colours: wherever a title is drawn (TOC titles, the Esc-menu button) the name is "Razzh" in `BATTLENET_FONT_COLOR` and "UI" in `HIGHLIGHT_FONT_COLOR`; in a TOC that is the literal `|cff82c5ffRazzh|r|cffffffffUI|r`. The Options category name is plain `RazzhUI`. A module's short name is its title with colour codes removed, minus the leading `RazzhUI `.
+- Colours: wherever a title is drawn (TOC titles, the Esc-menu button) the name is "Razzh" in `WHITE_FONT_COLOR` and "UI" in Forever's bronze (`ns.L.TITLE_COLORED`, built in Core.lua from `CreateColor(0.8392, 0.7020, 0.5020)`); in a TOC that is the literal `|cffffffffRazzh|r|cffd6b380UI|r`. The Options category name is plain `RazzhUI`. A module's short name is its title with colour codes removed, minus the leading `RazzhUI `.
 - The tasks below were first built under the name RazzhForeverEnhanced (commits up to 9757fe6); one rename commit after Task 5 brings the code to the names in this plan.
 - The core's only globals: `RazzhUI` and `RazzhUI_OnAddonCompartmentClick`. No `## SavedVariables`.
 - The core assigns no field on `GameMenuFrame`, its pooled buttons or any Blizzard table, and calls no Lua method of the menu's mixin. Allowed on Blizzard's frames: `hooksecurefunc`, reading, and the widget calls `SetPoint`, `SetHeight`, `GetPoint`, `GetHeight`, `GetText`, `IsShown`.
@@ -86,7 +86,7 @@ Core four, plus `savedvariables-guard` (new settings variables `RAZZHUI_MODULE_*
 
 **Produces:** `ns.log`, `ns.dev`, `ns.Inert`, `ns.L`, the global table `RazzhUI` (empty; Task 3 adds its functions).
 
-- [ ] TOC, in ForeverTooltip's order: `## Title: |cff82c5ffRazzh|r|cffffffffUI|r`; `## Notes:` one sentence for players (what the Esc-menu entry and the Options page are for); Author, X-License, `## Version: @project-version@`; an `## IconTexture` and `## X-Category` of the builder's choice; `## Category: Forever Enhanced Addons`; `## AddonCompartmentFunc: RazzhUI_OnAddonCompartmentClick`; the ForeverDev `OptionalDeps` block; then `Core.lua`. Remove the template's `## SavedVariables` line.
+- [ ] TOC, in ForeverTooltip's order: `## Title: |cffffffffRazzh|r|cffd6b380UI|r`; `## Notes:` one sentence for players (what the Esc-menu entry and the Options page are for); Author, X-License, `## Version: @project-version@`; an `## IconTexture` and `## X-Category` of the builder's choice; `## Category: Forever Enhanced Addons`; `## AddonCompartmentFunc: RazzhUI_OnAddonCompartmentClick`; the ForeverDev `OptionalDeps` block; then `Core.lua`. Remove the template's `## SavedVariables` line.
 - [ ] `Core.lua`: the shim from `addons/ForeverTooltip/Core.lua:1-25` with this addon's tag list; `RazzhUI = {}`; `ns.L` with `TITLE = "RazzhUI"`, `MODULE_PREFIX = "RazzhUI "`, `MODULES = "Modules"`, `NO_MODULES`, `RELOAD_TOOLTIP`, `NEEDS_RELOAD` (the fallback for `VIDEO_OPTIONS_NEED_UIRELOAD`). No SavedVariables bootstrap.
 - [ ] `ns.log("LOADED", ...)` once the addon has loaded: for `RELOADUI`, `ADDONS`, `VIDEO_OPTIONS_NEED_UIRELOAD`, `ERR_NOT_IN_COMBAT`, the string or "missing".
 - [ ] `CHANGELOG.md`: `## Unreleased` with players' lines for the Esc-menu entry and the modules page. `.pkgmeta`: the template's, no `Dev` ignore needed.
@@ -157,7 +157,7 @@ Core four, plus `savedvariables-guard` (new settings variables `RAZZHUI_MODULE_*
 
 **Consumes:** `RazzhUI.RegisterOptions(addonName) -> category, layout`.
 
-- [ ] TOC: `## Title: |cff82c5ffRazzh|r|cffffffffUI|r Tooltip`; add `## Dependencies: RazzhUI` and `## Group: RazzhUI` (above the ForeverDev block). Nothing else changes.
+- [ ] TOC: `## Title: |cffffffffRazzh|r|cffd6b380UI|r Tooltip`; add `## Dependencies: RazzhUI` and `## Group: RazzhUI` (above the ForeverDev block). Nothing else changes.
 - [ ] `Options.lua`: `local category = RazzhUI.RegisterOptions(ADDON_NAME)` in place of `Settings.RegisterVerticalLayoutCategory(ADDON_NAME)`; delete the `Settings.RegisterAddOnCategory(category)` line; update the comment above (`Options > AddOns > RazzhUI > Tooltip`). Settings, variables and saved keys untouched.
 - [ ] `CHANGELOG.md` under `## Unreleased`: the options moved (rewrite the existing line that says "Options → AddOns → ForeverTooltip"), and it now needs RazzhUI.
 - [ ] Lint, commit `feat(forevertooltip): make it a RazzhUI module`.
@@ -170,7 +170,7 @@ Core four, plus `savedvariables-guard` (new settings variables `RAZZHUI_MODULE_*
 
 - [ ] `lint.sh`, in the per-TOC loop: read `## Dependencies:` (comma-separated, spaces and a trailing CR trimmed). Each name must be a folder `addons/<name>/<name>.toc`, else fail. A TOC that depends on `$CORE_ADDON` must have `## Group: $CORE_ADDON` and a `## Title:` that, with colour codes removed, starts with `$CORE_TITLE `, else fail with a message naming the missing line.
 - [ ] Prove the check: remove ForeverTooltip's `## Group` line, run `scripts/lint.sh`, expect a failure naming it; misspell its dependency, expect a failure; restore both, expect "All checks passed.".
-- [ ] `template/Addon/__ADDON__.toc`: `## Title: |cff82c5ffRazzh|r|cffffffffUI|r __ADDON__`, `## Dependencies: RazzhUI`, `## Group: RazzhUI`. Lint covers the template TOC already.
+- [ ] `template/Addon/__ADDON__.toc`: `## Title: |cffffffffRazzh|r|cffd6b380UI|r __ADDON__`, `## Dependencies: RazzhUI`, `## Group: RazzhUI`. Lint covers the template TOC already.
 - [ ] `worktree.sh game`, after linking, when this checkout has the core and didn't just link it: a `note:` line when the core's link points at another worktree (`<label>`: this worktree's modules run against that copy), and one when the core has no link in game (its modules won't load; link it from the main checkout). Notices only, never a refusal.
 - [ ] `devlog.sh`: in a worktree that holds addons, add `$CORE_ADDON` to the filter unless it's already there, and say so in the "Showing ..." line.
 - [ ] Check by hand: `scripts/worktree.sh status`, `scripts/worktree.sh game` in this worktree (it holds the core, so no notice), `scripts/devlog.sh` (the core appears once in the "Showing" line). `bash -n` on each changed script.

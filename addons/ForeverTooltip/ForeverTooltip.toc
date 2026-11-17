@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffffffffRazzh|r|cffd6b380UI|r Tooltip
+## Title: |cffd6b380RazzhUI|r Tooltip
 ## Notes: Colours the level of hovered players and creatures by how it compares to yours (a skull for ?? levels), players' names by class and their faction line by friend or foe, and can make tooltips follow the cursor.
 ## Author: ljukas
 ## X-License: MIT

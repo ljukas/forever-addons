@@ -33,10 +33,10 @@ RazzhUI = {}
 local FOREVER_BRONZE = CreateColor(0.8392, 0.7020, 0.5020)
 
 -- enUS only for now. TITLE stays plain because it is the Options category's name, which Options sorts
--- and searches by; TITLE_COLORED is for display (white "Razzh", Forever bronze "UI").
+-- and searches by; TITLE_COLORED is for display (the whole name in Forever bronze).
 ns.L = {
 	TITLE = "RazzhUI",
-	TITLE_COLORED = WHITE_FONT_COLOR:WrapTextInColorCode("Razzh") .. FOREVER_BRONZE:WrapTextInColorCode("UI"),
+	TITLE_COLORED = FOREVER_BRONZE:WrapTextInColorCode("RazzhUI"),
 	MODULE_PREFIX = "RazzhUI ",
 	MODULES = "Modules",
 	NO_MODULES = "No RazzhUI modules are installed.",

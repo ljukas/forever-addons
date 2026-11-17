@@ -98,7 +98,8 @@ ADR 0003 has the trade-offs. The user handed over the how; mirroring is Claude's
   `384 * WorldFrame:GetHeight() / 768` in UIParent units (`CombatText.lua:457`, `:484`, `:506`),
   which is the screen's centre only at UI scale 1 and lower on screen otherwise. The default is
   the box's start edge at that height, centred horizontally, worked out at load.
-- The start edge stays put when Scroll Length or the direction changes. LibEditMode re-derives the
+- The start edge stays put when Scroll Length changes. When the direction flips between up and
+  down the box stays and the text starts from its other end. LibEditMode re-derives the
   anchor point after every drag (`normalizePosition`), so the saved point is often `CENTER` or
   `TOP`: the position is saved as LibEditMode gives it, and the holder's height grows from the
   start edge by re-anchoring after each move and each setting change.

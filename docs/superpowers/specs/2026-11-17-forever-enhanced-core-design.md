@@ -215,8 +215,8 @@ addons/RazzhForeverEnhanced/
 - **`scripts/worktree.sh`.** `game` prints a notice when the core's link points at another
   worktree ("RazzhForeverEnhanced loads from <name>: this worktree's modules run against that copy"),
   and when the core isn't linked at all. `status` already shows where each link points.
-- **`scripts/devlog.sh`.** In a worktree it also shows the core's errors, the way it already
-  shows errors that name no addon: a module's bug can surface inside the core.
+- **`scripts/devlog.sh`.** In a worktree it also shows the core's lines and errors, the way it
+  already shows errors that name no addon: a module's bug can surface inside the core.
 - **`.luacheckrc`.** An entry for the core: `RazzhForeverEnhanced`, `RazzhForeverEnhanced_OnAddonCompartmentClick`.
 - **CLAUDE.md.** Layout (the core and what a module is), Worktrees (the core is shared like
   ForeverDev; claim it only on a branch that changes it), Code conventions (a module's options

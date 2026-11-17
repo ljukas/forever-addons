@@ -7,7 +7,7 @@ One step is one plan, one session and one PR.
 
 | Step | PR title (working) | What lands | Status |
 |---|---|---|---|
-| 1 | `feat(razzhforeverenhanced,forevertooltip): add the suite core` | `addons/RazzhForeverEnhanced` (Esc-menu button, "Razzh Forever Enhanced" category, modules list with on/off, `RegisterOptions`), ForeverTooltip as the first module, lint and template rules for modules, worktree notices, CLAUDE.md. Spec: `docs/superpowers/specs/2026-11-17-forever-enhanced-core-design.md` | designing |
+| 1 | `feat(razzhforeverenhanced,forevertooltip): add the suite core` | `addons/RazzhForeverEnhanced` (Esc-menu button, "Razzh Forever Enhanced" category, modules list with on/off, `RegisterOptions`), ForeverTooltip as the first module, lint and template rules for modules, worktree notices, CLAUDE.md. Spec: `docs/superpowers/specs/2026-11-17-forever-enhanced-core-design.md`. Plan: `docs/superpowers/plans/2026-11-17-forever-enhanced-core.md` | planned |
 | 2 | `feat: move every addon under Razzh Forever Enhanced` | The other nine addons become modules; Edit Mode pages for ForeverUnitFrames and ForeverCombatText | not started |
 | 3 | `build: package the suite as one download` | One zip, one version, `release.yml`, `package.sh`, CLAUDE.md's release section. Nothing is released | not started |
 | 4 | `refactor: ...` (several) | Shared code moves into the core, one concern per PR | optional |

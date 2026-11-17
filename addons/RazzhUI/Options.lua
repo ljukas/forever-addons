@@ -44,7 +44,7 @@ else
 	end
 
 	-- ReloadUI only works when called directly inside the click, so the button calls it itself.
-	local reload = CreateSettingsButtonInitializer("", _G["RELOADUI"], ReloadUI, L.RELOAD_TOOLTIP, true)
+	local reload = CreateSettingsButtonInitializer("", _G["RELOADUI"] or L.RELOAD_UI, ReloadUI, L.RELOAD_TOOLTIP, true)
 	reload:AddModifyPredicate(ns.Modules.HasPendingChange)
 	-- Re-evaluate the button whenever a box changes.
 	for _, variable in ipairs(variables) do
@@ -91,7 +91,10 @@ function RazzhUI.OpenOptions(addonName)
 		error(ADDON_NAME .. ".OpenOptions: addonName must be nil or a string, got " .. type(addonName), 2)
 	end
 	if InCombatLockdown() then
-		UIErrorsFrame:AddMessage(_G["ERR_NOT_IN_COMBAT"], 1.0, 0.1, 0.1, 1.0)
+		local message = _G["ERR_NOT_IN_COMBAT"]
+		if message then
+			UIErrorsFrame:AddMessage(message, 1.0, 0.1, 0.1, 1.0)
+		end
 		ns.log("OPTIONS", "combat")
 		return
 	end

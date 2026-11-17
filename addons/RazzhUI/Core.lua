@@ -40,6 +40,8 @@ ns.L = {
 	MODULE_PREFIX = "RazzhUI ",
 	MODULES = "Modules",
 	NO_MODULES = "No RazzhUI modules are installed.",
+	-- Fallback for RELOADUI, which exists only in the running game.
+	RELOAD_UI = "Reload UI",
 	RELOAD_TOOLTIP = "Reload the interface to apply your changes.",
 	-- Fallback for VIDEO_OPTIONS_NEED_UIRELOAD, which exists only in the running game.
 	NEEDS_RELOAD = "Your changes need a reload of the interface to take effect.",
@@ -52,5 +54,5 @@ EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
 			ns.log("LOADED", name, _G[name] or "missing")
 		end
 	end
-	ns.log("LOADED")
+	ns.log("LOADED", "modules", #ns.Modules.List())
 end)

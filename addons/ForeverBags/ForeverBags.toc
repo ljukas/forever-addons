@@ -1,0 +1,23 @@
+## Interface: 16001
+## Title: ForeverBags
+## Notes: Lists your cheapest bag items when your inventory is full, so you can delete one and keep looting.
+## Author: ljukas
+## X-License: MIT
+## X-Credits: Idea from DeleteCheapestItem by <Night Shift> Suey and its maintainers
+## Version: @project-version@
+## IconTexture: Interface\Icons\INV_Misc_Bag_08
+## X-Category: Bags & Inventory
+## Category: Forever Enhanced Addons
+## SavedVariables: ForeverBagsDB
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua
+Database.lua
+Items.lua
+Delete.lua
+Window.xml
+Loot.lua
+BagButton.lua
+Options.lua

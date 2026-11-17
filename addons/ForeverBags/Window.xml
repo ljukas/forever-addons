@@ -1,0 +1,80 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\..\..\WoW\Data\Interface\AddOns\Blizzard_SharedXML\UI.xsd">
+	<Script file="Window.lua"/>
+
+	<!-- One row of the cheapest-items window: a bag stack with its vendor price and a Delete
+	     button. Laid out and drawn like a row of Blizzard's loot window
+	     (LootFrameElementTemplate in Blizzard_UIPanels_Game/Mainline/LootFrame.xml): the same
+	     46-pixel card, item button and card atlases. The scroll box stretches it to its width. -->
+	<Frame name="ForeverBagsRowTemplate" mixin="ForeverBagsRowMixin" virtual="true">
+		<Size x="248" y="46"/>
+		<Frames>
+			<ItemButton parentKey="Item" useParentLevel="true">
+				<Size x="37" y="37"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" x="5" y="-4"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						self:GetParent():OnItemClick()
+					</OnClick>
+					<OnEnter>
+						self:GetParent():OnItemEnter()
+					</OnEnter>
+					<OnLeave function="GameTooltip_Hide"/>
+				</Scripts>
+			</ItemButton>
+			<Button parentKey="Delete" inherits="UIPanelButtonTemplate">
+				<Size x="62" y="22"/>
+				<Anchors>
+					<Anchor point="RIGHT" x="-6" y="0"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						self:GetParent():OnDeleteClick()
+					</OnClick>
+				</Scripts>
+			</Button>
+			<!-- The vendor price, with each coin a texture of its own. Coins written into a font
+			     string (GetMoneyString) stay put while the panel's opening and closing animation
+			     moves everything else. The row's OnLoad anchors it under the name. -->
+			<Frame parentKey="Price" inherits="MoneyDisplayFrameTemplate" useParentLevel="true">
+				<Size x="120" y="13"/>
+				<KeyValues>
+					<KeyValue key="leftAlign" value="true" type="boolean"/>
+				</KeyValues>
+			</Frame>
+		</Frames>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="NameFrame" atlas="looting_itemcard_bg">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="0" y="0"/>
+						<Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER">
+				<Texture parentKey="BorderFrame" atlas="looting_itemcard_stroke_normal">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="0" y="0"/>
+						<Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT" wordwrap="false">
+					<Size x="0" y="14"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Item" relativePoint="TOPRIGHT" x="8" y="-4"/>
+						<!-- Up to the Delete button (62 wide, 6 from the edge), on the name's own line. -->
+						<Anchor point="TOPRIGHT" x="-72" y="-8"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnLoad method="OnLoad"/>
+		</Scripts>
+	</Frame>
+</Ui>

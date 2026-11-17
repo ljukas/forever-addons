@@ -40,6 +40,25 @@ for toc in addons/*/*.toc template/Addon/*.toc; do
 	[[ ",$toc_interface," == *",$interface,"* ]] ||
 		fail "$toc: '## Interface: $toc_interface' does not include current Forever interface $interface"
 
+	# Dependencies must be addons of this repo; a module (depends on the core) also needs the
+	# core's Group and a title that starts with the core's name, colour codes aside.
+	toc_dependencies="$(sed -n -E 's/^## Dependencies: *//p' "$toc" | tr -d '\r ')"
+	depends_on_core=0
+	while IFS= read -r dependency; do
+		[[ -n "$dependency" ]] || continue
+		[[ -f "addons/$dependency/$dependency.toc" ]] ||
+			fail "$toc: '## Dependencies' names '$dependency', which is not an addon folder under addons/"
+		[[ "$dependency" == "$CORE_ADDON" ]] && depends_on_core=1
+	done < <(tr ',' '\n' <<<"$toc_dependencies")
+	if ((depends_on_core)); then
+		toc_group="$(sed -n -E 's/^## Group: *//p' "$toc" | tr -d '\r' | sed -E 's/ +$//')"
+		[[ "$toc_group" == "$CORE_ADDON" ]] ||
+			fail "$toc: depends on $CORE_ADDON but lacks the line '## Group: $CORE_ADDON'"
+		toc_title="$(sed -n -E 's/^## Title: *//p' "$toc" | tr -d '\r' | sed -E 's/\|c[0-9A-Fa-f]{8}//g; s/\|r//g')"
+		[[ "$toc_title" == "$CORE_TITLE "* ]] ||
+			fail "$toc: depends on $CORE_ADDON but its '## Title:' does not start with '$CORE_TITLE ' (colour codes aside)"
+	fi
+
 	# Files the TOC loads, minus inline [directives]; lines using [Variables] are skipped.
 	loaded="$(grep -v -E '^\s*(#|$)' "$toc" | sed -E 's/ *\[(AllowLoad|ExcludeLoad)[^]]*\]//g; s/\r$//; s/ +$//' | tr '\\' '/')"
 	while IFS= read -r file; do

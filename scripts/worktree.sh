@@ -188,6 +188,22 @@ game)
 	done
 	((${#missed[@]} == 0)) || die "not linked: ${missed[*]} (see above)"
 	echo "The game now loads ${names[*]} from $ROOT. /reload in game; run 'scripts/worktree.sh restore' when done."
+	# The core is shared: whichever checkout holds its link serves every module. Notices only.
+	core_linked=false
+	for name in "${names[@]}"; do
+		if [[ "$name" == "$CORE_ADDON" ]]; then core_linked=true; fi
+	done
+	if [[ -f "$ADDONS_DIR/$CORE_ADDON/$CORE_ADDON.toc" ]] && ! $core_linked; then
+		core_link="$target_dir/$CORE_ADDON"
+		core_holder="$(holder_of "$core_link")"
+		if [[ ! -e "$core_link" && ! -L "$core_link" ]]; then
+			echo "note: $CORE_ADDON has no link in game, so its modules won't load; link it from the main checkout (scripts/link.sh $CORE_ADDON)"
+		elif [[ -n "$core_holder" && "$core_holder" != "$ROOT" ]]; then
+			echo "note: $CORE_ADDON comes from $(label "$core_holder"): this worktree's modules run against that copy"
+		elif [[ -z "$core_holder" ]]; then
+			echo "note: $CORE_ADDON in game is not linked to this repo ($(readlink "$core_link" || echo "not a link")): this worktree's modules run against that copy"
+		fi
+	fi
 	;;
 restore)
 	require_game

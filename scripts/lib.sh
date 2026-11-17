@@ -30,6 +30,9 @@ else
 fi
 ADDONS_DIR="$ROOT/addons"
 CACHE_DIR="$ROOT/.cache"
+# The suite's core addon: every module's TOC depends on it, is in its Group and has its name in the title.
+CORE_ADDON="RazzhUI"
+CORE_TITLE="RazzhUI"
 
 # Dies unless WOW_DIR holds an installed Forever client: the game's executable is only there while
 # it is installed, so a folder left behind by an uninstall doesn't count.

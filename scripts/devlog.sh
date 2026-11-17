@@ -45,8 +45,13 @@ main_root="$(main_checkout)"
 if [[ -z "$addon" ]] && ! $all_addons && [[ "$ROOT" != "$main_root" ]]; then
 	addon="$(held_addons "$ROOT" | paste -sd, -)"
 	if [[ -n "$addon" ]]; then
-		echo "Showing ${addon//,/, } (the addons this worktree holds in game) and errors that name no addon;" \
-			"--all-addons shows every addon."
+		shown="${addon//,/, } (the addons this worktree holds in game)"
+		# Modules log through the core, so its lines belong in every worktree's view.
+		if [[ ",$addon," != *",$CORE_ADDON,"* ]]; then
+			addon="$addon,$CORE_ADDON"
+			shown="${addon//,/, } (the addons this worktree holds in game, plus the core)"
+		fi
+		echo "Showing $shown and errors that name no addon; --all-addons shows every addon."
 	else
 		echo "This worktree holds no addon in game ('scripts/worktree.sh game'), so showing every addon."
 	fi

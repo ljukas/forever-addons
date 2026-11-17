@@ -1,11 +1,13 @@
 ## Interface: 16001
-## Title: __ADDON__
+## Title: |cffd6b380RazzhUI|r __ADDON__
 ## Notes: TODO: one-line description shown in the addon list.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
 ## Category: Forever Enhanced Addons
 ## SavedVariables: __ADDON__DB
+## Dependencies: RazzhUI
+## Group: RazzhUI
 #@do-not-package@
 ## OptionalDeps: ForeverDev
 #@end-do-not-package@

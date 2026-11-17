@@ -48,7 +48,12 @@ local function LogStrings()
 		if
 			type(name) == "string"
 			and type(value) == "string"
-			and (name:find("^COMBATLOG_XPGAIN") or name:find("INSTANCE_RESET") or name:find("XP_GAIN"))
+			and (
+				name:find("^COMBATLOG_XPGAIN")
+				or name:find("INSTANCE_RESET")
+				or name:find("XP_GAIN")
+				or name:find("^LOOT_ROLL")
+			)
 		then
 			table.insert(names, name)
 		end

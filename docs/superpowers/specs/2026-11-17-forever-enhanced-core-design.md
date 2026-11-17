@@ -1,4 +1,4 @@
-# Razzh Forever Enhanced, step 1: the core and its options window
+# RazzhUI, step 1: the core and its options window
 
 Date: 2026-11-17. Decision record: `docs/adr/0004-structure-the-addons-as-one-suite.md`.
 Scope map: `docs/superpowers/specs/2026-11-17-forever-enhanced-suite-scope-map.md`.
@@ -20,25 +20,32 @@ nine addons are touched.
 - Options stay with the module they belong to.
 - It must work with parallel worktrees on different modules.
 - In the end one download. Nothing is released after this work; it is only prepared.
-- The core addon is named "Razzh Forever Enhanced".
+- The core addon is named "RazzhUI", the way EllesmereUI is named, and the name is shown in
+  Blizzard-like colours.
 
 Everything else below is Claude's call unless marked. That includes what follows from the name:
-the folder and global `RazzhForeverEnhanced`, the same text on the Esc-menu button and the
-Options category, and module titles of the form "Razzh Forever Enhanced: Tooltip".
-`## Category: Forever Enhanced Addons` is left as it is.
+
+- The folder and global are `RazzhUI`; module titles read "RazzhUI Tooltip".
+- The colours: "Razzh" in Blizzard's Battle.net blue (`BATTLENET_FONT_COLOR`, `82c5ff`) and "UI"
+  in its white (`HIGHLIGHT_FONT_COLOR`). Gold was the other candidate, but the AddOns list and
+  the Esc-menu buttons already draw text in gold, so it wouldn't show. The coloured name is used
+  where a title is drawn: TOC titles (the AddOns list and the addon dropdown) and the Esc-menu
+  button. The Options category is plain "RazzhUI", because Options sorts and searches categories
+  by their name. In Lua the colours come from the named constants; a TOC can only hold the hex.
+- `## Category: Forever Enhanced Addons` is left as it is.
 
 ## Goals
 
-- A new addon, `addons/RazzhForeverEnhanced` (title "Razzh Forever Enhanced"), the core.
-- A "Razzh Forever Enhanced" button in the Esc menu that opens Options at the "Razzh Forever Enhanced"
+- A new addon, `addons/RazzhUI` (title "RazzhUI"), the core.
+- A "RazzhUI" button in the Esc menu that opens Options at the "RazzhUI"
   category. The same from the Addon Compartment (the minimap's addon dropdown).
-- The "Razzh Forever Enhanced" page lists every module with a checkbox. Unticking one disables that
+- The "RazzhUI" page lists every module with a checkbox. Unticking one disables that
   addon; a "Reload UI" button on the page applies the change.
-- A module that is loaded gets its options page as a subcategory of "Razzh Forever Enhanced", built by
+- A module that is loaded gets its options page as a subcategory of "RazzhUI", built by
   the module's own code.
 - ForeverTooltip is the first module (the pilot): it has a real options page (a checkbox, a
   dropdown, a parent dependency), no Edit Mode and no library.
-- A module nests under "Razzh Forever Enhanced" in the AddOns list.
+- A module nests under "RazzhUI" in the AddOns list.
 - The tooling knows what a module is: lint checks its TOC lines, the template scaffolds one, and
   `scripts/worktree.sh` and `scripts/devlog.sh` handle the core being shared.
 
@@ -73,17 +80,18 @@ Esc-menu button).
 An addon folder whose TOC has:
 
 ```
-## Title: Razzh Forever Enhanced: Tooltip
-## Dependencies: RazzhForeverEnhanced
-## Group: RazzhForeverEnhanced
+## Title: |cff82c5ffRazzh|r|cffffffffUI|r Tooltip
+## Dependencies: RazzhUI
+## Group: RazzhUI
 ```
 
 - `Dependencies` makes the client load the core first and refuse the module without it. It is
   also how the core finds its modules.
 - `Group` nests it under the core in the AddOns list. The value must equal the core's folder name
   (`AddonList.lua:450-455`).
-- The title's part after `Razzh Forever Enhanced: ` is the module's **short name** ("Tooltip"), used
-  for its checkbox and its page. The folder name doesn't change.
+- With its colour codes removed the title reads "RazzhUI Tooltip". The part after `RazzhUI ` is
+  the module's **short name** ("Tooltip"), used for its checkbox and its page. The folder name
+  doesn't change. The core's own title is `|cff82c5ffRazzh|r|cffffffffUI|r`.
 - `## Notes` is the checkbox's tooltip.
 - `## Category: Forever Enhanced Addons` stays, on the modules and on the core.
 
@@ -91,14 +99,14 @@ The core's TOC has no `Group` and no `Dependencies`. ForeverDev is not a module.
 
 ### The core's API
 
-One global table, `RazzhForeverEnhanced` (the way ForeverDev exposes `ForeverDev`), with two functions:
+One global table, `RazzhUI` (the way ForeverDev exposes `ForeverDev`), with two functions:
 
-- `RazzhForeverEnhanced.RegisterOptions(addonName)` returns `category, layout`: a vertical-layout
-  subcategory of the "Razzh Forever Enhanced" category, named with the module's short name
+- `RazzhUI.RegisterOptions(addonName)` returns `category, layout`: a vertical-layout
+  subcategory of the "RazzhUI" category, named with the module's short name
   (`Settings.RegisterVerticalLayoutSubcategory`). The module fills it with the `Settings` calls
   it uses today. A second call for the same addon returns the same pair.
-- `RazzhForeverEnhanced.OpenOptions(addonName)` opens Options at that module's page, or at the
-  "Razzh Forever Enhanced" page when `addonName` is nil or has no page. In combat it opens nothing and
+- `RazzhUI.OpenOptions(addonName)` opens Options at that module's page, or at the
+  "RazzhUI" page when `addonName` is nil or has no page. In combat it opens nothing and
   shows Blizzard's red "can't do that in combat" error text (`ERR_NOT_IN_COMBAT` on
   `UIErrorsFrame`): opening a panel from addon code is refused in combat.
 
@@ -120,7 +128,7 @@ local category = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)
 Settings.RegisterAddOnCategory(category)
 
 -- after
-local category = RazzhForeverEnhanced.RegisterOptions(ADDON_NAME)
+local category = RazzhUI.RegisterOptions(ADDON_NAME)
 ...
 -- (no RegisterAddOnCategory: a subcategory is registered by its parent)
 ```
@@ -129,10 +137,10 @@ Everything between stays: the same settings, variable names and saved keys.
 
 ### The modules list
 
-The "Razzh Forever Enhanced" page, top to bottom:
+The "RazzhUI" page, top to bottom:
 
 ```
-Razzh Forever Enhanced                                   [Defaults]
+RazzhUI                                   [Defaults]
   Modules
   [x] Tooltip          (tooltip: the module's Notes, then a "requires a UI reload" line)
   [x] ...
@@ -145,7 +153,7 @@ Razzh Forever Enhanced                                   [Defaults]
   character (`GetAddOnEnableState` with the player's GUID, as `AddOnUtil` does). This is a pure
   function over the `C_AddOns` answers, apart from the Settings code. Sorted by short name.
 - **Each checkbox** is a proxy setting (`Settings.RegisterProxySetting`, variable
-  `RAZZHFOREVERENHANCED_MODULE_<FOLDER IN UPPER CASE>`). Reading it gives "enabled for
+  `RAZZHUI_MODULE_<FOLDER IN UPPER CASE>`). Reading it gives "enabled for
   this character". Writing it calls `C_AddOns.EnableAddOn(folder)` or `DisableAddOn(folder)`
   **for all characters**: the suite is one account-wide choice, and Blizzard's AddOns list
   remains for per-character exceptions.
@@ -168,7 +176,7 @@ Razzh Forever Enhanced                                   [Defaults]
 
 - Our own button, created once, parented to `GameMenuFrame`, from the template Blizzard's menu
   buttons use (`GameMenuFrameButtonTemplate` or its parent `MainMenuFrameButtonTemplate`; the
-  builder picks the one that looks identical). Text "Razzh Forever Enhanced".
+  builder picks the one that looks identical). Text "RazzhUI".
 - Placed each time the menu is laid out (`hooksecurefunc(GameMenuFrame, "Layout", ...)` and/or
   `EventRegistry "GameMenuFrame.Shown"`; the menu also rebuilds while open on
   `STORE_STATUS_CHANGED`). It sits as its own section directly above "AddOns" (found by its text,
@@ -179,7 +187,7 @@ Razzh Forever Enhanced                                   [Defaults]
 - In combat the button is hidden and nothing is moved: `HideUIPanel` from addon code is refused
   in combat, so the click couldn't work.
 - Click: `PlaySound(SOUNDKIT.IG_MAINMENU_OPTION)`, `HideUIPanel(GameMenuFrame)`,
-  `RazzhForeverEnhanced.OpenOptions()`, the shape of Blizzard's own menu callbacks
+  `RazzhUI.OpenOptions()`, the shape of Blizzard's own menu callbacks
   (`GameMenuFrame.lua:166-172`).
 - EllesmereUI is installed on the user's client and moves the same buttons in the same hook.
   Both buttons must show without overlapping; the builder reads its code
@@ -187,16 +195,16 @@ Razzh Forever Enhanced                                   [Defaults]
 
 ### The Addon Compartment entry
 
-`## AddonCompartmentFunc: RazzhForeverEnhanced_OnAddonCompartmentClick` and an `## IconTexture` on the
-core. The function calls `RazzhForeverEnhanced.OpenOptions()`. It is the way in if the Esc-menu button
+`## AddonCompartmentFunc: RazzhUI_OnAddonCompartmentClick` and an `## IconTexture` on the
+core. The function calls `RazzhUI.OpenOptions()`. It is the way in if the Esc-menu button
 ever has to go.
 
 ### Files (a suggestion)
 
 ```
-addons/RazzhForeverEnhanced/
-  RazzhForeverEnhanced.toc     Category, X-Category, IconTexture, AddonCompartmentFunc, OptionalDeps ForeverDev (do-not-package)
-  Core.lua                the dev shim, ns.L, the RazzhForeverEnhanced global
+addons/RazzhUI/
+  RazzhUI.toc     Category, X-Category, IconTexture, AddonCompartmentFunc, OptionalDeps ForeverDev (do-not-package)
+  Core.lua                the dev shim, ns.L, the RazzhUI global
   Modules.lua             pure: which addons are modules, their names and states
   Options.lua             the root category, the modules page, RegisterOptions, OpenOptions
   GameMenu.lua            the Esc-menu button
@@ -206,32 +214,32 @@ addons/RazzhForeverEnhanced/
 ### Tooling
 
 - **`scripts/lint.sh`, TOC checks.** For every TOC with a `## Dependencies` line: each addon
-  named there is a folder under `addons/`; a TOC that depends on `RazzhForeverEnhanced` also has
-  `## Group: RazzhForeverEnhanced` and a title starting with `Razzh Forever Enhanced: `. Every addon folder
+  named there is a folder under `addons/`; a TOC that depends on `RazzhUI` also has
+  `## Group: RazzhUI` and a title starting with `RazzhUI `. Every addon folder
   that is neither the core nor ForeverDev and has none of the three lines is still fine in this
   step (step 2 turns that into a failure).
 - **`template/Addon`.** The TOC gets the three module lines, so `scripts/new-addon.sh` scaffolds
   a module.
 - **`scripts/worktree.sh`.** `game` prints a notice when the core's link points at another
-  worktree ("RazzhForeverEnhanced loads from <name>: this worktree's modules run against that copy"),
+  worktree ("RazzhUI loads from <name>: this worktree's modules run against that copy"),
   and when the core isn't linked at all. `status` already shows where each link points.
 - **`scripts/devlog.sh`.** In a worktree it also shows the core's lines and errors, the way it
   already shows errors that name no addon: a module's bug can surface inside the core.
-- **`.luacheckrc`.** An entry for the core: `RazzhForeverEnhanced`, `RazzhForeverEnhanced_OnAddonCompartmentClick`.
+- **`.luacheckrc`.** An entry for the core: `RazzhUI`, `RazzhUI_OnAddonCompartmentClick`.
 - **CLAUDE.md.** Layout (the core and what a module is), Worktrees (the core is shared like
   ForeverDev; claim it only on a branch that changes it), Code conventions (a module's options
-  go through `RazzhForeverEnhanced.RegisterOptions`; nothing module-specific in the core).
+  go through `RazzhUI.RegisterOptions`; nothing module-specific in the core).
 
 ### Changelogs
 
-- `addons/RazzhForeverEnhanced/CHANGELOG.md`: the Esc-menu button and the modules page.
-- `addons/ForeverTooltip/CHANGELOG.md`: its options moved under Razzh Forever Enhanced, and it now
-  needs Razzh Forever Enhanced.
+- `addons/RazzhUI/CHANGELOG.md`: the Esc-menu button and the modules page.
+- `addons/ForeverTooltip/CHANGELOG.md`: its options moved under RazzhUI, and it now
+  needs RazzhUI.
 
 ## Constraints
 
-- Lua 5.1; `local ADDON_NAME, ns = ...`; the only globals are `RazzhForeverEnhanced` and
-  `RazzhForeverEnhanced_OnAddonCompartmentClick`.
+- Lua 5.1; `local ADDON_NAME, ns = ...`; the only globals are `RazzhUI` and
+  `RazzhUI_OnAddonCompartmentClick`.
 - Every API is checked in `.cache/wow-ui-source` before its first use. Strings come from
   Blizzard's GlobalStrings where one exists (`RELOADUI`, `ADDONS`); global strings aren't in
   `.cache/`, so their presence is an in-game check.
@@ -243,13 +251,13 @@ addons/RazzhForeverEnhanced/
 
 | Check | How it shows |
 |---|---|
-| The AddOns list nests ForeverTooltip under Razzh Forever Enhanced, and nothing else | by eye; `MODULES` lists the modules found, each with loaded and enabled |
+| The AddOns list nests ForeverTooltip under RazzhUI, and nothing else | by eye; `MODULES` lists the modules found, each with loaded and enabled |
 | With the core disabled, ForeverTooltip doesn't load | by eye in the AddOns list (dependency state), and tooltips are stock |
-| The Esc menu shows "Razzh Forever Enhanced" above "AddOns", the text fits the button, and it opens Options at our page, on the AddOns tab | by eye; `MENU placed` (once per session: the anchor button found) and `MENU click` |
+| The Esc menu shows "RazzhUI" above "AddOns", the text fits the button, and it opens Options at our page, on the AddOns tab | by eye; `MENU placed` (once per session: the anchor button found) and `MENU click` |
 | No taint from the button | open the Esc menu, then: Logout (cancel), Macros, Edit Mode (enter and leave), Options, Exit Game (cancel), out of combat and again in combat; `scripts/devlog.sh --errors` shows no blocked action |
 | In combat the button is hidden and the menu is stock | by eye; `MENU hidden combat` |
 | With EllesmereUI enabled, both menu buttons show and none overlap | by eye, a screenshot |
-| ForeverTooltip's page is under Razzh Forever Enhanced, works as before, keeps its values | by eye; no top-level "ForeverTooltip" entry; `OPTIONS page ForeverTooltip` |
+| ForeverTooltip's page is under RazzhUI, works as before, keeps its values | by eye; no top-level "ForeverTooltip" entry; `OPTIONS page ForeverTooltip` |
 | A subcategory registered after the root shows up | the row above |
 | Unticking Tooltip and pressing Reload UI turns it off: no page, stock tooltips, box unticked | `TOGGLE ForeverTooltip false`; next session's `MODULES` |
 | Ticking it and reloading brings it back with its settings | `TOGGLE ForeverTooltip true`; next session's `MODULES` |

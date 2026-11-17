@@ -1,12 +1,12 @@
-# Razzh Forever Enhanced suite: scope map
+# RazzhUI suite: scope map
 
 Date: 2026-11-17. Decision record: `docs/adr/0004-structure-the-addons-as-one-suite.md`.
 Steps: `docs/superpowers/roadmaps/2026-11-17-forever-enhanced-suite.md`.
 
 ## What it is
 
-One core addon (`RazzhForeverEnhanced`) that every other released addon depends on. Players install
-one download, open "Razzh Forever Enhanced" from the Esc menu, and switch modules on and off in
+One core addon (`RazzhUI`) that every other released addon depends on. Players install
+one download, open "RazzhUI" from the Esc menu, and switch modules on and off in
 Blizzard's Options window, where each module that is on has its own options page.
 
 ## Feasibility
@@ -34,7 +34,7 @@ hiding a Settings category after it was registered.
 
 ## Phases
 
-1. **Core and one pilot module.** The core addon, the Esc-menu button, the "Razzh Forever Enhanced"
+1. **Core and one pilot module.** The core addon, the Esc-menu button, the "RazzhUI"
    category with the modules list, the page API, ForeverTooltip converted, and the tooling a
    module needs (lint, template, worktree notices). Every in-game check above except the Edit
    Mode and download rows is answered here, before the other nine addons are touched.

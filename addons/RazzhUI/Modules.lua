@@ -87,6 +87,8 @@ function Modules.SetEnabled(folder, enabled)
 	else
 		C_AddOns.DisableAddOn(folder)
 	end
+	-- Unsaved changes are thrown away when the AddOns list closes without saving (AddonList.lua:674-683).
+	C_AddOns.SaveAddOns()
 	ns.log("TOGGLE", folder, enabled)
 end
 

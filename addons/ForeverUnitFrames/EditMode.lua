@@ -189,6 +189,28 @@ local function SnapAfterDrag(selection)
 	LEM.internal:MoveParentToPoint(selection, point, x + dx, y + dy)
 end
 
+-- The layouts seen so far, by type and name, to tell which one a "create" is about.
+local knownLayouts = {}
+
+local function LayoutID(layout)
+	return layout.layoutType .. ":" .. layout.layoutName
+end
+
+local function RememberLayouts()
+	wipe(knownLayouts)
+	for _, layout in ipairs(C_EditMode.GetLayouts().layouts) do
+		knownLayouts[LayoutID(layout)] = true
+	end
+end
+
+-- The DB key for a layout from C_EditMode.GetLayouts, as Key gives for a name.
+local function KeyOf(layout)
+	if layout.layoutType == Enum.EditModeLayoutType.Character then
+		return characterKey and (layout.layoutName .. " @ " .. characterKey) or nil
+	end
+	return layout.layoutName
+end
+
 ns.OnInitialize(function()
 	-- Checked for secrecy before anything else touches it.
 	local guid = UnitGUID("player")
@@ -219,19 +241,32 @@ ns.OnInitialize(function()
 	-- Fires at login once the layouts have loaded, and on every layout switch.
 	LEM:RegisterCallback("layout", function(layoutName)
 		ns.log("EDITMODE", "layout", layoutName, "key", Key(layoutName))
+		RememberLayouts()
 		Apply(layoutName)
 	end)
 
+	-- Layouts are created in Edit Mode. The "layout" callback alone may have run only before the
+	-- layouts loaded (it fires again only when the active layout changes), so they are also
+	-- remembered when Edit Mode opens.
+	LEM:RegisterCallback("enter", RememberLayouts)
+
 	-- A new layout starts with the bar of the layout it was copied from, or the defaults.
-	LEM:RegisterCallback("create", function(layoutName, _, sourceLayoutName)
+	-- LibEditMode names the last layout in the list as the new one, but Blizzard inserts a new
+	-- account layout before the character layouts (EditModeManagerFrameMixin:MakeNewLayout), so
+	-- the new one is found here: the layout not seen before. An entry that exists is never
+	-- replaced.
+	LEM:RegisterCallback("create", function(reportedLayoutName, _, sourceLayoutName)
 		local store = Store()
-		local newKey = Key(layoutName)
-		if not store or not newKey then
-			return
+		local sourceKey = Key(sourceLayoutName)
+		local source = store and sourceKey and store[sourceKey]
+		for _, layout in ipairs(C_EditMode.GetLayouts().layouts) do
+			local newKey = KeyOf(layout)
+			if store and newKey and not knownLayouts[LayoutID(layout)] and store[newKey] == nil then
+				store[newKey] = type(source) == "table" and CopyTable(source) or nil
+				ns.log("EDITMODE", "create", newKey, "from", sourceLayoutName, "reported", reportedLayoutName)
+			end
 		end
-		local source = sourceLayoutName and store[Key(sourceLayoutName)]
-		store[newKey] = type(source) == "table" and CopyTable(source) or nil
-		ns.log("EDITMODE", "create", newKey, "from", sourceLayoutName)
+		RememberLayouts()
 	end)
 
 	-- The layout already has its new name, so Key finds its type; the old key has the same type.
@@ -247,6 +282,7 @@ ns.OnInitialize(function()
 			store[oldKey] = nil
 		end
 		ns.log("EDITMODE", "rename", oldKey, newKey)
+		RememberLayouts()
 	end)
 
 	-- The layout is gone, so its type is unknown: this character's entry if it has one, else the
@@ -260,6 +296,7 @@ ns.OnInitialize(function()
 		local key = characterEntry and store[characterEntry] ~= nil and characterEntry or layoutName
 		store[key] = nil
 		ns.log("EDITMODE", "delete", key)
+		RememberLayouts()
 	end)
 
 	Apply(LEM:GetActiveLayoutName())

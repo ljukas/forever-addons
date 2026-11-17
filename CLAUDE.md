@@ -87,6 +87,15 @@ grep -rn 'function EventUtil\.' .cache/wow-ui-source/Interface/AddOns/Blizzard_S
 - `addons/<Name>/` – one addon per folder; the folder name must equal the TOC name (`<Name>.toc`).
   PascalCase names. Released addons set `## Category: Forever Enhanced Addons` (the AddOns list's
   group header; the string must match exactly) and keep their genre in `## X-Category`.
+- `addons/RazzhUI/` – the core of the suite the released addons are becoming (ADR 0004, roadmap in
+  `docs/superpowers/roadmaps/2026-11-17-forever-enhanced-suite.md`): the Esc-menu button and the
+  "RazzhUI" category in Options > AddOns, where modules are switched on and off (a real addon
+  disable plus a reload) and each loaded module has its options page. It has no `## Category`
+  line, so it is a top-level entry in the AddOns list, and no SavedVariables.
+- A **module** is an addon whose TOC has `## Dependencies: RazzhUI`, `## Group: RazzhUI` and
+  `## Title: |cffd6b380RazzhUI|r <Short name>`. Lint checks the three together, and
+  `scripts/new-addon.sh` scaffolds them. The core finds its modules by that dependency and keeps
+  no list of them. ForeverTooltip is the first; the other released addons follow (roadmap step 2).
 - `addons/ForeverDev/` – dev-only helper addon, **never released** (see the feedback loop below).
 - `template/Addon/` – scaffold used by `scripts/new-addon.sh` (`__ADDON__` is replaced).
 - `scripts/` – all tooling, see below. `scripts/lib.sh` holds shared helpers and `WOW_DIR`.
@@ -172,7 +181,11 @@ hands this worktree's links back; run it before removing the worktree. `scripts/
 (any checkout) points every link back at main. In a worktree, `scripts/devlog.sh` shows only the
 addons it holds (plus errors that name no addon), and ForeverDev caps its log per addon, so one
 addon's lines never push out another's. ForeverDev itself is shared: whichever checkout holds it
-logs for every addon, so claim it only on a branch that changes it, and hand it back soon.
+logs for every addon, so claim it only on a branch that changes it, and hand it back soon. RazzhUI
+is shared the same way: the checkout that holds its link serves every module, so a branch that
+changes only a module leaves the core where it is. `scripts/worktree.sh game` prints a note when
+the core comes from another worktree or has no link, and `scripts/devlog.sh` in a worktree also
+shows the core's lines.
 
 ## Code conventions
 
@@ -189,6 +202,11 @@ logs for every addon, so claim it only on a branch that changes it, and hand it 
   `scripts/libs.sh` fetches it there for the game and lint (gitignored, never edited or committed;
   StyLua, LuaLS, luacheck and the TOC checks skip `Libs/`), and the packager bundles it.
 - Guard protected actions with `InCombatLockdown()`, and never touch secure frames in combat.
+- A module's options page comes from the core: `RazzhUI.RegisterOptions(ADDON_NAME)` returns a
+  subcategory of the "RazzhUI" category (`category, layout`) to fill with the usual `Settings`
+  calls, without `Settings.RegisterAddOnCategory`; `RazzhUI.OpenOptions(ADDON_NAME)` opens it. The
+  core's API only grows: a change that breaks it updates every module in the same PR. Nothing
+  about one module goes into the core.
 - Every new Lua/XML file must be listed in the TOC (or included from XML). Lint checks this.
 - StyLua formats with tabs and a 120-column limit. `.editorconfig` covers the rest.
 - CodeRabbit runs luacheck on every PR (`.luacheckrc`): unused variables and arguments,

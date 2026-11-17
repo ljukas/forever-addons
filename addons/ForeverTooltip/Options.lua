@@ -29,10 +29,10 @@ local function GetVariable(key)
 	return "FOREVERTOOLTIP_" .. key:upper()
 end
 
--- Options > AddOns > ForeverTooltip. The registered settings write straight into
+-- Options > AddOns > Razzh Forever Enhanced > Tooltip. The registered settings write straight into
 -- ForeverTooltipDB.settings. Nothing caches them: Anchor.lua reads them on every anchor call.
 ns.OnInitialize(function()
-	local category = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)
+	local category = RazzhForeverEnhanced.RegisterOptions(ADDON_NAME)
 
 	local function Register(key, varType, label)
 		return Settings.RegisterAddOnSetting(
@@ -63,6 +63,4 @@ ns.OnInitialize(function()
 	directionInitializer:SetParentInitializer(cursorAnchorInitializer, function()
 		return cursorAnchor:GetValue()
 	end)
-
-	Settings.RegisterAddOnCategory(category)
 end)

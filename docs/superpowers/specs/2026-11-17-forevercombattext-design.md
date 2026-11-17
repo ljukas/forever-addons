@@ -105,8 +105,8 @@ ADR 0003 has the trade-offs. The user handed over the how; mirroring is Claude's
   the new string's `GetBottom()`). The default puts the box's start edge on the centre of that
   first line for the direction in use (`ns.Display.DefaultY`): the box hangs below 384 for down
   and stands on it for up and arc. The line's height is taken as 25; if the pool's reset leaves
-  the string at the font's native height the up and arc default is too high, which the `MSG`
-  line's measurements show.
+  the string at the font's native height the up and arc default is too high; only the eye can
+  tell, since Blizzard's line can't be measured once it holds secret text.
 - Reset Position uses the direction in use at login.
 - The start edge stays put when Scroll Length changes. When the direction flips between up and
   down the box stays and the text starts from its other end. LibEditMode re-derives the
@@ -146,7 +146,7 @@ text    = { [layoutKey] = { point, x, y, length, duration, fontSize } }
 | Check | How it shows |
 |---|---|
 | The hook fires and gets Blizzard's arguments | `HOOK hooked`; `MSG` lines: `issecretvalue(message)`, colour, `displayType`, float mode |
-| The default box is where Blizzard's text starts | `MSG`: Blizzard's own newest line's top against the box's bottom and top, with the world frame's and UIParent's heights |
+| The default box is where Blizzard's text starts | by eye against a screenshot of Blizzard's (its line's `GetTop()` is secret, so it can't be logged); `MSG` has the box's bottom and top and the world frame's and UIParent's heights |
 | A secret message displays through our `SetText` | text visible in the box in a fight; `devlog.sh --errors` clean |
 | Blizzard's copy is hidden and still running | no second copy of the text anywhere; ours keeps showing |
 | Low-health warning and Blizzard's handler stay error-free | `devlog.sh --errors` after a fight that drops below 20% health |

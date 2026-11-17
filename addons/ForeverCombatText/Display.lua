@@ -22,7 +22,7 @@ local SIDE_STEP = 80
 -- (CombatTextMixin:UpdateDisplayedMessages). Scrolling down, a line's top starts there. Scrolling
 -- up or in an arc, AddMessage starts it one line lower, at the new string's GetBottom(). Ours are
 -- placed by their centre, half a line below their top. The line taken off for up and arc assumes
--- that string is 25 high; unchecked in game (the MSG line logs where Blizzard's line is).
+-- that string is 25 high, which can't be measured in game (its GetTop() is secret); by eye only.
 local BLIZZARD_START = 384
 local HALF_LINE = 12
 local BLIZZARD_LINE = 25
@@ -208,16 +208,13 @@ function ns.Display.SetLayout(layout)
 	holder:SetPoint(layout.point, UIParent, layout.point, layout.x, layout.y)
 end
 
--- Dev only: where Blizzard's own (invisible) copy of the newest line is against our box, and the
--- sizes the default position is worked out from. Reads Blizzard's frame, writes nothing.
+-- Dev only: what the hook was handed, where our box is and the sizes the default position is
+-- worked out from. Blizzard's own line can't be measured against it: its GetTop() is secret once
+-- it holds secret text (in game, 2026-11-17).
 local function LogMessage(message, r, g, b, displayType, isStaggered)
 	local secret = issecretvalue(message)
 	local mode = ns.Display.Mode()
 	local key = strjoin(":", tostring(secret), tostring(displayType), r, g, b, mode)
-	local theirs = CombatText and CombatText.activeFontStrings
-	local newest = type(theirs) == "table" and theirs[#theirs]
-	local theirTop = newest and newest:GetTop()
-	local top = issecretvalue(theirTop) and "secret" or tostring(theirTop)
 	ns.dev:LogOnce(
 		key,
 		"MSG",
@@ -231,8 +228,6 @@ local function LogMessage(message, r, g, b, displayType, isStaggered)
 		isStaggered,
 		"mode",
 		mode,
-		"blizzard top",
-		top,
 		"box",
 		holder:GetBottom(),
 		holder:GetTop(),

@@ -93,6 +93,10 @@ function GetLootSlotInfo(slot) end
 
 -- Frames created by Blizzard XML.
 
+-- The red error text at the top of the screen: Blizzard_UIErrorsFrame/Mainline/UIErrorsFrame.xml.
+---@type MessageFrame
+UIErrorsFrame = {}
+
 -- The frame the 3D world renders in, created by the client; the mouse focus while the cursor is over
 -- the world. Used by Blizzard_ActionStatus/Mainline/ActionStatus.lua.
 ---@type Frame

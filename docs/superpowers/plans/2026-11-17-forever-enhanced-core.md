@@ -107,11 +107,11 @@ Core four, plus `savedvariables-guard` (new settings variables `RAZZHUI_MODULE_*
 - `ns.Modules.DependsOn(dependencies, coreName) -> boolean`: `dependencies` is an array of folder names. Pure.
 - `ns.Modules.List() -> { { folder, name, notes }, ... }`: sorted by `name`, built once and cached.
 - `ns.Modules.Find(folder) -> entry or nil`.
-- `ns.Modules.IsLoaded(folder) -> boolean`, `ns.Modules.IsEnabled(folder) -> boolean`, `ns.Modules.SetEnabled(folder, enabled)`, `ns.Modules.HasPendingChange() -> boolean` (some module's `IsEnabled` differs from its `IsLoaded`). All read live, nothing cached.
+- `ns.Modules.IsLoaded(folder) -> boolean`, `ns.Modules.IsEnabled(folder) -> boolean`, `ns.Modules.SetEnabled(folder, enabled)`, `ns.Modules.HasPendingChange() -> boolean` (some module's `IsEnabled` differs from what it was at `PLAYER_LOGIN`; false before then). Read live; only the login snapshot is kept.
 
 - [ ] `List`: indexes 1 to `C_AddOns.GetNumAddOns()`; a module is an addon whose `{ C_AddOns.GetAddOnDependencies(i) }` contains `ADDON_NAME`. `folder` from `GetAddOnName` (or the first return of `GetAddOnInfo`), `name` from `ShortName(GetAddOnMetadata(i, "Title"))`, `notes` from `GetAddOnMetadata(i, "Notes")` or `""`.
-- [ ] `IsEnabled`: `C_AddOns.GetAddOnEnableState(folder, character) ~= Enum.AddOnEnableState.None`, where `character` is `UnitGUID("player")`, or `UnitName("player")` when the GUID is secret (`issecretvalue`).
-- [ ] `SetEnabled`: `C_AddOns.EnableAddOn(folder)` or `DisableAddOn(folder)` with no character (all characters), then `ns.log("TOGGLE", folder, enabled)`.
+- [ ] `IsEnabled`: `C_AddOns.GetAddOnEnableState(folder, character) ~= Enum.AddOnEnableState.None`, where `character` is `UnitGUID("player")`, or nil (the all-characters state) when the GUID is secret (`issecretvalue`): the name would be secret too.
+- [ ] `SetEnabled`: `C_AddOns.EnableAddOn(folder)` or `DisableAddOn(folder)` with no character (all characters), then `C_AddOns.SaveAddOns()` (the AddOns list discards unsaved changes when it closes), then `ns.log("TOGGLE", folder, enabled)`.
 - [ ] On `PLAYER_LOGIN` (`EventUtil.RegisterOnceFrameEventAndCallback`, or the repo's usual way), inside `if ns.dev.enabled then`: one `MODULES` line per module (folder, name, loaded, enabled) and one saying whether the GUID is secret.
 - [ ] Lint, commit `feat(razzhui): find the modules that depend on the core`.
 

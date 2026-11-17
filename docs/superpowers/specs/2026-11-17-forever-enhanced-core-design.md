@@ -273,7 +273,7 @@ addons/RazzhUI/
 | Defaults on our page, and "All Settings" from another page, leave the modules as they are and don't reload | by eye; no `TOGGLE` line |
 | The compartment entry opens the same page; in combat it shows the error text | by eye; `OPTIONS open`, `OPTIONS combat` |
 | `RELOADUI`, `ADDONS`, `VIDEO_OPTIONS_NEED_UIRELOAD` and `ERR_NOT_IN_COMBAT` exist and read well | `LOADED` logs them |
-| `UnitGUID("player")` is readable for the enable-state lookup | `MODULES` logs whether it is secret; if it is, look the state up by character name |
+| `UnitGUID("player")` is readable for the enable-state lookup | `MODULES` logs whether it is secret; if it is, the core asks for the all-characters state (the name would be secret too) |
 
 Fallbacks if a check fails:
 

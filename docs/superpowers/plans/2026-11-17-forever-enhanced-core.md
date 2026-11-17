@@ -18,7 +18,7 @@ One step, one PR: `feat(razzhui,forevertooltip): add the suite core`.
 - Colours: wherever a title is drawn (TOC titles, the Esc-menu button) the whole name is in Forever's bronze (`ns.L.TITLE_COLORED`, built in Core.lua from `CreateColor(0.8392, 0.7020, 0.5020)`); in a TOC that is the literal `|cffd6b380RazzhUI|r`. The Options category name is plain `RazzhUI`. A module's short name is its title with colour codes removed, minus the leading `RazzhUI `.
 - The tasks below were first built under the name RazzhForeverEnhanced (commits up to 9757fe6); one rename commit after Task 5 brings the code to the names in this plan.
 - The core's only globals: `RazzhUI` and `RazzhUI_OnAddonCompartmentClick`. No `## SavedVariables`.
-- The core assigns no field on `GameMenuFrame`, its pooled buttons or any Blizzard table, and calls no Lua method of the menu's mixin. Allowed on Blizzard's frames: `hooksecurefunc`, reading, and the widget calls `SetPoint`, `SetHeight`, `GetPoint`, `GetHeight`, `GetText`, `IsShown`.
+- The core assigns no field on `GameMenuFrame`, its pooled buttons or any Blizzard table, and calls no Lua method of the menu's mixin. Allowed on Blizzard's frames: `hooksecurefunc`, reading, and the widget calls `SetPoint`, `SetHeight`, `GetPoint`, `GetHeight`, `GetWidth`, `GetText`, `IsShown`, and reading the pool with `buttonPool:EnumerateActive()` (read-only).
 - Nothing in the core names a module. Modules are found, never listed.
 - ForeverTooltip keeps `ForeverTooltipDB` and its `FOREVERTOOLTIP_*` variables.
 - Module checkboxes: proxy settings with `Settings.VarType.Boolean`, a **nil default** and **no commit flag**.
@@ -67,10 +67,14 @@ restart (new addon folder).
 | Clicks it | The menu closes, Options opens at our page | `MENU click`, `OPTIONS open root` |
 | From the Esc menu, out of combat: Logout (cancel), Exit Game (cancel), Macros, Edit Mode (enter and leave), Options | All work | `devlog.sh --errors`: no blocked action |
 | The same in combat (a target dummy or a mob) | Our button is gone, the menu looks stock, the others still work | `MENU hidden combat`; no blocked action |
-| Opens the Esc menu, enters combat with it open, leaves combat | The button goes and comes back, no gap left behind | no error |
+| Opens the Esc menu, enters combat with it open, leaves combat | The button goes and comes back, no gap left behind | `MENU undone combat`; no error |
 
 **Gate 3, after the step review's fixes:** Gates 1 and 2 again in one pass, as the PR's testing
-evidence.
+evidence, plus:
+
+| The user does | Expected by eye | Expected in the devlog |
+|---|---|---|
+| Unticks a module, opens and closes Esc > AddOns, reopens Options | The box is still unticked | next session's `MODULES` line |
 
 ## Step reviewers
 
@@ -87,7 +91,7 @@ Core four, plus `savedvariables-guard` (new settings variables `RAZZHUI_MODULE_*
 **Produces:** `ns.log`, `ns.dev`, `ns.Inert`, `ns.L`, the global table `RazzhUI` (empty; Task 3 adds its functions).
 
 - [ ] TOC, in ForeverTooltip's order: `## Title: |cffd6b380RazzhUI|r`; `## Notes:` one sentence for players (what the Esc-menu entry and the Options page are for); Author, X-License, `## Version: @project-version@`; an `## IconTexture` and `## X-Category` of the builder's choice; no `## Category` line; `## AddonCompartmentFunc: RazzhUI_OnAddonCompartmentClick`; the ForeverDev `OptionalDeps` block; then `Core.lua`. Remove the template's `## SavedVariables` line.
-- [ ] `Core.lua`: the shim from `addons/ForeverTooltip/Core.lua:1-25` with this addon's tag list; `RazzhUI = {}`; `ns.L` with `TITLE = "RazzhUI"`, `MODULE_PREFIX = "RazzhUI "`, `MODULES = "Modules"`, `NO_MODULES`, `RELOAD_TOOLTIP`, `NEEDS_RELOAD` (the fallback for `VIDEO_OPTIONS_NEED_UIRELOAD`). No SavedVariables bootstrap.
+- [ ] `Core.lua`: the shim from `addons/ForeverTooltip/Core.lua:1-25` with this addon's tag list; `RazzhUI = {}`; `ns.L` with `TITLE = "RazzhUI"`, `TITLE_COLORED` (the whole name in bronze), `MODULE_PREFIX = "RazzhUI "`, `MODULES = "Modules"`, `NO_MODULES`, `RELOAD_UI` (the fallback for `RELOADUI`), `RELOAD_TOOLTIP`, `NEEDS_RELOAD` (the fallback for `VIDEO_OPTIONS_NEED_UIRELOAD`). No SavedVariables bootstrap.
 - [ ] `ns.log("LOADED", ...)` once the addon has loaded: for `RELOADUI`, `ADDONS`, `VIDEO_OPTIONS_NEED_UIRELOAD`, `ERR_NOT_IN_COMBAT`, the string or "missing".
 - [ ] `CHANGELOG.md`: `## Unreleased` with players' lines for the Esc-menu entry and the modules page. `.pkgmeta`: the template's, no `Dev` ignore needed.
 - [ ] Later tasks add their files to the TOC. Lint, commit `feat(razzhui): scaffold the core`.
@@ -137,10 +141,10 @@ Core four, plus `savedvariables-guard` (new settings variables `RAZZHUI_MODULE_*
 
 **Files:** Create `addons/RazzhUI/GameMenu.lua`; add to TOC last.
 
-**Consumes:** `RazzhUI.OpenOptions`, `ns.L.TITLE`.
+**Consumes:** `RazzhUI.OpenOptions`, `ns.L.TITLE_COLORED`.
 
 - [ ] Read first: `Blizzard_GameMenu/Shared/GameMenuFrame.lua:160-271` (which GlobalStrings the "AddOns", "Edit Mode" and "Support" buttons use), `Blizzard_SharedXML/Shared/Frame/MainMenuFrameTemplates.lua:14-67`, the layout mixin `GameMenuFrame` inherits (does `Layout` skip children without `layoutIndex`, and how does it anchor each child), and EllesmereUI's hook (`<WOW_DIR>/Interface/AddOns/EllesmereUI/EllesmereUI.lua:4461-4676`).
-- [ ] One button, created once: `CreateFrame("Button", nil, GameMenuFrame, "GameMenuFrameButtonTemplate")`, text `ns.L.TITLE`. It gets no `layoutIndex`.
+- [ ] One button, created once: `CreateFrame("Button", nil, GameMenuFrame, "GameMenuFrameButtonTemplate")`, text `ns.L.TITLE_COLORED`. It gets no `layoutIndex`.
 - [ ] `hooksecurefunc(GameMenuFrame, "Layout", Place)`. `Place`:
   - In combat: hide the button, `ns.dev:LogOnce("menu-combat", "MENU", "hidden combat")`, return.
   - Find the anchor among `GameMenuFrame.buttonPool:EnumerateActive()` by text: "AddOns", else "Edit Mode", else "Support". None found: hide the button and return.

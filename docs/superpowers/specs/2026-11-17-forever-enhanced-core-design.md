@@ -160,7 +160,8 @@ RazzhUI                                   [Defaults]
   `RAZZHUI_MODULE_<FOLDER IN UPPER CASE>`). Reading it gives "enabled for
   this character". Writing it calls `C_AddOns.EnableAddOn(folder)` or `DisableAddOn(folder)`
   **for all characters**: the suite is one account-wide choice, and Blizzard's AddOns list
-  remains for per-character exceptions.
+  remains for per-character exceptions. After each toggle the state is saved with
+  `C_AddOns.SaveAddOns()`, so closing Blizzard's AddOns list without saving doesn't undo it.
 - **No default and no commit flag on these settings.** The proxy setting is registered with an
   explicit `Settings.VarType.Boolean` and a nil default. `SetValueToDefault` then skips it
   (`Blizzard_Setting.lua:139-143`), so neither this page's Defaults button nor "All Settings"
@@ -170,8 +171,9 @@ RazzhUI                                   [Defaults]
   478-492, 519-542`). The tooltip instead ends with that same line, added by the core
   (`VIDEO_OPTIONS_NEED_UIRELOAD`, or the core's own sentence if the string is missing in game).
 - **Reload UI** (`RELOADUI` for its text) calls `ReloadUI()` from the click; Forever only allows
-  a reload inside a click or keypress. It is enabled only while some module's checkbox differs
-  from whether that module is loaded (`AddModifyPredicate`, re-evaluated when a module's setting
+  a reload inside a click or keypress. It is enabled only while some module's enabled state
+  differs from its state at login, not from whether it is loaded (`AddModifyPredicate`,
+  re-evaluated when a module's setting
   changes: `initializer:AddEvaluateStateCVar(variable)` listens by variable name,
   `Blizzard_SettingControls.lua:194-199`).
 - If no module is installed, the page has one line saying so.
@@ -180,7 +182,7 @@ RazzhUI                                   [Defaults]
 
 - Our own button, created once, parented to `GameMenuFrame`, from the template Blizzard's menu
   buttons use (`GameMenuFrameButtonTemplate` or its parent `MainMenuFrameButtonTemplate`; the
-  builder picks the one that looks identical). Text "RazzhUI".
+  builder picks the one that looks identical). Text: the coloured name (`ns.L.TITLE_COLORED`).
 - Placed each time the menu is laid out (`hooksecurefunc(GameMenuFrame, "Layout", ...)` and/or
   `EventRegistry "GameMenuFrame.Shown"`; the menu also rebuilds while open on
   `STORE_STATUS_CHANGED`). It sits as its own section directly above "AddOns" (found by its text,
@@ -207,7 +209,7 @@ ever has to go.
 
 ```
 addons/RazzhUI/
-  RazzhUI.toc     Category, X-Category, IconTexture, AddonCompartmentFunc, OptionalDeps ForeverDev (do-not-package)
+  RazzhUI.toc     X-Category, IconTexture, AddonCompartmentFunc, OptionalDeps ForeverDev (do-not-package)
   Core.lua                the dev shim, ns.L, the RazzhUI global
   Modules.lua             pure: which addons are modules, their names and states
   Options.lua             the root category, the modules page, RegisterOptions, OpenOptions
@@ -249,7 +251,8 @@ addons/RazzhUI/
   `.cache/`, so their presence is an in-game check.
 - `ns.log` tags, listed in the core's shim: `LOADED`, `MODULES`, `OPTIONS`, `TOGGLE`, `MENU`.
 - No `## SavedVariables` on the core.
-- The core's TOC follows the released-addon rules (Interface, Version, X-License, Category).
+- The core's TOC follows the released-addon rules (Interface, Version, X-License), except that it
+  has no `## Category` line.
 
 ## In-game checks
 
@@ -259,13 +262,14 @@ addons/RazzhUI/
 | With the core disabled, ForeverTooltip doesn't load | by eye in the AddOns list (dependency state), and tooltips are stock |
 | The Esc menu shows "RazzhUI" above "AddOns", the text fits the button, and it opens Options at our page, on the AddOns tab | by eye; `MENU placed` (once per session: the anchor button found) and `MENU click` |
 | No taint from the button | open the Esc menu, then: Logout (cancel), Macros, Edit Mode (enter and leave), Options, Exit Game (cancel), out of combat and again in combat; `scripts/devlog.sh --errors` shows no blocked action |
-| In combat the button is hidden and the menu is stock | by eye; `MENU hidden combat` |
+| In combat the button is hidden and the menu is stock | by eye; `MENU hidden combat`, or `MENU undone combat` when combat starts with the menu open |
 | With EllesmereUI enabled, both menu buttons show and none overlap | by eye, a screenshot |
 | ForeverTooltip's page is under RazzhUI, works as before, keeps its values | by eye; no top-level "ForeverTooltip" entry; `OPTIONS page ForeverTooltip` |
 | A subcategory registered after the root shows up | the row above |
 | Unticking Tooltip and pressing Reload UI turns it off: no page, stock tooltips, box unticked | `TOGGLE ForeverTooltip false`; next session's `MODULES` |
 | Ticking it and reloading brings it back with its settings | `TOGGLE ForeverTooltip true`; next session's `MODULES` |
 | A toggle without the reload button, then `/rl` or logout | next session's `MODULES`: is the change kept? |
+| Untick a module, open and close Esc > AddOns, reopen Options: the box is still unticked | by eye; next session's `MODULES` line |
 | Defaults on our page, and "All Settings" from another page, leave the modules as they are and don't reload | by eye; no `TOGGLE` line |
 | The compartment entry opens the same page; in combat it shows the error text | by eye; `OPTIONS open`, `OPTIONS combat` |
 | `RELOADUI`, `ADDONS`, `VIDEO_OPTIONS_NEED_UIRELOAD` and `ERR_NOT_IN_COMBAT` exist and read well | `LOADED` logs them |

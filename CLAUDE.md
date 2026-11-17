@@ -86,7 +86,8 @@ grep -rn 'function EventUtil\.' .cache/wow-ui-source/Interface/AddOns/Blizzard_S
 
 - `addons/<Name>/` – one addon per folder; the folder name must equal the TOC name (`<Name>.toc`).
   PascalCase names. Released addons set `## Category: Forever Enhanced Addons` (the AddOns list's
-  group header; the string must match exactly) and keep their genre in `## X-Category`.
+  group header; the string must match exactly), except the core (`addons/RazzhUI`), which sets none,
+  and keep their genre in `## X-Category`.
 - `addons/RazzhUI/` – the core of the suite the released addons are becoming (ADR 0004, roadmap in
   `docs/superpowers/roadmaps/2026-11-17-forever-enhanced-suite.md`): the Esc-menu button and the
   "RazzhUI" category in Options > AddOns, where modules are switched on and off (a real addon

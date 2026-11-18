@@ -19,7 +19,7 @@ One step, one PR: `feat: move every addon under RazzhUI`.
 - Module TOC lines, exactly: `## Title: |cffd6b380RazzhUI|r <Short name>`, `## Dependencies: RazzhUI`, `## Group: RazzhUI`. The two new lines go directly after the `## SavedVariables` line, or after the last `##` metadata line before `#@do-not-package@` when there is none (as in `addons/ForeverTooltip/ForeverTooltip.toc`).
 - Short names: Action Bars, Bags, Combat, Combat Text, Dungeon XP, Minimap, Professions, Quests, Unit Frames.
 - `## Category: Forever Enhanced Addons` is removed from every module TOC; `## X-Category` stays.
-- Changelog line for each of the nine, as the last bullet under `## Unreleased`: `- <Folder> now needs RazzhUI installed, and is switched on or off with its checkbox on the RazzhUI page (Options → AddOns → RazzhUI).`
+- Changelog line for each of the nine, as the last bullet under `## Unreleased` (in ForeverCombatText and ForeverUnitFrames the bullet about their new page follows it): `- <Folder> now needs RazzhUI installed, and is switched on or off with its checkbox on the RazzhUI page (Options → AddOns → RazzhUI).`
 - No new globals. Modules read the `RazzhUI` global only.
 - Every API is looked up in `.cache/wow-ui-source` before its first use (CLAUDE.md, "Looking up the API").
 - `scripts/lint.sh` clean after every task; commit with `git add <paths>`, never `-A`, with `git branch --show-current` in the same command. The branch is `feat/suite-modules`.
@@ -127,7 +127,7 @@ Then **Gate B**.
   - `ns.OnInitialize(function() ... end)` gets the layout with `local _, layout = RazzhUI.RegisterOptions(ADDON_NAME)` and adds one row: `CreateSettingsButtonInitializer(<box name>, _G["HUD_EDIT_MODE_MENU"] or L.EDIT_MODE, OpenEditMode, L.EDIT_MODE_TOOLTIP, true)`.
   - `local function OpenEditMode()`: in combat (`InCombatLockdown()`), show `_G["ERR_NOT_IN_COMBAT"]` on `UIErrorsFrame` in the colour `RazzhUI.OpenOptions` uses (`1.0, 0.1, 0.1, 1.0`), `ns.log("OPTIONS", "editmode combat")`, return. If `not EditModeManagerFrame:CanEnterEditMode()`, `ns.log("OPTIONS", "editmode refused")`, return. Otherwise `SettingsPanel:Close(true)`, `ShowUIPanel(EditModeManagerFrame)`, `ns.log("OPTIONS", "editmode open")`.
   - A header comment: where the page is, that the settings themselves live in the Edit Mode dialog (`EditMode.lua`), and why the click is guarded (panels can't be shown or hidden from addon code in combat).
-  - No predicate that greys the button; the click's own guards are enough.
+  - The row is greyed while `EditModeManagerFrame:CanEnterEditMode()` is false (`initializer:AddModifyPredicate`), and the click opens nothing if Options is still shown after `SettingsPanel:Close` (it asked to discard unapplied settings): `ns.log("OPTIONS", "editmode pending")`. Both were added after the step review.
 - [ ] **Step 4: Changelogs.** The Global Constraints line, and one more bullet each: for UnitFrames `- A Unit Frames page under Options → AddOns → RazzhUI has a button that opens Edit Mode, where the power bar is moved and set up.`; for CombatText the same with "Combat Text page" and "the combat text".
 - [ ] **Step 5: Verify.** `scripts/lint.sh` is clean (annotate in `types/forever.lua` whatever LuaLS doesn't know, after reading it in the source). `git diff origin/main -- addons/ForeverCombatText/EditMode.lua addons/ForeverUnitFrames/EditMode.lua addons/ForeverCombatText/Database.lua addons/ForeverUnitFrames/Database.lua` is empty.
 - [ ] **Step 6: Commit.** `feat(forevercombattext,foreverunitframes): join RazzhUI`

@@ -120,6 +120,7 @@ RazzhUI > Unit Frames
   (`SlashCommandsOverrides.lua:353`, `Blizzard_CompactRaidFrameManager.lua:1372-1377`).
 - In combat it opens nothing and shows `ERR_NOT_IN_COMBAT` in red, as `RazzhUI.OpenOptions`
   does: opening and closing panels from addon code is refused in combat.
+- The button is greyed while `EditModeManagerFrame:CanEnterEditMode()` is false (Blizzard's Esc menu leaves its own button out then). If Options doesn't close because it asks to discard unapplied settings, Edit Mode is not opened over it.
 - `ns.log("OPTIONS", ...)` on the click, in combat or not, so the gate can see it. The tag goes
   in each module's shim comment.
 - **Fallback, if the gate shows a blocked action or broken Edit Mode after our click:** the
@@ -209,5 +210,4 @@ fallback above.
 - The wording of tooltips, comments and changelog lines.
 - Whether Options has to be closed by our code before Edit Mode opens, or `ShowUIPanel` does it
   (read `SettingsPanel` and `UIPanelWindows` in the source).
-- Whether the Edit Mode button is greyed when `CanEnterEditMode()` is false.
 - The exact lint message.

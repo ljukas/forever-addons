@@ -247,6 +247,10 @@ commits are conventional too.
 
 ## Releasing an addon
 
+Until the suite is packaged as one download (roadmap step 3), don't tag a module: its zip would need
+RazzhUI, which has no release of its own, and the client refuses to load an addon whose dependency
+is missing.
+
 1. On a branch, rename `## Unreleased` to `## vX.Y.Z` in `addons/<Name>/CHANGELOG.md` (the
    release notes are taken from that section). Open a PR titled
    `chore(<name>): release vX.Y.Z` and squash-merge it.

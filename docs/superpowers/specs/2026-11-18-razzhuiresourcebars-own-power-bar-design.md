@@ -33,9 +33,9 @@ it should work as before. But without being bound to the blizzard unit frame." A
 - (Changed after the first in-game test, 18 Nov 2026: the user asked for the mana cost preview
   back. It was listed here as needing secret arithmetic, which holds for Blizzard's way of drawing
   it but not for the thing itself: `CostPrediction.lua` lets status bars do the arithmetic. The
-  fill goes dim during a cast, and a full-brightness copy lies over it, moved left by the cost's
-  width, which a third status bar measures from the secret maximum and the spell's cost (not
-  secret). ADR 0005 has the reasoning.)
+  fill goes dim during a cast, and a full-brightness copy lies over it, masked off where the power
+  less the cost ends; two unseen status bars measure that place from the secret maximum and the
+  spell's cost (not secret). ADR 0005 has the reasoning.)
 - Anything on Blizzard's player frame. The health bar growth and the removal of Blizzard's mana bar
   are deleted (the user: "Remove our frame changes"). A player still showing Blizzard's player
   frame sees its mana bar as well as ours.

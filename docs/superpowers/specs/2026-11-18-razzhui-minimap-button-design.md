@@ -77,8 +77,8 @@ everyone who never chose. A hand-edited value of the wrong type reads as the def
 Damaged files (added after the SavedVariables audit): a `RazzhUIDB` that isn't a table is replaced;
 a `version` no migration could have written (not a number, negative, fractional) starts over at 0;
 a `minimap` that isn't a table is replaced at the current version. A `version` above ours is left
-alone: `ns.DB.Minimap()` returns nil when that file's `minimap` isn't a table, and then the button
-works for the session at its defaults and nothing is written.
+alone: `ns.DB.Minimap()` returns nil for such a file whatever its `minimap` holds, so the button
+works for the session at its defaults and nothing of the file is read or written.
 
 `Core.lua` gets the usual `ns.OnInitialize(func)` list, run in TOC order from its existing
 `ADDON_LOADED` handler after `RazzhUIDB` is set up and migrated. It holds the core's own settings
@@ -158,9 +158,10 @@ SavedVariables"), and the `razzhui-launch-checks` memory.
 |---|---|
 | The button is collected by the bag and sits in the strip with the gear icon and gold ring | `scripts/devlog.sh --all-addons --addon ForeverMinimap --tag BAG`: `collect RazzhUIMinimapButton`; `MINIMAP created 160 true Interface\Icons\INV_Misc_Gear_01`; by eye |
 | A click opens Options at the RazzhUI page | `MINIMAP click`, `OPTIONS open root` |
-| Unticking "Show minimap button" removes it from the strip; ticking brings it back; both survive `/rl`; the page's Defaults turns it back on | `MINIMAP shown false`, `MINIMAP created <angle> false` after the reload, `MINIMAP shown true` |
+| Unticking "Show minimap button" removes it from the strip; ticking brings it back; each survives its own `/rl`; the page's Defaults turns it back on | `MINIMAP shown false`, then `MINIMAP created <angle> false` after a reload; `MINIMAP shown true`, then `MINIMAP created <angle> true` after another reload |
 | Hidden at login, then ticked: it appears in the strip without a reload | by eye, after `MINIMAP created <angle> false` and `MINIMAP shown true` |
-| "Keep on the minimap" in the bag's menu puts it between nine and ten o'clock, clear of everything else | by eye; `BAG release RazzhUIMinimapButton` |
+| "Keep on minimap" in the bag's menu puts it between nine and ten o'clock, clear of everything else | by eye; `BAG release RazzhUIMinimapButton` |
+| Handed back after the minimap was resized while the bag held it, it lands on the new edge | by eye, and only with an addon that resizes the minimap (Edit Mode's size is a scale, which moves the button along with the minimap). Without one this is checked outside the game: `Place` run against stub frames after a hand-back with a wider minimap. The row above passes even if the deferred placement never ran |
 | On the minimap it drags round the edge and never leaves it, stays there after `/rl`, and a drag doesn't open Options | `MINIMAP angle <degrees>`, no `MINIMAP click` after it; `MINIMAP created <the same angle>` |
 | In combat a click shows the red error text and opens nothing | `MINIMAP click`, `OPTIONS combat`; `scripts/devlog.sh --errors` clean |
 

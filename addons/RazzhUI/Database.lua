@@ -1,4 +1,4 @@
-local _, ns = ...
+local ADDON_NAME, ns = ...
 
 -- RazzhUIDB layout (account-wide). The core's own settings only: a module keeps its data in its
 -- own table (ADR 0004).
@@ -8,8 +8,8 @@ local _, ns = ...
 --             the minimap button's place and whether it is shown, owned by MinimapButton.lua
 -- Defaults are not stored: a missing value reads as its default where it is used, and so does one
 -- of the wrong type (a hand-edited file). A version above DB_VERSION (a newer RazzhUI wrote the
--- file) is left alone, so readers must cope with a part that is missing or has another shape:
--- ns.DB.Minimap() returns nil then, and nothing is written.
+-- file) is left alone, whatever shape its parts have: ns.DB.Minimap() returns nil then, so the
+-- button runs on its defaults for the session and nothing of the file is read or written.
 
 ns.DB = {}
 
@@ -41,9 +41,13 @@ function ns.DB.Migrate(db)
 	end
 end
 
--- The minimap button's settings, or nil before RazzhUIDB has loaded and when a newer version left
--- something else there.
+-- The minimap button's settings, or nil before RazzhUIDB has loaded and when a newer RazzhUI wrote
+-- the file (Migrate leaves every other file at DB_VERSION).
 function ns.DB.Minimap()
-	local minimap = ns.db and ns.db.minimap
+	local db = ns.db
+	if not db or db.version ~= DB_VERSION then
+		return nil
+	end
+	local minimap = db.minimap
 	return type(minimap) == "table" and minimap or nil
 end

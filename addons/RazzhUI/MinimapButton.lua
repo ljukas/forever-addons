@@ -43,18 +43,21 @@ local function OnMinimap()
 	return not issecretvalue(parent) and parent == Minimap
 end
 
+-- Puts the button at its angle. Returns whether it did: not while another addon has it, nor while
+-- the minimap's width can't be read.
 local function Place()
 	if not button or not OnMinimap() then
-		return
+		return false
 	end
 	local width = Minimap:GetWidth()
 	if issecretvalue(width) then
-		return
+		return false
 	end
 	local shape = GetMinimapShape and GetMinimapShape() or "ROUND"
 	local x, y = ns.Edge.Offset(angle, width / 2 + EDGE_OFFSET, shape)
 	button:ClearAllPoints()
 	button:SetPoint("CENTER", Minimap, "CENTER", x, y)
+	return true
 end
 
 -- Ends a drag. A no-op when no drag is running.
@@ -93,13 +96,24 @@ local function OnDragUpdate()
 	then
 		return
 	end
-	angle = ns.Edge.AngleTo(cursorX / scale - centerX, cursorY / scale - centerY)
+	local target = ns.Edge.AngleTo(cursorX / scale - centerX, cursorY / scale - centerY)
+	-- The cursor resting, or moving straight in or out: nothing to move.
+	if target == angle then
+		return
+	end
+	-- Saved only once the button is there: an angle it couldn't be placed at (Place refused) is one
+	-- the player never saw.
+	local previous = angle
+	angle = target
+	if not Place() then
+		angle = previous
+		return
+	end
 	moved = true
 	local saved = ns.DB.Minimap()
 	if saved then
 		saved.angle = angle
 	end
-	Place()
 end
 
 local function OnEnter(self)

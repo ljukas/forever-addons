@@ -89,10 +89,12 @@ grep -rn 'function EventUtil\.' .cache/wow-ui-source/Interface/AddOns/Blizzard_S
   group header; the string must match exactly), except the core (`addons/RazzhUI`), which sets none,
   and keep their genre in `## X-Category`.
 - `addons/RazzhUI/` – the core of the suite the released addons are becoming (ADR 0004, roadmap in
-  `docs/superpowers/roadmaps/2026-11-17-forever-enhanced-suite.md`): the Esc-menu button and the
-  "RazzhUI" category in Options > AddOns, where modules are switched on and off (a real addon
-  disable plus a reload) and each loaded module has its options page. It has no `## Category`
-  line, so it is a top-level entry in the AddOns list, and no SavedVariables.
+  `docs/superpowers/roadmaps/2026-11-17-forever-enhanced-suite.md`): the Esc-menu button, a minimap
+  button and the "RazzhUI" category in Options > AddOns, where modules are switched on and off (a
+  real addon disable plus a reload) and each loaded module has its options page. It has no
+  `## Category` line, so it is a top-level entry in the AddOns list. Its SavedVariables table,
+  `RazzhUIDB`, holds the core's own settings only (the minimap button's place and whether it is
+  shown); a module's data stays in the module's table.
 - A **module** is an addon whose TOC has `## Dependencies: RazzhUI`, `## Group: RazzhUI` and
   `## Title: |cffd6b380RazzhUI|r <Short name>`. Lint checks the three together, and
   `scripts/new-addon.sh` scaffolds them. The core finds its modules by that dependency and keeps

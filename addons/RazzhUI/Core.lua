@@ -53,6 +53,6 @@ EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
 		for _, name in ipairs({ "RELOADUI", "ADDONS", "VIDEO_OPTIONS_NEED_UIRELOAD", "ERR_NOT_IN_COMBAT" }) do
 			ns.log("LOADED", name, _G[name] or "missing")
 		end
+		ns.log("LOADED", "modules", #ns.Modules.List())
 	end
-	ns.log("LOADED", "modules", #ns.Modules.List())
 end)

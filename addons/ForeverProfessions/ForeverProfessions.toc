@@ -1,13 +1,14 @@
 ## Interface: 16001
-## Title: ForeverProfessions
+## Title: |cffd6b380RazzhUI|r Professions
 ## Notes: Remembers where you gather herbs and minerals and shows them on the world map and minimap, with the skill each node requires.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\Trade_Herbalism
 ## X-Category: Professions
-## Category: Forever Enhanced Addons
 ## SavedVariables: ForeverProfessionsDB
+## Dependencies: RazzhUI
+## Group: RazzhUI
 #@do-not-package@
 ## OptionalDeps: ForeverDev
 #@end-do-not-package@

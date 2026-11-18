@@ -31,11 +31,11 @@ local function GetVariable(key)
 	return "FOREVERMINIMAP_" .. key:upper()
 end
 
--- Options > AddOns > ForeverMinimap. The registered settings write straight into
+-- Options > AddOns > RazzhUI > Minimap. The registered settings write straight into
 -- ForeverMinimapDB.settings (filling in a default where nothing is saved yet), and every change
 -- fires OptionChanged.
 ns.OnInitialize(function()
-	local category, layout = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)
+	local category, layout = RazzhUI.RegisterOptions(ADDON_NAME)
 
 	local function Register(key, varType, label)
 		local setting = Settings.RegisterAddOnSetting(
@@ -101,6 +101,4 @@ ns.OnInitialize(function()
 		return bag:GetValue()
 	end)
 	layout:AddInitializer(keepInitializer)
-
-	Settings.RegisterAddOnCategory(category)
 end)

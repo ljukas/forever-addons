@@ -1,8 +1,9 @@
 local ADDON_NAME, ns = ...
 
--- Options > AddOns > RazzhUI: a checkbox per module that enables or disables that
--- addon (applied by the Reload UI button), and each module's own page as a subcategory
--- (RazzhUI.RegisterOptions). ns.log tags: OPTIONS, and TOGGLE (from ns.Modules.SetEnabled).
+-- Options > AddOns > RazzhUI: the switch for the core's minimap button, a checkbox per module that
+-- enables or disables that addon (applied by the Reload UI button), and each module's own page as a
+-- subcategory (RazzhUI.RegisterOptions). ns.log tags: OPTIONS, and TOGGLE (from
+-- ns.Modules.SetEnabled).
 local L = ns.L
 
 -- Built when this file loads, not on an event, so modules (which load after the core) can call
@@ -12,6 +13,22 @@ category:SetShouldSortAlphabetically(true)
 
 -- Global strings exist only in the running game.
 local NEEDS_RELOAD = _G["VIDEO_OPTIONS_NEED_UIRELOAD"] or L.NEEDS_RELOAD
+
+-- The page's first row. A proxy setting, because this file loads before RazzhUIDB does: it reads and
+-- writes through MinimapButton.lua, which answers "shown" until the saved settings are in. The
+-- variable's name is player-facing: don't rename it.
+do
+	local setting = Settings.RegisterProxySetting(
+		category,
+		"RAZZHUI_MINIMAP_BUTTON",
+		Settings.VarType.Boolean,
+		L.MINIMAP_SHOW,
+		Settings.Default.True,
+		ns.MinimapButton.IsShown,
+		ns.MinimapButton.SetShown
+	)
+	Settings.CreateCheckbox(category, setting, L.MINIMAP_SHOW_TOOLTIP)
+end
 
 layout:AddInitializer(CreateSettingsListSectionHeaderInitializer(L.MODULES))
 

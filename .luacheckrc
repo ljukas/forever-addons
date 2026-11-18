@@ -79,7 +79,6 @@ files["addons/ForeverTooltip/**"].globals = {
 	"ForeverTooltipDB",
 }
 
-files["addons/ForeverUnitFrames/**"].globals = {
-	"ForeverUnitFramesDB",
-	"SLASH_FOREVERUNITFRAMES_ART1",
+files["addons/RazzhUIResourceBars/**"].globals = {
+	"RazzhUIResourceBarsDB",
 }

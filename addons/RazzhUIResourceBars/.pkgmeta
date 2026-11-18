@@ -1,4 +1,4 @@
-package-as: ForeverUnitFrames
+package-as: RazzhUIResourceBars
 
 # Fetched for development by scripts/libs.sh; never edited or committed (its licence allows
 # bundling it unmodified). Loaded in its namespaced mode (Libs/LibEditMode/namespaced.lua), so

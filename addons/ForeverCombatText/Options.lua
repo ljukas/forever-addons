@@ -21,6 +21,12 @@ local function OpenEditMode()
 	end
 	local skipTransitionBackToOpeningPanel = true
 	SettingsPanel:Close(skipTransitionBackToOpeningPanel)
+	-- With unapplied settings Close only shows Blizzard's "discard changes?" popup and leaves Options open. The popup
+	-- is then the only result; the player clicks again once Options has settled.
+	if SettingsPanel:IsShown() then
+		ns.log("OPTIONS", "editmode pending")
+		return
+	end
 	ShowUIPanel(EditModeManagerFrame)
 	ns.log("OPTIONS", "editmode open")
 end

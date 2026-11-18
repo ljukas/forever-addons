@@ -18,6 +18,8 @@ ns.PowerBar.DEFAULTS = {
 	width = 270,
 	height = 12,
 	smooth = true,
+	-- How the power shows as numbers on the bar (PowerText.lua's MODES).
+	text = "hover",
 	-- A druid's other powers, in a row above the bar (OffFormPower.lua).
 	offForm = true,
 	offFormHeight = 10,

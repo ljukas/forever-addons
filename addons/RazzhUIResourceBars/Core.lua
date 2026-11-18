@@ -4,7 +4,7 @@ local ADDON_NAME, ns = ...
 -- scripts/devlog.sh). Without ForeverDev, ns.dev is inert: ns.dev.enabled is false and every
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
 --   LOADED          Core.lua
---   POWER           PowerBar.lua
+--   POWER           PowerBar.lua, PowerText.lua
 --   OFFFORM         OffFormPower.lua
 --   SAVE EDITMODE   EditMode.lua
 local function Nop() end
@@ -31,6 +31,13 @@ ns.L = {
 	HEIGHT = "Height",
 	SMOOTH = "Smooth Fill",
 	SMOOTH_DESC = "Slide the bar to each new value instead of jumping to it.",
+	NUMBERS = "Numbers",
+	NUMBERS_DESC = "Show your power as numbers on the bar.",
+	NUMBERS_NONE = "Off",
+	NUMBERS_HOVER = "On Mouse-over",
+	NUMBERS_VALUE = "Value",
+	NUMBERS_PERCENT = "Percent",
+	NUMBERS_BOTH = "Both",
 	OFF_FORM = "Other Powers",
 	OFF_FORM_DESC = "Show your mana while in a form, and your energy outside Cat Form once you know it, in a row above the bar.",
 	OFF_FORM_HEIGHT = "Other Powers Height",

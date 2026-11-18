@@ -20,6 +20,7 @@ Libs\LibEditMode\embed.xml
 Core.lua
 Database.lua
 PowerBar.lua
+PowerText.lua
 OffFormPower.lua
 Snap.lua
 EditMode.lua

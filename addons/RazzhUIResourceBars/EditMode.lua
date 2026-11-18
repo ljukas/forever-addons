@@ -2,9 +2,10 @@ local ADDON_NAME, ns = ...
 
 -- Makes the power bar's holder an Edit Mode box through LibEditMode (fetched into Libs/ by
 -- scripts/libs.sh, loaded namespaced as ns.LibEditMode): drag to place it (snapping like
--- Blizzard's boxes, Snap.lua), Width and Height sliders and a smooth-fill checkbox in its dialog,
--- and for druids the other-powers row's checkbox and height. These, with the position, are kept
--- per Edit Mode layout in RazzhUIResourceBarsDB.powerBar (Database.lua), like Blizzard's own systems.
+-- Blizzard's boxes, Snap.lua), Width and Height sliders, a smooth-fill checkbox and the numbers'
+-- dropdown in its dialog, and for druids the other-powers row's checkbox and height. These, with
+-- the position, are kept per Edit Mode layout in RazzhUIResourceBarsDB.powerBar (Database.lua),
+-- like Blizzard's own systems.
 local LEM = ns.LibEditMode
 local L = ns.L
 local DEFAULTS = ns.PowerBar.DEFAULTS
@@ -29,6 +30,12 @@ local POINTS = {
 	BOTTOMRIGHT = true,
 }
 
+-- The ways the numbers can show (PowerText.lua).
+local TEXT_MODES = {}
+for _, mode in ipairs(ns.PowerText.MODES) do
+	TEXT_MODES[mode] = true
+end
+
 -- What a saved value must be to be used; anything else reads as its default.
 local VALID = {
 	point = function(value)
@@ -48,6 +55,9 @@ local VALID = {
 	end,
 	smooth = function(value)
 		return type(value) == "boolean"
+	end,
+	text = function(value)
+		return TEXT_MODES[value] == true
 	end,
 	offForm = function(value)
 		return type(value) == "boolean"
@@ -123,6 +133,7 @@ local function Save(layoutName, values)
 		saved.width,
 		saved.height,
 		saved.smooth,
+		saved.text,
 		saved.offForm,
 		saved.offFormHeight
 	)
@@ -137,6 +148,7 @@ local function Apply(layoutName)
 		height = Get(layoutName, "height"),
 		smooth = Get(layoutName, "smooth"),
 	})
+	ns.PowerText.SetMode(Get(layoutName, "text"))
 	ns.OffFormPower.SetLayout(Get(layoutName, "offForm"), Get(layoutName, "offFormHeight"))
 end
 
@@ -169,6 +181,35 @@ local function SizeSlider(key, label, minValue, maxValue)
 		end,
 		set = function(layoutName, value)
 			Save(layoutName, { [key] = value })
+			Apply(layoutName)
+		end,
+	}
+end
+
+-- The Numbers dropdown: one entry per way the numbers can show, in PowerText's order.
+local function NumbersDropdown()
+	local labels = {
+		none = L.NUMBERS_NONE,
+		hover = L.NUMBERS_HOVER,
+		value = L.NUMBERS_VALUE,
+		percent = L.NUMBERS_PERCENT,
+		both = L.NUMBERS_BOTH,
+	}
+	local values = {}
+	for _, mode in ipairs(ns.PowerText.MODES) do
+		table.insert(values, { text = labels[mode], value = mode })
+	end
+	return {
+		name = L.NUMBERS,
+		desc = L.NUMBERS_DESC,
+		kind = LEM.SettingType.Dropdown,
+		default = DEFAULTS.text,
+		values = values,
+		get = function(layoutName)
+			return Get(layoutName, "text")
+		end,
+		set = function(layoutName, value)
+			Save(layoutName, { text = value })
 			Apply(layoutName)
 		end,
 	}
@@ -228,6 +269,7 @@ ns.OnInitialize(function()
 		SizeSlider("width", L.WIDTH, WIDTH_MIN, WIDTH_MAX),
 		SizeSlider("height", L.HEIGHT, HEIGHT_MIN, HEIGHT_MAX),
 		Checkbox("smooth", L.SMOOTH, L.SMOOTH_DESC),
+		NumbersDropdown(),
 	}
 	-- Only druids have other powers to show.
 	if ns.OffFormPower.available then

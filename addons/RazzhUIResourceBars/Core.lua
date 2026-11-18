@@ -39,7 +39,7 @@ ns.L = {
 	OFF_FORM_HEIGHT = "Other Powers Height",
 }
 
--- Modules register setup that needs ForeverUnitFramesDB. It runs in TOC order once the
+-- Modules register setup that needs RazzhUIResourceBarsDB. It runs in TOC order once the
 -- SavedVariables have loaded.
 local initializers = {}
 
@@ -48,8 +48,8 @@ function ns.OnInitialize(func)
 end
 
 EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
-	ForeverUnitFramesDB = ForeverUnitFramesDB or {}
-	ns.db = ForeverUnitFramesDB
+	RazzhUIResourceBarsDB = RazzhUIResourceBarsDB or {}
+	ns.db = RazzhUIResourceBarsDB
 	ns.DB.Migrate(ns.db)
 
 	for _, func in ipairs(initializers) do

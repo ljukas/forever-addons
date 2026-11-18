@@ -1,4 +1,4 @@
-# ForeverUnitFrames
+# RazzhUIResourceBars
 
 ## Unreleased
 

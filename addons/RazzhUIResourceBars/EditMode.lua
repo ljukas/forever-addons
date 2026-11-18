@@ -4,7 +4,7 @@ local ADDON_NAME, ns = ...
 -- scripts/libs.sh, loaded namespaced as ns.LibEditMode): drag to place it (snapping like
 -- Blizzard's boxes, Snap.lua), Width and Height sliders and a smooth-fill checkbox in its dialog,
 -- and for druids the other-powers row's checkbox and height. These, with the position, are kept
--- per Edit Mode layout in ForeverUnitFramesDB.powerBar (Database.lua), like Blizzard's own systems.
+-- per Edit Mode layout in RazzhUIResourceBarsDB.powerBar (Database.lua), like Blizzard's own systems.
 local LEM = ns.LibEditMode
 local L = ns.L
 local DEFAULTS = ns.PowerBar.DEFAULTS

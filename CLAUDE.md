@@ -98,7 +98,8 @@ grep -rn 'function EventUtil\.' .cache/wow-ui-source/Interface/AddOns/Blizzard_S
 - A **module** is an addon whose TOC has `## Dependencies: RazzhUI`, `## Group: RazzhUI` and
   `## Title: |cffd6b380RazzhUI|r <Short name>`. Lint checks the three together, and
   `scripts/new-addon.sh` scaffolds them. The core finds its modules by that dependency and keeps
-  no list of them. ForeverTooltip is the first; the other released addons follow (roadmap step 2).
+  no list of them. ForeverTooltip and RazzhUIResourceBars are modules; the other released addons
+  follow (roadmap step 2).
 - `addons/ForeverDev/` – dev-only helper addon, **never released** (see the feedback loop below).
 - `template/Addon/` – scaffold used by `scripts/new-addon.sh` (`__ADDON__` is replaced).
 - `scripts/` – all tooling, see below. `scripts/lib.sh` holds shared helpers and `WOW_DIR`.

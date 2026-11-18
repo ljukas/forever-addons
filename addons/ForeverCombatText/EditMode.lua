@@ -4,7 +4,7 @@ local ADDON_NAME, ns = ...
 -- scripts/libs.sh, loaded namespaced as ns.LibEditMode): drag to place it, and Scroll Length,
 -- Duration and Font Size sliders in its dialog. These, with the position, are kept per Edit Mode
 -- layout in ForeverCombatTextDB.text (Database.lua), like Blizzard's own systems. While Edit Mode
--- is open, sample messages scroll in the box. The per-layout store follows ForeverUnitFrames'
+-- is open, sample messages scroll in the box. The per-layout store follows RazzhUIResourceBars'
 -- EditMode.lua.
 local LEM = ns.LibEditMode
 local L = ns.L

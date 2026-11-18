@@ -1,6 +1,6 @@
 local ADDON_NAME, ns = ...
 
--- ForeverUnitFramesDB layout (account-wide):
+-- RazzhUIResourceBarsDB layout (account-wide):
 --   version  = schema version, see migrations below
 --   powerBar = { [key] = { point = string, x = number, y = number, width = number, height = number,
 --                smooth = boolean, offForm = boolean, offFormHeight = number } },

@@ -43,7 +43,9 @@ for toc in addons/*/*.toc template/Addon/*.toc; do
 	# Dependencies must be addons of this repo. A module has three marks: it depends on the core,
 	# is in the core's Group, and its title starts with the core's name (colour codes aside). A TOC
 	# with any of the three needs all of them: the core finds modules by the dependency alone, so
-	# one that only looks like a module would be left out of its list.
+	# one that only looks like a module would be left out of its list. Every released addon is a
+	# module, so an addon under addons/ with none of the three fails too, unless it is the core or
+	# ForeverDev (dev-only, never released).
 	toc_dependencies="$(sed -n -E 's/^## Dependencies: *//p' "$toc" | tr -d '\r ')"
 	depends_on_core=0
 	while IFS= read -r dependency; do
@@ -65,6 +67,8 @@ for toc in addons/*/*.toc template/Addon/*.toc; do
 			fail "$toc: looks like a $CORE_ADDON module (dependency or title) but lacks the line '## Group: $CORE_ADDON'"
 		((has_core_title)) ||
 			fail "$toc: looks like a $CORE_ADDON module (dependency or Group) but its '## Title:' does not start with '$CORE_TITLE ' (colour codes aside)"
+	elif [[ "$toc" == addons/* && "$(basename "$dir")" != "$CORE_ADDON" && "$(basename "$dir")" != "ForeverDev" ]]; then
+		fail "$toc: every released addon is a $CORE_ADDON module: add '## Dependencies: $CORE_ADDON', '## Group: $CORE_ADDON' and a '## Title:' that starts with '$CORE_TITLE '"
 	fi
 
 	# Files the TOC loads, minus inline [directives]; lines using [Variables] are skipped.

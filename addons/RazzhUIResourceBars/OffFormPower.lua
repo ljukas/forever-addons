@@ -1,6 +1,6 @@
 local ADDON_NAME, ns = ...
 
--- A druid's other powers: a row above the detached power bar with a thin bar for mana and for
+-- A druid's other powers: a row above the power bar with a thin bar for mana and for
 -- energy when the current form doesn't use them. Energy gets its bar once the druid knows Cat
 -- Form (it builds up outside cat form, see the Furor talent). Rage gets none: it is gone by the time
 -- the druid is back in bear form (in game, 2026-11-12). So: no row in caster form before Cat Form,
@@ -93,8 +93,8 @@ local SLIDE_DURATION = 0.2
 local CLIP_MARGIN = 4
 
 -- Cuts the row off at the power bar's top edge, so a sliding row comes out from behind the power
--- bar rather than across its text. A child of the border's frame, so it hides with the power bar's
--- backdrop. Its height follows the row's (SetBars).
+-- bar rather than across its text. A child of the border's frame, so it hides when the power bar
+-- does. Its height follows the row's (SetBars).
 local clip = CreateFrame("Frame", nil, border)
 clip:SetClipsChildren(true)
 clip:SetPoint("BOTTOMLEFT", holder, "TOPLEFT", -CLIP_MARGIN, 0)
@@ -172,7 +172,7 @@ local function SnapRow()
 	row:SetShown(rowShown)
 end
 
--- A slide cut short by the power bar's backdrop hiding never finishes, so it ends here.
+-- A slide cut short by the power bar hiding (with the whole UI) never finishes, so it ends here.
 clip:SetScript("OnHide", SnapRow)
 
 -- Nothing slides while the loading screen is up: at login the forms and the power in use arrive

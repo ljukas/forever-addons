@@ -1,6 +1,6 @@
 # 0002: Detach the player power bar by re-parenting Blizzard's bar, placed with LibEditMode
 
-Date: 2026-11-10. Status: accepted; decision 1 superseded by [ADR 0005](0005-draw-the-player-power-bar-ourselves.md) (2026-11-18).
+Date: 2026-11-10. Status: accepted; decisions 1 and 2 superseded by [ADR 0005](0005-draw-the-player-power-bar-ourselves.md) (2026-11-18).
 
 ## Context
 

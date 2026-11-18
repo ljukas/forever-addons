@@ -3,9 +3,8 @@
 ## Unreleased
 
 - Your power (mana, rage, energy) gets a bar of its own, framed like the cast bar and above the action bars by default. Move it in Edit Mode, where it snaps like the other boxes, and set its width and height in its Edit Mode dialog; each Edit Mode layout keeps its own. Its Smooth Fill checkbox makes the bar slide to each new value instead of jumping to it.
-- The bar draws itself, so it works the same with Blizzard's player frame, another addon's unit frames or none, and leaves Blizzard's player frame as it is.
+- The bar draws itself, so it works the same with Blizzard's player frame, another addon's unit frames or none, and leaves Blizzard's player frame as it is, its own power bar included.
 - The bar's Numbers setting in Edit Mode shows your power as numbers on it: off, while the mouse is over the bar, always as a value, always as a percentage, or both.
 - Druids see their other powers in the same frame, in a thin row above the power bar: mana while in a form, and energy outside Cat Form once you know it. The row slides up and fades in when it appears, and slides back out when it leaves. Turn the row off or set its height in the bar's Edit Mode dialog.
 - Creating a new Edit Mode layout no longer changes where the power bar sits in one of your character-specific layouts.
 - The addon needs RazzhUI installed, and is switched on or off with its checkbox on the RazzhUI page (Options → AddOns → RazzhUI).
-- Earlier builds were called ForeverUnitFrames. The bar no longer comes out of Blizzard's player frame, whose health bar is no longer grown, and bar positions saved under the old name are not carried over.

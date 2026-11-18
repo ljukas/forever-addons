@@ -4,13 +4,11 @@ local ADDON_NAME, ns = ...
 -- scripts/devlog.sh). Without ForeverDev, ns.dev is inert: ns.dev.enabled is false and every
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
 --   LOADED          Core.lua
---   DEFER APPLY     Layout.lua
---   LAYOUT          HealthBar.lua
---   POWER           PowerBar.lua
+--   POWER           PowerBar.lua, PowerText.lua
+--   COST            CostPrediction.lua
 --   OFFFORM         OffFormPower.lua
 --   SAVE EDITMODE   EditMode.lua
 --   OPTIONS         Options.lua
---   ART             Dev/ArtProbe.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.
@@ -35,6 +33,13 @@ ns.L = {
 	HEIGHT = "Height",
 	SMOOTH = "Smooth Fill",
 	SMOOTH_DESC = "Slide the bar to each new value instead of jumping to it.",
+	NUMBERS = "Numbers",
+	NUMBERS_DESC = "Show your power as numbers on the bar.",
+	NUMBERS_NONE = "Off",
+	NUMBERS_HOVER = "On Mouse-over",
+	NUMBERS_VALUE = "Value",
+	NUMBERS_PERCENT = "Percent",
+	NUMBERS_BOTH = "Both",
 	OFF_FORM = "Other Powers",
 	OFF_FORM_DESC = "Show your mana while in a form, and your energy outside Cat Form once you know it, in a row above the bar.",
 	OFF_FORM_HEIGHT = "Other Powers Height",
@@ -42,7 +47,7 @@ ns.L = {
 	EDIT_MODE_TOOLTIP = "Move the power bar and change its size and other settings in Edit Mode.",
 }
 
--- Modules register setup that needs ForeverUnitFramesDB. It runs in TOC order once the
+-- Modules register setup that needs RazzhUIResourceBarsDB. It runs in TOC order once the
 -- SavedVariables have loaded.
 local initializers = {}
 
@@ -51,8 +56,8 @@ function ns.OnInitialize(func)
 end
 
 EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
-	ForeverUnitFramesDB = ForeverUnitFramesDB or {}
-	ns.db = ForeverUnitFramesDB
+	RazzhUIResourceBarsDB = RazzhUIResourceBarsDB or {}
+	ns.db = RazzhUIResourceBarsDB
 	ns.DB.Migrate(ns.db)
 
 	for _, func in ipairs(initializers) do

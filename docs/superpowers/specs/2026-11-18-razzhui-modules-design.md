@@ -1,5 +1,13 @@
 # RazzhUI, step 2: the other nine addons become modules
 
+> **Amended 18 November 2026, after the build.** Two changes on `main` cut this step down while
+> it was at Gate C. PR #52 replaced ForeverUnitFrames with RazzhUIResourceBars, which was already
+> a module; PR #53 removed ForeverActionBars, ForeverCombat and ForeverQuests (the user's
+> decision). What this step still does: ForeverBags, ForeverCombatText, ForeverDungeonXP,
+> ForeverMinimap and ForeverProfessions become modules, and RazzhUIResourceBars gets the Edit
+> Mode page designed below for ForeverUnitFrames (named "Resource Bars") and loses its `Category`
+> line. Everything below is the design as it was approved, with nine addons.
+
 Date: 2026-11-18. Decision record: `docs/adr/0004-structure-the-addons-as-one-suite.md`.
 Scope map: `docs/superpowers/specs/2026-11-17-forever-enhanced-suite-scope-map.md`.
 Roadmap: `docs/superpowers/roadmaps/2026-11-17-forever-enhanced-suite.md` (this is step 2).

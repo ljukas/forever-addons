@@ -1,7 +1,7 @@
 local ADDON_NAME, ns = ...
 local L = ns.L
 
--- The addon's page at Options > AddOns > RazzhUI > Unit Frames: one button that opens Edit Mode, where the
+-- The addon's page at Options > AddOns > RazzhUI > Resource Bars: one button that opens Edit Mode, where the
 -- power bar is moved and set up. The settings themselves live in its Edit Mode dialog (EditMode.lua).
 -- The click is guarded because panels can't be shown or hidden from addon code in combat.
 

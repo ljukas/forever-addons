@@ -69,6 +69,11 @@ files["addons/ForeverBags/**"].globals = {
 	"ForeverBagsRowMixin",
 }
 
+files["addons/RazzhUI/**"].globals = {
+	"RazzhUI",
+	"RazzhUI_OnAddonCompartmentClick",
+}
+
 files["addons/ForeverTooltip/**"].globals = {
 	"ForeverTooltipDB",
 }

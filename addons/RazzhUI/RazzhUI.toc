@@ -1,0 +1,17 @@
+## Interface: 16001
+## Title: |cffd6b380RazzhUI|r
+## Notes: The core of the RazzhUI addons: adds an Esc-menu entry and an Options page where you switch each installed module on or off.
+## Author: ljukas
+## X-License: MIT
+## Version: @project-version@
+## IconTexture: Interface\Icons\INV_Misc_Gear_01
+## X-Category: Suite
+## AddonCompartmentFunc: RazzhUI_OnAddonCompartmentClick
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua
+Modules.lua
+Options.lua
+GameMenu.lua

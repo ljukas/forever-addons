@@ -1,0 +1,141 @@
+local ADDON_NAME, ns = ...
+
+-- Finds the modules (the addons whose TOC lists this core in ## Dependencies) from the client's
+-- addon list, so the core never holds a list of them, and reads or changes whether each is
+-- enabled. ns.log tags: MODULES (what was found, probes at login), TOGGLE (SetEnabled).
+local Modules = {}
+ns.Modules = Modules
+
+local list, byFolder
+
+-- The title without colour codes and without the module prefix; a title that doesn't start with the
+-- prefix comes back unchanged apart from the removed codes. Pure.
+function Modules.ShortName(title)
+	title = title:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+	local prefix = ns.L.MODULE_PREFIX
+	if title:sub(1, #prefix) == prefix then
+		return title:sub(#prefix + 1)
+	end
+	return title
+end
+
+-- Whether the array of folder names `dependencies` contains `coreName`. Pure.
+function Modules.DependsOn(dependencies, coreName)
+	for _, dependency in ipairs(dependencies) do
+		if dependency == coreName then
+			return true
+		end
+	end
+	return false
+end
+
+-- { { folder, name, notes }, ... } sorted by name, built on first use and cached.
+function Modules.List()
+	if list then
+		return list
+	end
+	list, byFolder = {}, {}
+	for i = 1, C_AddOns.GetNumAddOns() do
+		if Modules.DependsOn({ C_AddOns.GetAddOnDependencies(i) }, ADDON_NAME) then
+			local folder = C_AddOns.GetAddOnName(i)
+			local title = C_AddOns.GetAddOnMetadata(i, "Title")
+			if not title or title == "" then
+				title = folder
+			end
+			local entry = {
+				folder = folder,
+				name = Modules.ShortName(title),
+				notes = C_AddOns.GetAddOnMetadata(i, "Notes") or "",
+			}
+			list[#list + 1] = entry
+			byFolder[folder] = entry
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.name < b.name
+	end)
+	return list
+end
+
+function Modules.Find(folder)
+	Modules.List()
+	return byFolder[folder]
+end
+
+function Modules.IsLoaded(folder)
+	local _, loaded = C_AddOns.IsAddOnLoaded(folder)
+	return loaded and true or false
+end
+
+-- The enable state is per character, keyed by GUID. When the GUID is secret (the name is then secret
+-- too, and GetAddOnEnableState rejects secret arguments), nil asks for the all-characters state, as
+-- Blizzard's list does for "All" (AddonList.lua:11-24). Which of the two it is gets settled once, at
+-- PLAYER_LOGIN, and kept for the session: the login baseline and every later check must ask the same
+-- question, or a GUID turning secret later would make a module look changed.
+local character, characterSettled
+
+local function Character()
+	if characterSettled then
+		return character
+	end
+	local guid = UnitGUID("player")
+	if issecretvalue(guid) then
+		return nil
+	end
+	return guid
+end
+
+-- Whether this will load for this character after a reload; SetEnabled sets it for every character.
+function Modules.IsEnabled(folder)
+	return C_AddOns.GetAddOnEnableState(folder, Character()) ~= Enum.AddOnEnableState.None
+end
+
+-- For all characters (no character argument).
+function Modules.SetEnabled(folder, enabled)
+	if enabled then
+		C_AddOns.EnableAddOn(folder)
+	else
+		C_AddOns.DisableAddOn(folder)
+	end
+	-- Unsaved changes are thrown away when the AddOns list closes without saving (AddonList.lua:674-683).
+	C_AddOns.SaveAddOns()
+	ns.log("TOGGLE", folder, enabled)
+end
+
+-- [folder] = whether it was enabled at PLAYER_LOGIN: the state this session started with, as
+-- Blizzard's AddOns list keeps its startStatus (AddonList.lua:192-208, 259-264). Nil until then.
+local atLogin
+
+-- Whether some module's enabled state differs from the state at login, so a reload would change it.
+-- A module that is enabled but can't load is not pending: reloading wouldn't change it.
+function Modules.HasPendingChange()
+	if not atLogin then
+		return false
+	end
+	for _, entry in ipairs(Modules.List()) do
+		if Modules.IsEnabled(entry.folder) ~= atLogin[entry.folder] then
+			return true
+		end
+	end
+	return false
+end
+
+EventUtil.RegisterOnceFrameEventAndCallback("PLAYER_LOGIN", function()
+	character, characterSettled = Character(), true
+	atLogin = {}
+	for _, entry in ipairs(Modules.List()) do
+		atLogin[entry.folder] = Modules.IsEnabled(entry.folder)
+	end
+	if ns.dev.enabled then
+		for _, entry in ipairs(Modules.List()) do
+			ns.log(
+				"MODULES",
+				entry.folder,
+				entry.name,
+				"loaded=" .. tostring(Modules.IsLoaded(entry.folder)),
+				"enabled=" .. tostring(atLogin[entry.folder])
+			)
+		end
+		ns.log("MODULES", "GUID secret", issecretvalue(UnitGUID("player")))
+	end
+end)

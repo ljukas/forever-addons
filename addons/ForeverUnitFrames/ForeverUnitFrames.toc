@@ -25,4 +25,5 @@ Snap.lua
 EditMode.lua
 #@do-not-package@
 Dev\ArtProbe.lua
+Dev\PowerTypeProbe.lua
 #@end-do-not-package@

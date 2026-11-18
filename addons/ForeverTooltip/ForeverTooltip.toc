@@ -6,7 +6,6 @@
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\INV_Misc_Note_01
 ## X-Category: Tooltip
-## Category: Forever Enhanced Addons
 ## SavedVariables: ForeverTooltipDB
 ## Dependencies: RazzhUI
 ## Group: RazzhUI

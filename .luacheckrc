@@ -27,12 +27,6 @@ exclude_files = { "types/**", ".cache/**", ".release/**", "addons/*/Libs/**" }
 -- A new addon adds its own entry here.
 files["template/Addon/**"].globals = { "__ADDON__DB" }
 
-files["addons/ForeverCombat/**"].globals = {
-	"ForeverCombatDB",
-	"ForeverCombatSegmentMixin",
-	"SLASH_FOREVERCOMBAT_PROBE1",
-}
-
 files["addons/ForeverCombatText/**"].globals = { "ForeverCombatTextDB" }
 
 files["addons/ForeverDev/**"].globals = {

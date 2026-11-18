@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prints the evidence addons keep through ForeverDev (ForeverDevDB.observed): what they saw in
 # game across sessions, e.g. gathering spell IDs or skill line IDs. Each addon documents its
-# layout in its Knowledge.lua. scripts/combat-knowledge.sh is a richer view of ForeverCombat's.
+# layout in its Knowledge.lua.
 #
 # The game only writes SavedVariables on /reload, logout or exit, so /rl first.
 #

@@ -86,7 +86,7 @@ The fix still honors the CLAUDE.md conventions. A change to what an addon stores
 | Phase | Primary | Also useful |
 |---|---|---|
 | 0. Isolate | `EnterWorktree` *(tool)*, then `scripts/worktree.sh setup` | `scripts/worktree.sh game` *(to reproduce in game)* |
-| 1. Evidence | `scripts/devlog.sh` | `scripts/observed.sh`; `/fdev errors` *(in game)*; `scripts/combat-knowledge.sh` *(ForeverCombat)* |
+| 1. Evidence | `scripts/devlog.sh` | `scripts/observed.sh`; `/fdev errors` *(in game)* |
 | 2. Reproduce | `superpowers:systematic-debugging` | `ns.log` probes + `scripts/devlog.sh` |
 | 3. Root cause | `superpowers:systematic-debugging` | `feature-dev:code-explorer` *(agent)*; `Explore` *(agent)*; the `.cache/wow-ui-source` searches in CLAUDE.md |
 | 4. Pin it | — | `types/forever.lua` *(annotations that make a wrong call a lint error)* |

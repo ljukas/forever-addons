@@ -2,7 +2,7 @@ local ADDON_NAME, ns = ...
 
 local L = ns.L
 
--- Options > AddOns > ForeverProfessions. The registered settings write straight into
+-- Options > AddOns > RazzhUI > Professions. The registered settings write straight into
 -- ForeverProfessionsDB.settings, and every change (from the panel, the map menus or the world
 -- map toggle) goes through Settings.SetValue so they all stay in sync.
 ns.Options = {}
@@ -24,7 +24,7 @@ function ns.Options.Toggle(key)
 end
 
 ns.OnInitialize(function()
-	local category, layout = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)
+	local category, layout = RazzhUI.RegisterOptions(ADDON_NAME)
 
 	local function AddCheckbox(key, label, tooltip)
 		local setting = Settings.RegisterAddOnSetting(
@@ -49,6 +49,4 @@ ns.OnInitialize(function()
 	for _, layer in ns.Layers.Enumerate() do
 		AddCheckbox(layer.setting, layer.label, layer.tooltip)
 	end
-
-	Settings.RegisterAddOnCategory(category)
 end)

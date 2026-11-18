@@ -6,6 +6,7 @@ local ADDON_NAME, ns = ...
 --   LOADED          Core.lua
 --   HOOK MSG        Display.lua
 --   SAVE EDITMODE   EditMode.lua
+--   OPTIONS         Options.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.
@@ -30,6 +31,8 @@ ns.L = {
 	DURATION = "Duration",
 	DURATION_DESC = "How many seconds each message stays on screen.",
 	FONT_SIZE = "Font Size",
+	EDIT_MODE = "Edit Mode",
+	EDIT_MODE_TOOLTIP = "Move the combat text, and set how far it scrolls, how long it stays and how big it is, in Edit Mode.",
 }
 
 -- Modules register setup that needs ForeverCombatTextDB. It runs in TOC order once the

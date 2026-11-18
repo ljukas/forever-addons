@@ -84,10 +84,10 @@ grep -rn 'function EventUtil\.' .cache/wow-ui-source/Interface/AddOns/Blizzard_S
 ## Layout
 
 - `addons/<Name>/` – one addon per folder; the folder name must equal the TOC name (`<Name>.toc`).
-  PascalCase names. Released addons set `## Category: Forever Enhanced Addons` (the AddOns list's
-  group header; the string must match exactly), except the core (`addons/RazzhUI`), which sets none,
-  and keep their genre in `## X-Category`.
-- `addons/RazzhUI/` – the core of the suite the released addons are becoming (ADR 0004, roadmap in
+  PascalCase names. Every released addon except the core (`addons/RazzhUI`) is a module of it (see
+  below). Neither the core nor a module has a `## Category` line (a module is nested under the core
+  in the AddOns list by its `## Group`); the genre stays in `## X-Category`.
+- `addons/RazzhUI/` – the core of the suite the released addons belong to (ADR 0004, roadmap in
   `docs/superpowers/roadmaps/2026-11-17-forever-enhanced-suite.md`): the Esc-menu button, a minimap
   button and the "RazzhUI" category in Options > AddOns, where modules are switched on and off (a
   real addon disable plus a reload) and each loaded module has its options page. It has no
@@ -97,8 +97,8 @@ grep -rn 'function EventUtil\.' .cache/wow-ui-source/Interface/AddOns/Blizzard_S
 - A **module** is an addon whose TOC has `## Dependencies: RazzhUI`, `## Group: RazzhUI` and
   `## Title: |cffd6b380RazzhUI|r <Short name>`. Lint checks the three together, and
   `scripts/new-addon.sh` scaffolds them. The core finds its modules by that dependency and keeps
-  no list of them. ForeverTooltip and RazzhUIResourceBars are modules; the other released addons
-  follow (roadmap step 2).
+  no list of them. Every released addon is one; lint fails an addon under `addons/` that is neither
+  the core, ForeverDev nor a module.
 - `addons/ForeverDev/` – dev-only helper addon, **never released** (see the feedback loop below).
 - `template/Addon/` – scaffold used by `scripts/new-addon.sh` (`__ADDON__` is replaced).
 - `scripts/` – all tooling, see below. `scripts/lib.sh` holds shared helpers and `WOW_DIR`.
@@ -244,6 +244,10 @@ commits are conventional too.
   `CHANGELOG.md`. The changelog is written for players, not copied from commits.
 
 ## Releasing an addon
+
+Until the suite is packaged as one download (roadmap step 3), don't tag a module: its zip would need
+RazzhUI, which has no release of its own, and the client refuses to load an addon whose dependency
+is missing.
 
 1. On a branch, rename `## Unreleased` to `## vX.Y.Z` in `addons/<Name>/CHANGELOG.md` (the
    release notes are taken from that section). Open a PR titled

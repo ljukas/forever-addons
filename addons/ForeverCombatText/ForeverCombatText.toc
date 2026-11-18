@@ -1,13 +1,14 @@
 ## Interface: 16001
-## Title: ForeverCombatText
+## Title: |cffd6b380RazzhUI|r Combat Text
 ## Notes: Lets you move the scrolling combat text for what happens to you in Edit Mode, and set how far it scrolls, how long it lasts and how big it is.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\Ability_Defend
 ## X-Category: Combat
-## Category: Forever Enhanced Addons
 ## SavedVariables: ForeverCombatTextDB
+## Dependencies: RazzhUI
+## Group: RazzhUI
 #@do-not-package@
 ## OptionalDeps: ForeverDev
 #@end-do-not-package@
@@ -20,3 +21,4 @@ Database.lua
 Scroll.lua
 Display.lua
 EditMode.lua
+Options.lua

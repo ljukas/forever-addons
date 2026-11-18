@@ -1,9 +1,9 @@
 local ADDON_NAME, ns = ...
 
--- The addon's page in the game's Settings panel: one button that clears the ignore list.
+-- The addon's page at Options > AddOns > RazzhUI > Bags: one button that clears the ignore list.
 
 ns.OnInitialize(function()
-	local category, layout = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)
+	local _, layout = RazzhUI.RegisterOptions(ADDON_NAME)
 
 	local function ResetIgnored()
 		ns.DB.ResetIgnored()
@@ -15,6 +15,4 @@ ns.OnInitialize(function()
 	layout:AddInitializer(
 		CreateSettingsButtonInitializer("", ns.L.RESET_IGNORED, ResetIgnored, ns.L.RESET_IGNORED_TOOLTIP, addSearchTags)
 	)
-
-	Settings.RegisterAddOnCategory(category)
 end)

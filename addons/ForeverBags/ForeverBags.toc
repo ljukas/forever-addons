@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: ForeverBags
+## Title: |cffd6b380RazzhUI|r Bags
 ## Notes: Lists your cheapest bag items when your inventory is full, so you can delete one and keep looting.
 ## Author: ljukas
 ## X-License: MIT
@@ -7,8 +7,9 @@
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\INV_Misc_Bag_08
 ## X-Category: Bags & Inventory
-## Category: Forever Enhanced Addons
 ## SavedVariables: ForeverBagsDB
+## Dependencies: RazzhUI
+## Group: RazzhUI
 #@do-not-package@
 ## OptionalDeps: ForeverDev
 #@end-do-not-package@

@@ -2,7 +2,6 @@
 
 ## Unreleased
 
-- Now grouped under "Forever Enhanced Addons" in the AddOns list.
 - Remembers every herb and mineral node you gather, shared across your characters, and
   counts how many times each one has been gathered.
 - Shows known nodes on the world map and the minimap, each with the icon of what it gives,
@@ -15,7 +14,7 @@
 - Hovering a tracked herb or mineral on the minimap also shows the required skill.
 - A button on the world map shows or hides known nodes there.
 - Toggles for herbs and minerals in the minimap tracking menu, the world map filter menu
-  and Options → AddOns → ForeverProfessions.
+  and Options → AddOns → RazzhUI → Professions.
 - Remembers what you craft, in every profession and for each character: how often you crafted
   each recipe at each skill level, the recipe's colour then, and how many skill points it gave
   you there.
@@ -26,3 +25,5 @@
   recipe's colour once you've crafted it often enough nearby, otherwise the wiki's, dimmed.
 - Your skill-up chance no longer dips for a moment after each craft while the skill point is
   on its way.
+- ForeverProfessions now needs RazzhUI installed, and is switched on or off with its checkbox on
+  the RazzhUI page (Options → AddOns → RazzhUI).

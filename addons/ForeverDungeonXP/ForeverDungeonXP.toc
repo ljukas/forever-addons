@@ -1,13 +1,14 @@
 ## Interface: 16001
-## Title: ForeverDungeonXP
+## Title: |cffd6b380RazzhUI|r Dungeon XP
 ## Notes: Records the experience you gain from kills in each dungeon run.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
-## Category: Forever Enhanced Addons
 ## X-Category: Dungeons
 ## SavedVariables: ForeverDungeonXPDB
+## Dependencies: RazzhUI
+## Group: RazzhUI
 ## AddonCompartmentFunc: ForeverDungeonXP_OnAddonCompartmentClick
 #@do-not-package@
 ## OptionalDeps: ForeverDev

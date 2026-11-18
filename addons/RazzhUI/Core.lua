@@ -24,7 +24,8 @@ function ns.log(tag, ...)
 	ns.dev:Log(tag, ...)
 end
 
--- The core's one global; later files add its functions. Nothing here names a module.
+-- The core's API global; later files add its functions. Nothing here names a module. Its other
+-- globals are RazzhUIDB (SavedVariables, Database.lua) and the minimap button's frame name.
 RazzhUI = {}
 
 -- The bronze Blizzard gave WoW Forever's own screens: the character select nav bar's text colour
@@ -47,7 +48,27 @@ ns.L = {
 	NEEDS_RELOAD = "Your changes need a reload of the interface to take effect.",
 }
 
+-- Setup that needs RazzhUIDB registers here. It runs in TOC order once the SavedVariables have
+-- loaded.
+local initializers = {}
+
+function ns.OnInitialize(func)
+	table.insert(initializers, func)
+end
+
 EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
+	-- A hand-edited file may hold anything under the name.
+	if type(RazzhUIDB) ~= "table" then
+		RazzhUIDB = {}
+	end
+	ns.db = RazzhUIDB
+	ns.DB.Migrate(ns.db)
+
+	for _, func in ipairs(initializers) do
+		func()
+	end
+	ns.log("LOADED", "db version", ns.db.version)
+
 	if ns.dev.enabled then
 		-- Global strings later files lean on; they exist only in the running game.
 		for _, name in ipairs({ "RELOADUI", "ADDONS", "VIDEO_OPTIONS_NEED_UIRELOAD", "ERR_NOT_IN_COMBAT" }) do

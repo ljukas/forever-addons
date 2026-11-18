@@ -30,13 +30,17 @@ ns.OnInitialize(function()
 
 	-- The settings button asserts that addSearchTags is given.
 	local addSearchTags = true
-	layout:AddInitializer(
-		CreateSettingsButtonInitializer(
-			L.COMBAT_TEXT,
-			_G["HUD_EDIT_MODE_MENU"] or L.EDIT_MODE,
-			OpenEditMode,
-			L.EDIT_MODE_TOOLTIP,
-			addSearchTags
-		)
+	local initializer = CreateSettingsButtonInitializer(
+		L.COMBAT_TEXT,
+		_G["HUD_EDIT_MODE_MENU"] or L.EDIT_MODE,
+		OpenEditMode,
+		L.EDIT_MODE_TOOLTIP,
+		addSearchTags
 	)
+	-- Blizzard's Esc menu leaves its Edit Mode button out when Edit Mode can't be entered (GameMenuFrame.lua:234);
+	-- ours is greyed instead.
+	initializer:AddModifyPredicate(function()
+		return EditModeManagerFrame:CanEnterEditMode()
+	end)
+	layout:AddInitializer(initializer)
 end)

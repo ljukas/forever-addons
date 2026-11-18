@@ -21,10 +21,11 @@ local SPEND_TIMEOUT = 0.5
 -- so most of it lies left of the bar.
 local clip = CreateFrame("Frame", nil, fill)
 clip:SetAllPoints()
-clip:SetFrameLevel(fill:GetFrameLevel() + 1)
 clip:SetClipsChildren(true)
 
+-- Above the fill, below the numbers (PowerText.lua) and the border.
 local bar = CreateFrame("StatusBar", nil, clip)
+bar:SetFrameLevel(fill:GetFrameLevel() + 1)
 bar:SetStatusBarTexture(ATLAS)
 bar:SetReverseFill(true)
 bar:Hide()
@@ -37,9 +38,19 @@ end)
 local activeCast, activePower
 -- Whether that cast has succeeded, so the cost only waits for the power to drop by it.
 local spent = false
+-- When the bar's values last changed during that cast (GetTime, which stands still within a
+-- frame): a change in the frame of the cast's success is its cost coming off.
+local changedAt
+
+-- The fill jumps to the power without the cost instead of sliding there: the darker stretch was
+-- the spend, so there is nothing left to animate.
+local function Land(how)
+	ns.log("COST", how)
+	fill:SetToTargetValue()
+end
 
 local function Clear()
-	activeCast, activePower, spent = nil, nil, false
+	activeCast, activePower, spent, changedAt = nil, nil, false, nil
 	bar:Hide()
 end
 
@@ -61,7 +72,7 @@ local function Show(castGUID, spellID)
 	local cost = powerType and CostOf(spellID, powerType) or 0
 	-- A cost is not secret by the API docs; one that is can't be told from none.
 	if issecretvalue(cost) then
-		ns.dev:LogOnce("cost-secret", "COST", "secret", "cost")
+		ns.dev:LogOnce("cost-secret-cost", "COST", "secret", "cost")
 		cost = 0
 	end
 	ns.log("COST", "start", spellID, powerToken, cost)
@@ -69,11 +80,18 @@ local function Show(castGUID, spellID)
 		Clear()
 		return
 	end
-	activeCast, activePower, spent = castGUID, powerType, false
+	activeCast, activePower, spent, changedAt = castGUID, powerType, false, nil
 
 	local info = PowerBarColor[powerToken]
+	-- The client makes these colours; nothing in its Lua source defines them, so a missing one
+	-- leaves the art untinted rather than raising on every cast.
 	local colour = info and info.predictionColor or POWERBAR_PREDICTION_COLOR_MANA
-	bar:SetStatusBarColor(colour:GetRGBA())
+	if colour then
+		bar:SetStatusBarColor(colour:GetRGBA())
+	end
+	if ns.dev.enabled then
+		ns.dev:LogOnce("cost-colour-" .. tostring(powerToken), "COST", "colour", powerToken, colour ~= nil)
+	end
 
 	-- Anchored anew each time: the fill's texture is the client's to replace when its art changes.
 	local texture = fill:GetStatusBarTexture()
@@ -91,11 +109,16 @@ ns.PowerBar.OnChanged(function(powerType)
 	if not activeCast then
 		return
 	end
-	if spent or powerType ~= activePower then
-		-- The cast's cost has come off the power, or the bar shows another power now.
-		ns.log("COST", spent and "spent" or "power")
+	if powerType ~= activePower then
+		-- The bar shows another power now.
+		ns.log("COST", "power")
+		Clear()
+	elseif spent then
+		-- The cast's cost has come off the power.
+		Land("spent after")
 		Clear()
 	else
+		changedAt = GetTime()
 		bar:SetMinMaxValues(0, UnitPowerMax("player", powerType))
 	end
 end)
@@ -116,7 +139,7 @@ events:SetScript("OnEvent", function(_, event, _, castGUID, spellID)
 	-- unless a spell is flagged secret: then there is no cost to show, and nothing to tell casts
 	-- apart by.
 	if issecretvalue(castGUID) or issecretvalue(spellID) then
-		ns.dev:LogOnce("cost-secret", "COST", "secret", event)
+		ns.dev:LogOnce("cost-secret-cast", "COST", "secret", event)
 		Clear()
 		return
 	end
@@ -127,10 +150,15 @@ events:SetScript("OnEvent", function(_, event, _, castGUID, spellID)
 		-- stop that follows a success.
 		return
 	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-		-- The cost stays until the power drops by it, and the fill jumps there instead of sliding:
-		-- the darker stretch was the spend, so there is nothing left to animate.
+		-- Which comes first, the success or the power without the cost, is the client's choice
+		-- (not known from its source), so both orders are taken: the power changed in this frame
+		-- already, or the cost stays until it does.
+		if changedAt == GetTime() then
+			Land("spent before")
+			Clear()
+			return
+		end
 		spent = true
-		ns.PowerBar.SnapNextValue()
 		C_Timer.After(SPEND_TIMEOUT, function()
 			if activeCast == castGUID then
 				ns.log("COST", "timeout", spellID)

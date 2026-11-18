@@ -66,7 +66,7 @@ local free = {}
 local xDir = 1
 local sideStep = SIDE_STEP
 
--- The direction set under Options > Combat.
+-- The direction set in the game's own Combat options (Options > Combat), not on a page of ours.
 function ns.Display.Mode()
 	return Scroll.ModeFromCVar(C_CVar.GetCVar("floatingCombatTextFloatMode_v2"))
 end

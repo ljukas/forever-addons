@@ -161,3 +161,19 @@ minimap, textures, a settings row). Each gets the Review Focus above.
 
 The spec's table. Every row has its `MINIMAP`, `OPTIONS` or `BAG` line; rows that are "by eye" are
 the user's to look at.
+
+## What the build changed (after the audit and the step review)
+
+The tasks above are the plan as written. The build differs in these places; the spec holds the
+final design.
+
+- Task 1: the migration also starts over from a negative or fractional `version`, replaces a
+  non-table `minimap` at the current version, and `ns.DB.Minimap()` returns nil for a non-table.
+- Task 2: `DEFAULT_ANGLE` is 160, not 270 (six o'clock sits on Blizzard's coordinates text).
+- Task 3: the angle and the shown state live in locals loaded once the settings are in, in place
+  of an `Angle()` helper; the angle is saved while dragging and only when the button moved; a drag
+  also ends once the mouse button is up; the click logs before it opens Options; the button is
+  placed again a frame after its parent changes; the icon sinks a pixel while held; the `created`
+  line carries the icon path. `MINIMAP_SHOW_TOOLTIP` is "Show the RazzhUI button on the minimap.
+  It opens this page."
+- Task 5: the TOC's `## Notes` names the minimap button too.

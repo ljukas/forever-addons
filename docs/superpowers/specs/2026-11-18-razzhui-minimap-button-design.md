@@ -27,7 +27,7 @@ step takes both in; the scope map, ADR 0004 and CLAUDE.md are updated to say so.
 ## What the bag collects (read from `addons/ForeverMinimap`)
 
 `ButtonBag.lua` looks at the named children of `Minimap`, `MinimapBackdrop` and `MinimapCluster`.
-`Reject` (`ButtonBag.lua:64`) and `ButtonRules.Verdict` keep a frame when all of these hold:
+`Reject` (`ButtonBag.lua:61`) and `ButtonRules.Verdict` keep a frame when all of these hold:
 
 - it has a name, the name is its global (`_G[name] == frame`), and the name is not Blizzard's, not a
   pin addon's (`^ForeverMinimap`, `^ForeverProfessions`, `^Questie`, ...) and does not end in digits;
@@ -74,6 +74,12 @@ makes `minimap` a table, a newer version's data is left alone. Defaults are not 
 `angle` reads as the default and a missing `hide` as shown, so a later change of default reaches
 everyone who never chose. A hand-edited value of the wrong type reads as the default too.
 
+Damaged files (added after the SavedVariables audit): a `RazzhUIDB` that isn't a table is replaced;
+a `version` no migration could have written (not a number, negative, fractional) starts over at 0;
+a `minimap` that isn't a table is replaced at the current version. A `version` above ours is left
+alone: `ns.DB.Minimap()` returns nil when that file's `minimap` isn't a table, and then the button
+works for the session at its defaults and nothing is written.
+
 `Core.lua` gets the usual `ns.OnInitialize(func)` list, run in TOC order from its existing
 `ADDON_LOADED` handler after `RazzhUIDB` is set up and migrated. It holds the core's own settings
 only; modules keep their own tables (ADR 0004).
@@ -86,8 +92,14 @@ lands where any other minimap button would for the same angle, on a round or a s
 the repo's third copy: the two addons that hold the others are not modules yet and can't call the
 core. Roadmap step 4 (shared code into the core) is where they become one.
 
-`DEFAULT_ANGLE = 270`: six o'clock, clear of Blizzard's zoom buttons (bottom right) and of the
-other buttons' default spots (ForeverDungeonXP 200, EllesmereUI 220, LibDBIcon and the bag 225).
+`DEFAULT_ANGLE = 160`: between nine and ten o'clock. The first choice, six o'clock, sits on
+Blizzard's optional coordinates text (`PlayerCoords`, 18 px under the minimap,
+`Blizzard_Minimap/Mainline/Minimap.xml:287`) and on the zone header in Edit Mode's "Header
+Underneath"; the UI review found both. 160 is clear of what Blizzard puts round the minimap on
+Forever (header at the top, day and night indicator at about 57 degrees, the event button at about
+189 when there is one, the group finder's eye at 225, the coordinates at 270, the zoom buttons at
+about 315) and of the other buttons' default spots (ForeverDungeonXP 200, EllesmereUI 220,
+LibDBIcon and the bag 225).
 
 ### The button: `addons/RazzhUI/MinimapButton.lua`
 
@@ -103,20 +115,27 @@ other buttons' default spots (ForeverDungeonXP 200, EllesmereUI 220, LibDBIcon a
   `C_AddOns.GetAddOnMetadata`, so the two entries always show the same icon.
 - **Place:** `CENTER` to `Minimap`'s `CENTER` at `Edge.Offset(angle, width / 2 + 5, shape)`, set
   again when the minimap's size changes (`Minimap:HookScript("OnSizeChanged")`, as the other two
-  buttons do).
-- **Drag:** while dragged the button follows the cursor round the edge and the angle is saved as it
-  goes. Placing and dragging do nothing while the button's parent isn't `Minimap`: a collector
-  addon has it then, and it is that addon's to place.
+  buttons do), and a frame after the button's parent changes: a collector that hands it back
+  restores the anchors from before, which are stale if the minimap was resized meanwhile.
+- **Drag:** while dragged the button follows the cursor round the edge, so it never leaves the
+  minimap (the user: "Stuck to the minimap though"). The angle is saved as it goes, and only when
+  the button moved. Placing and dragging do nothing while the button's parent isn't `Minimap`: a
+  collector addon has it then, and it is that addon's to place. A drag ends on `OnDragStop`, when
+  the button is hidden or reparented, or once the mouse button is up.
 - **Click:** `RazzhUI.OpenOptions()`, which already shows the red "can't do that in combat" text
-  instead of opening while in combat.
+  instead of opening while in combat. The click that may follow a drag's mouse-up is skipped.
+- **Press:** the icon sinks a pixel down and right while the button is held, as on Blizzard's own
+  minimap buttons. No click sound: Blizzard's minimap buttons play none.
 - **Tooltip:** "RazzhUI" in Forever bronze (`ns.L.TITLE_COLORED`), "Click to open the options.",
   and, while it is on the minimap, "Drag to move this button."
-- **Hide:** `ns.MinimapButton.IsShown()` and `ns.MinimapButton.SetShown(shown)` read and write
-  `minimap.hide` and show or hide the frame. The button is always created, so a collector that
+- **Hide:** `ns.MinimapButton.IsShown()` answers from a local that is loaded from `minimap.hide`
+  once the settings are in (and is true before); `ns.MinimapButton.SetShown(shown)` sets it, writes
+  `minimap.hide` and shows or hides the frame. The button is always created, so a collector that
   found it hidden has it when it is shown again.
-- **Logging:** a new tag `MINIMAP` in the shim comment: `MINIMAP created <angle> <shown>` once,
-  `MINIMAP click` on a click (followed by `OPTIONS open root` or `OPTIONS combat`),
-  `MINIMAP angle <degrees>` when a drag ends, `MINIMAP shown <true|false>` from the checkbox.
+- **Logging:** a new tag `MINIMAP` in the shim comment: `MINIMAP created <angle> <shown> <icon>`
+  once, `MINIMAP click` on a click (followed by `OPTIONS open root` or `OPTIONS combat`),
+  `MINIMAP angle <degrees>` when a drag that moved the button ends, `MINIMAP shown <true|false>`
+  from the checkbox.
 
 ### The checkbox: `addons/RazzhUI/Options.lua`
 
@@ -137,21 +156,26 @@ SavedVariables"), and the `razzhui-launch-checks` memory.
 
 | Check | Evidence |
 |---|---|
-| The button is collected by the bag and sits in the strip with the gear icon and gold ring | `scripts/devlog.sh --all-addons --addon ForeverMinimap --tag BAG`: `collect RazzhUIMinimapButton`; by eye |
+| The button is collected by the bag and sits in the strip with the gear icon and gold ring | `scripts/devlog.sh --all-addons --addon ForeverMinimap --tag BAG`: `collect RazzhUIMinimapButton`; `MINIMAP created 160 true Interface\Icons\INV_Misc_Gear_01`; by eye |
 | A click opens Options at the RazzhUI page | `MINIMAP click`, `OPTIONS open root` |
-| Unticking "Show minimap button" removes it from the strip; ticking brings it back; both survive `/rl` | `MINIMAP shown false`, `MINIMAP created <angle> false` after the reload |
-| "Keep on the minimap" in the bag's menu puts it at six o'clock, clear of everything else | by eye; `BAG release RazzhUIMinimapButton` |
-| On the minimap it drags round the edge, stays there after `/rl`, and a drag doesn't open Options | `MINIMAP angle <degrees>`, no `MINIMAP click` after it; `MINIMAP created <the same angle>` |
+| Unticking "Show minimap button" removes it from the strip; ticking brings it back; both survive `/rl`; the page's Defaults turns it back on | `MINIMAP shown false`, `MINIMAP created <angle> false` after the reload, `MINIMAP shown true` |
+| Hidden at login, then ticked: it appears in the strip without a reload | by eye, after `MINIMAP created <angle> false` and `MINIMAP shown true` |
+| "Keep on the minimap" in the bag's menu puts it between nine and ten o'clock, clear of everything else | by eye; `BAG release RazzhUIMinimapButton` |
+| On the minimap it drags round the edge and never leaves it, stays there after `/rl`, and a drag doesn't open Options | `MINIMAP angle <degrees>`, no `MINIMAP click` after it; `MINIMAP created <the same angle>` |
 | In combat a click shows the red error text and opens nothing | `MINIMAP click`, `OPTIONS combat`; `scripts/devlog.sh --errors` clean |
 
 ## Calls made by Claude, for the user to correct
 
-- The classic gold-ring look rather than the bag button's own Forever ring, because that is what
-  the button's neighbours in the bag wear.
+- The classic gold-ring look, because that is what the button's neighbours in the bag wear. The
+  other candidate is Forever's own: Blizzard's round minimap button on Forever
+  (`ExternalEventURLMinimapButtonTemplate`) and ForeverMinimap's bag button wear the day and night
+  indicator's ring (`UI-HUD-Minimap-Frame-Cycle`) around an icon masked to a circle. The user
+  decides by eye in game.
 - The gear icon from the TOC, not a logo.
-- Six o'clock as the default spot.
+- Between nine and ten o'clock as the default spot.
 - Hiding is the checkbox only: no middle-click on the button (EllesmereUI has one), so it can't be
   hidden by accident.
 - The checkbox goes first on the RazzhUI page, above Modules.
 - Account-wide settings, like every other addon in the repo.
-- No press animation and no click sound, as ForeverDungeonXP's button has none.
+- The checkbox's tooltip says what the button does, not how to drag it: the button's own tooltip
+  says that, and only while it can be dragged.

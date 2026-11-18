@@ -22,3 +22,5 @@
   or attack power.
 - No more "bad argument to SetWidth" errors from the target and focus frames when the game
   hides their size.
+- ForeverCombat now needs RazzhUI installed, and is switched on or off with its checkbox on
+  the RazzhUI page (Options → AddOns → RazzhUI).

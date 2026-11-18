@@ -7,3 +7,4 @@
 - A coin button in the bag window's title bar opens the same list whenever you want it.
 - Click an item's icon in the list to never have it listed again on that character. "Reset ignored items" on the addon's page in the game's options brings them all back.
 - Quest items, your Hearthstone and items a vendor won't buy are never listed.
+- ForeverBags now needs RazzhUI installed, and is switched on or off with its checkbox on the RazzhUI page (Options → AddOns → RazzhUI).

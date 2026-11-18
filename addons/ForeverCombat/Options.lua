@@ -2,7 +2,7 @@ local ADDON_NAME, ns = ...
 
 local L = ns.L
 
--- Options > AddOns > ForeverCombat: a checkbox per module, and under it, indented and greyed out
+-- Options > AddOns > RazzhUI > Combat: a checkbox per module, and under it, indented and greyed out
 -- while the module is off, one for its portrait cue if it has one, and the HoT meter's one for the
 -- player frame host (UI/Hosts.lua). The registered settings write straight into
 -- ForeverCombatDB.settings, and registering one fills in its default.
@@ -42,7 +42,7 @@ local function AddChild(category, module, parent, key, label, tooltip)
 end
 
 ns.OnInitialize(function()
-	local category = Settings.RegisterVerticalLayoutCategory(ADDON_NAME)
+	local category = RazzhUI.RegisterOptions(ADDON_NAME)
 
 	for _, module in ns.Modules.Enumerate() do
 		local initializer = AddCheckbox(category, module.setting, module.label, module.tooltip)
@@ -55,6 +55,4 @@ ns.OnInitialize(function()
 			AddChild(category, module, initializer, "hotPlayerFrame", L.HOT_PLAYER_FRAME, L.HOT_PLAYER_FRAME_TOOLTIP)
 		end
 	end
-
-	Settings.RegisterAddOnCategory(category)
 end)

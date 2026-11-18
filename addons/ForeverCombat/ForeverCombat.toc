@@ -1,13 +1,14 @@
 ## Interface: 16001
-## Title: ForeverCombat
+## Title: |cffd6b380RazzhUI|r Combat
 ## Notes: Shows how much your damage and healing over time spells still have to do, right on the target and focus health bars, and your healing on your own.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\Spell_Shadow_AbominationExplosion
 ## X-Category: Combat
-## Category: Forever Enhanced Addons
 ## SavedVariables: ForeverCombatDB
+## Dependencies: RazzhUI
+## Group: RazzhUI
 #@do-not-package@
 ## OptionalDeps: ForeverDev
 #@end-do-not-package@

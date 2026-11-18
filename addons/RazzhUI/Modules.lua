@@ -69,8 +69,15 @@ end
 
 -- The enable state is per character, keyed by GUID. When the GUID is secret (the name is then secret
 -- too, and GetAddOnEnableState rejects secret arguments), nil asks for the all-characters state, as
--- Blizzard's list does for "All" (AddonList.lua:11-24).
+-- Blizzard's list does for "All" (AddonList.lua:11-24). Which of the two it is gets settled once, at
+-- PLAYER_LOGIN, and kept for the session: the login baseline and every later check must ask the same
+-- question, or a GUID turning secret later would make a module look changed.
+local character, characterSettled
+
 local function Character()
+	if characterSettled then
+		return character
+	end
 	local guid = UnitGUID("player")
 	if issecretvalue(guid) then
 		return nil
@@ -114,6 +121,7 @@ function Modules.HasPendingChange()
 end
 
 EventUtil.RegisterOnceFrameEventAndCallback("PLAYER_LOGIN", function()
+	character, characterSettled = Character(), true
 	atLogin = {}
 	for _, entry in ipairs(Modules.List()) do
 		atLogin[entry.folder] = Modules.IsEnabled(entry.folder)

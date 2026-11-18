@@ -14,6 +14,12 @@ end
 
 local bar = PlayerFrame_GetManaBar()
 
+-- Whether the frame gets UNIT_DISPLAYPOWER. The client can refuse the question (the frame API docs'
+-- ForbiddenAspect.EventRegistrations), so a refusal is logged as "error ..." rather than raised.
+local function Listens(frame)
+	return ForeverDev.Describe(pcall(frame.IsEventRegistered, frame, "UNIT_DISPLAYPOWER"))
+end
+
 local function LogState(when)
 	local powerType, powerToken = UnitPowerType("player")
 	local texture = bar:GetStatusBarTexture()
@@ -28,9 +34,9 @@ local function LogState(when)
 		powerType,
 		powerToken,
 		"events bar",
-		(bar:IsEventRegistered("UNIT_DISPLAYPOWER")),
+		Listens(bar),
 		"frame",
-		(PlayerFrame:IsEventRegistered("UNIT_DISPLAYPOWER")),
+		Listens(PlayerFrame),
 		"grey",
 		texture and texture:IsDesaturated(),
 		"dead",

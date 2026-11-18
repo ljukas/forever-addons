@@ -29,8 +29,8 @@ In game, enable **ForeverDev**. It gives you:
 - Lua errors and blocked actions captured to disk, with the addons' log lines. Read them with
   `scripts/devlog.sh` (`--addon ForeverProfessions`, `--tag GATHER` to narrow it down). In a
   worktree it shows only the addons that worktree has in game.
-- Evidence the addons keep across sessions, such as gathering spell IDs or DoT tick intervals.
-  Read it with `scripts/observed.sh [Addon]` or `scripts/combat-knowledge.sh`.
+- Evidence the addons keep across sessions, such as gathering spell IDs. Read it with
+  `scripts/observed.sh [Addon]`.
 - Probes of what the client restricts where (restriction states, secret unit values), logged
   on login, zone changes and target changes.
 - `/fdev errors` lists this session's errors in chat. `/fdev clear` empties the log, and

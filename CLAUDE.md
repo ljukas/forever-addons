@@ -38,8 +38,7 @@ Confirmed in game (9 November 2026):
 - `UnitXP` / `UnitXPMax("player")` and `GetQuestLogRewardXP` are not secret, in or out of
   combat.
 - `GetQuestLogRewardXP` (and so the quest log) leaves out XP buffs: Well-Rested (spell 429959,
-  +1% per stack, up to 3, no `points`) made a 650 XP quest pay 669. ForeverQuests' `XPBonus.lua`
-  holds the known buffs.
+  +1% per stack, up to 3, no `points`) made a 650 XP quest pay 669.
 
 Confirmed in game (12 November 2026), in two 5-player dungeons, in combat:
 
@@ -114,7 +113,6 @@ stylua addons template types        # auto-format
 scripts/link.sh [Name...]           # (re)link the main checkout's addons into _forever_/Interface/AddOns (worktrees: worktree.sh game)
 scripts/devlog.sh [--errors] [--all] [--addon NAME,...] [--all-addons] [--tag TAG]  # print what ForeverDev captured in game (errors, taint, logs); a worktree sees only the addons it holds
 scripts/observed.sh [Addon] [filter] # print the evidence addons keep through ForeverDev (e.g. ForeverProfessions' gathers)
-scripts/combat-knowledge.sh [spell] # print what ForeverCombat observed about DoTs/HoTs (IDs, ticks, intervals, misses)
 scripts/package.sh MyAddon [v1.0.0] # build the release zip locally into .release/MyAddon/
 scripts/check-pr-title.sh "<title>" # check a PR title is a Conventional Commit (CI runs it on every PR)
 scripts/setup.sh                    # refresh .cache/ (run after a game patch) and fetch libraries
@@ -225,7 +223,7 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 - **Types:** `feat` (new behaviour players notice), `fix`, `perf`, `refactor`, `docs`, `style`,
   `test`, `build`, `ci`, `chore`, `revert`.
-- **Scopes:** the addon folder name in lowercase (`foreverprofessions`, `forevercombat`, `foreverdev`),
+- **Scopes:** the addon folder name in lowercase (`foreverprofessions`, `foreverminimap`, `foreverdev`),
   or `ci`, `scripts`, `template`, `types`, `deps`. Separate several with commas. Leave the
   scope out for repo-wide changes.
 - **Description:** imperative, lowercase start, no trailing period. Keep the whole title within

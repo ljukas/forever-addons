@@ -4,12 +4,9 @@ local ADDON_NAME, ns = ...
 -- scripts/devlog.sh). Without ForeverDev, ns.dev is inert: ns.dev.enabled is false and every
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
 --   LOADED          Core.lua
---   DEFER APPLY     Layout.lua
---   LAYOUT          HealthBar.lua
 --   POWER           PowerBar.lua
 --   OFFFORM         OffFormPower.lua
 --   SAVE EDITMODE   EditMode.lua
---   ART             Dev/ArtProbe.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.

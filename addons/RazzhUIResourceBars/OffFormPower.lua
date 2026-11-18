@@ -229,7 +229,7 @@ local function SetBars(count, height, animate)
 	slideMove:SetOffset(0, -(height + LINE))
 	-- The fills reach past the row under the border's ends, as far as the main bar's fill does:
 	-- their art starts and stops short.
-	local left, right = ns.PowerBar.barOutset.left, ns.PowerBar.fillOutset.right
+	local left, right = ns.PowerBar.fillOutset.left, ns.PowerBar.fillOutset.right
 	leftBar:SetPoint("TOPLEFT", row, "TOPLEFT", -left, 0)
 	rightBar:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", right, 0)
 	if count > 1 then

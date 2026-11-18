@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: |cffd6b380RazzhUI|r
-## Notes: The core of the RazzhUI addons: adds an Esc-menu entry and an Options page where you switch each installed module on or off.
+## Notes: The core of the RazzhUI addons: adds an Esc-menu entry, a minimap button and an Options page where you switch each installed module on or off.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@

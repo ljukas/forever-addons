@@ -1,19 +1,21 @@
 local _, ns = ...
 
--- Where a button sits on the minimap's edge. Pure: no client state. The same maths as
--- ForeverDungeonXP's Logic/Edge.lua and ForeverMinimap's Logic/Ring.lua (the quadrant table is
--- LibDBIcon's), so the core's button lands where every other minimap button would for the same
--- angle. It is the repo's third copy because those two addons are not modules yet and can't call
--- the core; roadmap step 4 (shared code into the core) is where they become one.
+-- Where a button sits on the minimap's edge. Pure: no client state. The quadrant table is
+-- LibDBIcon's, so the core's button lands where every other minimap button would for the same
+-- angle. Two addons in this repo carry the same maths and can't call the core until they are
+-- modules; roadmap step 4 (shared code into the core) is where the copies become one
+-- (docs/superpowers/specs/2026-11-18-razzhui-minimap-button-design.md names them).
 --
 -- Angles are degrees counter-clockwise from east (0 = east, 90 = north). Offsets are pixels from
 -- the minimap's centre, x right and y up. shape is a GetMinimapShape() value.
 
 ns.Edge = {}
 
--- Six o'clock: clear of Blizzard's zoom buttons (bottom right) and of where other addons' buttons
--- start out (200 to 225 degrees).
-ns.Edge.DEFAULT_ANGLE = 270
+-- Between nine and ten o'clock. Clear of what Blizzard puts round the minimap on Forever: the
+-- header (top), the day and night indicator (about 57), the event button when there is one (about
+-- 189), the group finder's eye (225), the coordinates text (270, an option) and the zoom buttons
+-- (about 315). Also clear of where other addons' buttons start out (200 to 225).
+ns.Edge.DEFAULT_ANGLE = 160
 
 -- Per quadrant, whether the edge is round there (true) or follows a square corner (false). The
 -- quadrants run: 1 = bottom-right, 2 = bottom-left, 3 = top-right, 4 = top-left.

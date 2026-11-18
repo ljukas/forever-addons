@@ -48,7 +48,7 @@ ns.L = {
 	-- Fallback for VIDEO_OPTIONS_NEED_UIRELOAD, which exists only in the running game.
 	NEEDS_RELOAD = "Your changes need a reload of the interface to take effect.",
 	MINIMAP_SHOW = "Show minimap button",
-	MINIMAP_SHOW_TOOLTIP = "Shows the RazzhUI button on the minimap. Drag the button to move it round the minimap's edge.",
+	MINIMAP_SHOW_TOOLTIP = "Show the RazzhUI button on the minimap. It opens this page.",
 	MINIMAP_TOOLTIP_CLICK = "Click to open the options.",
 	MINIMAP_TOOLTIP_DRAG = "Drag to move this button.",
 }

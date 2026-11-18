@@ -8,9 +8,10 @@ local ADDON_NAME, ns = ...
 --
 -- It is a plain frame, not LibDBIcon's: that library and the two it needs are published as SVN
 -- repositories, which scripts/libs.sh can't fetch. It is drawn like every other addon's minimap
--- button: the minimap's dark round background, the gold tracking-button ring and the zoom buttons'
--- highlight, at LibDBIcon's size. Forever's own minimap buttons use the Camelot ui-hud-minimap-*
--- art, which has no plain round button.
+-- button, so it matches its neighbours wherever minimap buttons are gathered: the minimap's dark
+-- round background, the gold tracking-button ring and the zoom buttons' highlight, at LibDBIcon's
+-- size. Blizzard's own round minimap button on Forever (ExternalEventURLMinimapButtonTemplate)
+-- wears the day and night indicator's ring instead, around an icon masked to a circle.
 --
 -- The frame has a global name because that is how addons that gather minimap buttons into one
 -- place recognize a button. Such an addon reparents the button; while its parent isn't Minimap the
@@ -28,6 +29,7 @@ local button
 local angle = ns.Edge.DEFAULT_ANGLE
 local shown = true
 local dragging = false
+local moved = false -- whether the running drag has moved the button
 -- From a drag's end until the next frame: the mouse-up that ends a drag must not also click.
 local dragged = false
 
@@ -55,36 +57,48 @@ local function Place()
 	button:SetPoint("CENTER", Minimap, "CENTER", x, y)
 end
 
--- Ends a drag and saves where it ended. A no-op when no drag is running.
+-- Ends a drag. A no-op when no drag is running.
 local function StopDrag()
 	if not dragging then
 		return
 	end
 	dragging = false
 	button:SetScript("OnUpdate", nil)
-	local saved = ns.DB.Minimap()
-	if saved then
-		saved.angle = angle
+	if moved then
+		moved = false
+		ns.log("MINIMAP", "angle", angle)
 	end
-	ns.log("MINIMAP", "angle", angle)
 end
 
--- While dragged, the button follows the cursor round the minimap's edge.
+-- While dragged, the button follows the cursor round the minimap's edge, and its angle is saved as
+-- it goes: a drag that never moved it saves nothing.
 local function OnDragUpdate()
-	-- Taken off the minimap mid-drag: the drag is over.
-	if not OnMinimap() then
+	-- Taken off the minimap mid-drag, or the mouse let go without an OnDragStop: the drag is over.
+	if not OnMinimap() or not IsMouseButtonDown("LeftButton") then
 		StopDrag()
 		return
 	end
 	local centerX, centerY = Minimap:GetCenter()
 	local scale = Minimap:GetEffectiveScale()
-	-- Secrecy first: a secret value can't even be tested for nil.
-	if issecretvalue(centerX) or issecretvalue(centerY) or issecretvalue(scale) or not centerX then
-		return
-	end
 	-- GetCursorPosition is in unscaled screen pixels.
 	local cursorX, cursorY = GetCursorPosition()
+	-- Secrecy first: a secret value can't even be tested for nil.
+	if
+		issecretvalue(centerX)
+		or issecretvalue(centerY)
+		or issecretvalue(scale)
+		or issecretvalue(cursorX)
+		or issecretvalue(cursorY)
+		or not centerX
+	then
+		return
+	end
 	angle = ns.Edge.AngleTo(cursorX / scale - centerX, cursorY / scale - centerY)
+	moved = true
+	local saved = ns.DB.Minimap()
+	if saved then
+		saved.angle = angle
+	end
 	Place()
 end
 
@@ -116,8 +130,9 @@ local function CreateButton()
 	background:SetPoint("CENTER")
 
 	-- The TOC's icon, which the Addon Compartment entry shows too.
+	local iconPath = C_AddOns.GetAddOnMetadata(ADDON_NAME, "IconTexture")
 	local icon = button:CreateTexture(nil, "ARTWORK")
-	icon:SetTexture(C_AddOns.GetAddOnMetadata(ADDON_NAME, "IconTexture"))
+	icon:SetTexture(iconPath)
 	icon:SetSize(18, 18)
 	icon:SetPoint("CENTER")
 	icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -156,15 +171,34 @@ local function CreateButton()
 			dragged = false
 		end)
 	end)
-	-- Hidden mid-drag (the checkbox, a UI hide): don't keep following the cursor.
-	button:SetScript("OnHide", StopDrag)
+	-- The icon sinks a pixel down and right while the button is held, as on Blizzard's own minimap
+	-- buttons (ExternalEventURLMinimapButtonMixin:OnButtonStateChanged).
+	button:SetScript("OnMouseDown", function()
+		icon:SetPoint("CENTER", 1, -1)
+	end)
+	button:SetScript("OnMouseUp", function()
+		icon:SetPoint("CENTER", 0, 0)
+	end)
+	-- Hidden mid-drag or mid-press (the checkbox, a UI hide): don't keep following the cursor, and
+	-- don't wait for a mouse-up that won't come.
+	button:SetScript("OnHide", function()
+		StopDrag()
+		icon:SetPoint("CENTER", 0, 0)
+	end)
 	button:SetScript("OnEnter", OnEnter)
 	button:SetScript("OnLeave", GameTooltip_Hide)
 
 	-- The minimap can be resized after this addon loads (by another addon or Edit Mode).
 	Minimap:HookScript("OnSizeChanged", Place)
+	-- Handed back to the minimap by an addon that had gathered it: the minimap may have been resized
+	-- meanwhile, and that addon restores the anchors from before. Placed a frame later, after its own
+	-- re-anchoring; Place does nothing while the parent is still someone else's.
+	hooksecurefunc(button, "SetParent", function()
+		C_Timer.After(0, Place)
+	end)
 	Place()
 	button:SetShown(shown)
+	return iconPath
 end
 
 function ns.MinimapButton.IsShown()
@@ -191,6 +225,6 @@ ns.OnInitialize(function()
 		end
 		shown = saved.hide ~= true
 	end
-	CreateButton()
-	ns.log("MINIMAP", "created", angle, shown)
+	local iconPath = CreateButton()
+	ns.log("MINIMAP", "created", angle, shown, iconPath or "no icon")
 end)

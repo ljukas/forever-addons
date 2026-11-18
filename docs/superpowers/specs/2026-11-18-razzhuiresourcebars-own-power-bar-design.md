@@ -28,8 +28,13 @@ it should work as before. But without being bound to the blizzard unit frame." A
 
 ## Non-goals
 
-- Blizzard's spend flash, full-power pulse and mana cost preview. They compare or subtract secret
-  power values, which addon code can't do. Chosen by the user: "Bar plus numbers".
+- Blizzard's spend flash and full-power pulse. They compare or subtract secret power values, which
+  addon code can't do. Chosen by the user: "Bar plus numbers".
+- (Changed after the first in-game test, 18 Nov 2026: the user asked for the mana cost preview
+  back. It was listed here as needing secret arithmetic, which holds for Blizzard's way of drawing
+  it but not for the thing itself: `CostPrediction.lua` draws the cost as a status bar of its own,
+  filling backwards from the end of the power bar's fill, with the secret maximum as its range and
+  the spell's cost, which is not secret, as its value.)
 - Anything on Blizzard's player frame. The health bar growth and the removal of Blizzard's mana bar
   are deleted (the user: "Remove our frame changes"). A player still showing Blizzard's player
   frame sees its mana bar as well as ours.

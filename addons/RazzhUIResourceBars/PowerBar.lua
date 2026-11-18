@@ -70,6 +70,8 @@ local fill = CreateFrame("StatusBar", nil, holder)
 fill:SetFrameLevel(holder:GetFrameLevel() + 1)
 fill:SetPoint("TOPLEFT", holder, "TOPLEFT", -ns.PowerBar.fillOutset.left, 0)
 fill:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", ns.PowerBar.fillOutset.right, 0)
+-- For what is drawn on the fill (CostPrediction.lua).
+ns.PowerBar.fill = fill
 local interpolation = Enum.StatusBarInterpolation.ExponentialEaseOut
 
 local ATLAS_PREFIX = "UI-HUD-UnitFrame-Player-PortraitOn-Bar-"
@@ -118,11 +120,28 @@ local function ApplyDeadLook()
 	ns.dev:LogChanged("power-dead", dead, "POWER", "dead", dead)
 end
 
+-- Whether the next values reach the fill at once, whatever the layout says (SnapNextValue).
+local snapNext = false
+
+-- Makes the fill jump to its next value instead of sliding there: for a change that was shown
+-- already (CostPrediction.lua's cost, once the cast lands).
+function ns.PowerBar.SnapNextValue()
+	snapNext = true
+end
+
 -- Fills the bar from the player's power. The values are secret and only pass through.
 local function UpdateValues(valueInterpolation)
+	local snap = snapNext
+	snapNext = false
 	if powerType then
 		fill:SetMinMaxValues(0, UnitPowerMax("player", powerType))
-		fill:SetValue(UnitPower("player", powerType), valueInterpolation)
+		fill:SetValue(
+			UnitPower("player", powerType),
+			snap and Enum.StatusBarInterpolation.Immediate or valueInterpolation
+		)
+		if snap then
+			fill:SetToTargetValue()
+		end
 	end
 	for _, func in ipairs(listeners) do
 		func(powerType, powerToken)

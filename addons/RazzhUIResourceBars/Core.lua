@@ -5,6 +5,7 @@ local ADDON_NAME, ns = ...
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
 --   LOADED          Core.lua
 --   POWER           PowerBar.lua, PowerText.lua
+--   COST            CostPrediction.lua
 --   OFFFORM         OffFormPower.lua
 --   SAVE EDITMODE   EditMode.lua
 local function Nop() end

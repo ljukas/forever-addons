@@ -21,6 +21,7 @@ Core.lua
 Database.lua
 PowerBar.lua
 PowerText.lua
+CostPrediction.lua
 OffFormPower.lua
 Snap.lua
 EditMode.lua

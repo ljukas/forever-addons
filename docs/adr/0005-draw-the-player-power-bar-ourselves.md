@@ -54,11 +54,16 @@ clean in game since 12 November 2026.
 ## Consequences
 
 - Lost with Blizzard's bar, because they need arithmetic or a comparison on secret power: the spend
-  flash (`BuilderSpenderFrame`: a change of more than 10% of the maximum), the full-power pulse
-  (`newValue == maxValue`) and the mana cost preview while casting. The numbers on the bar are
-  rebuilt (`AbbreviateLargeNumbers`, `UnitPowerPercent` with a curve, `SetFormattedText`; all accept
-  secret arguments from addon code per the API docs), which is unconfirmed in game until the
-  spec's checks have run.
+  flash (`BuilderSpenderFrame`: a change of more than 10% of the maximum) and the full-power pulse
+  (`newValue == maxValue`). The numbers on the bar are rebuilt (`AbbreviateLargeNumbers`,
+  `UnitPowerPercent` with a curve, `SetFormattedText`; all accept secret arguments from addon code
+  per the API docs; the value text ran clean in game on 18 Nov 2026).
+- The mana cost preview while casting is rebuilt too, drawn another way. Blizzard's bar shows the
+  power less the cost and sizes the cost as cost over maximum, both on secret values. Ours leaves
+  the fill at the real power and lays the cost over its end: a second status bar that fills
+  backwards from the fill's right edge, with the secret maximum as its range and the cost as its
+  value (`C_Spell.GetSpellPowerCost` and the player's own cast events are not secret per the API
+  docs). The status bar does the division.
 - `HealthBar.lua`, `Layout.lua` and `Dev/ArtProbe.lua` (with `/fufart`) are deleted.
 - Saved bar positions don't follow the rename by themselves: SavedVariables belong to the addon's
   name. The spec gives a one-time command to carry the file over.

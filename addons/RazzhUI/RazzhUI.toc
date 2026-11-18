@@ -16,5 +16,6 @@ Core.lua
 Database.lua
 Logic/Edge.lua
 Modules.lua
+MinimapButton.lua
 Options.lua
 GameMenu.lua

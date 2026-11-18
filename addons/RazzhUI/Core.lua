@@ -7,6 +7,7 @@ local ADDON_NAME, ns = ...
 --   MODULES         Modules.lua
 --   OPTIONS TOGGLE  Options.lua
 --   MENU            GameMenu.lua
+--   MINIMAP         MinimapButton.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.
@@ -46,6 +47,10 @@ ns.L = {
 	RELOAD_TOOLTIP = "Reload the interface to apply your changes.",
 	-- Fallback for VIDEO_OPTIONS_NEED_UIRELOAD, which exists only in the running game.
 	NEEDS_RELOAD = "Your changes need a reload of the interface to take effect.",
+	MINIMAP_SHOW = "Show minimap button",
+	MINIMAP_SHOW_TOOLTIP = "Shows the RazzhUI button on the minimap. Drag the button to move it round the minimap's edge.",
+	MINIMAP_TOOLTIP_CLICK = "Click to open the options.",
+	MINIMAP_TOOLTIP_DRAG = "Drag to move this button.",
 }
 
 -- Setup that needs RazzhUIDB registers here. It runs in TOC order once the SavedVariables have

@@ -169,10 +169,10 @@ links at this worktree and the user tests. The core's link stays on main through
 
 | Batch | Addons | The gate checks |
 |---|---|---|
-| A | ActionBars, Quests, DungeonXP (and the `Category` line off ForeverTooltip) | Nesting and the modules list with several modules |
+| A | ActionBars, Quests, DungeonXP | Nesting and the modules list with several modules |
 | B | Bags, Combat, Minimap, Professions | Moved pages keep their values |
 | C | CombatText, UnitFrames | The Edit Mode button, and taint |
-| D | lint, template, CLAUDE.md, roadmap | none in game; the step review follows |
+| D | lint, template, the `Category` line off ForeverTooltip, CLAUDE.md, roadmap | none in game; the step review follows |
 
 ### In-game checks
 

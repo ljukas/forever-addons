@@ -59,11 +59,14 @@ clean in game since 12 November 2026.
   `UnitPowerPercent` with a curve, `SetFormattedText`; all accept secret arguments from addon code
   per the API docs; the value text ran clean in game on 18 Nov 2026).
 - The mana cost preview while casting is rebuilt too, drawn another way. Blizzard's bar shows the
-  power less the cost and sizes the cost as cost over maximum, both on secret values. Ours leaves
-  the fill at the real power and lays the cost over its end: a second status bar that fills
-  backwards from the fill's right edge, with the secret maximum as its range and the cost as its
-  value (`C_Spell.GetSpellPowerCost` and the player's own cast events are not secret per the API
-  docs). The status bar does the division.
+  power less the cost and sizes the cost as cost over maximum, both on secret values. Ours lets
+  status bars do both. During a cast the fill goes dim, and a copy of it at full brightness lies
+  over it, fed the same values but moved left by the cost's width, so it ends at the power less
+  the cost. The distance comes from a third, unseen status bar with the secret maximum as its
+  range and the cost as its value (`C_Spell.GetSpellPowerCost` and the player's own cast events
+  are not secret per the API docs; costs and casts read clean in game on 18 Nov 2026). A first
+  build hung a dim stretch from the fill's moving edge instead; it trailed the fill by a pixel
+  while that slid, so nothing follows a moving edge now.
 - `HealthBar.lua`, `Layout.lua` and `Dev/ArtProbe.lua` (with `/fufart`) are deleted.
 - Saved bar positions don't follow the rename by themselves: SavedVariables belong to the addon's
   name. The spec gives a one-time command to carry the file over.

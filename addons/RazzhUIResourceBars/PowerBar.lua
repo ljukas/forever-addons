@@ -103,8 +103,24 @@ local powerType, powerToken
 ---@type string|false|nil
 local artToken = false
 
+-- The fill's tint for its art (Art's colour), and the share of it the fill shows (SetDim).
+local artR, artG, artB = 1, 1, 1
+local dim = 1
+
+local function ApplyColour()
+	fill:SetStatusBarColor(artR * dim, artG * dim, artB * dim)
+end
+
+-- Shows the fill at a share of its brightness (1 is all of it): under the cost of the spell being
+-- cast (CostPrediction.lua).
+function ns.PowerBar.SetDim(share)
+	dim = share
+	ApplyColour()
+end
+
 -- Run after every update of the fill's values or power, with the power type and token (either
--- may be nil): the numbers on the bar (PowerText.lua).
+-- may be nil) and how the fill moves to the values: the numbers on the bar (PowerText.lua) and
+-- the cost of the spell being cast (CostPrediction.lua).
 local listeners = {}
 
 function ns.PowerBar.OnChanged(func)
@@ -127,7 +143,7 @@ local function UpdateValues(valueInterpolation)
 		fill:SetValue(UnitPower("player", powerType), valueInterpolation)
 	end
 	for _, func in ipairs(listeners) do
-		func(powerType, powerToken)
+		func(powerType, powerToken, valueInterpolation)
 	end
 end
 
@@ -139,9 +155,10 @@ local function UpdatePower()
 		return
 	end
 	powerType, powerToken, artToken = newType, newToken, newToken
-	local atlas, r, g, b = ns.PowerBar.Art(newToken, altR, altG, altB)
+	local atlas
+	atlas, artR, artG, artB = ns.PowerBar.Art(newToken, altR, altG, altB)
 	fill:SetStatusBarTexture(atlas)
-	fill:SetStatusBarColor(r, g, b)
+	ApplyColour()
 	ApplyDeadLook()
 	UpdateValues(Enum.StatusBarInterpolation.Immediate)
 	fill:SetToTargetValue()

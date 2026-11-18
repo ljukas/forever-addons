@@ -1,11 +1,12 @@
 ## Interface: 16001
-## Title: ForeverActionBars
+## Title: |cffd6b380RazzhUI|r Action Bars
 ## Notes: Tints action buttons red while their target is out of range.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
-## Category: Forever Enhanced Addons
 ## X-Category: Action Bars
+## Dependencies: RazzhUI
+## Group: RazzhUI
 #@do-not-package@
 ## OptionalDeps: ForeverDev
 #@end-do-not-package@

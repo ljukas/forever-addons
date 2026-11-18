@@ -7,3 +7,5 @@
 - The experience bar's tooltip lists how many quests are complete, how much XP they give, and where
   you end up.
 - The Well-Rested buff's bonus XP is counted in.
+- ForeverQuests now needs RazzhUI installed, and is switched on or off with its checkbox on the
+  RazzhUI page (Options → AddOns → RazzhUI).

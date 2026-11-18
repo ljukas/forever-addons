@@ -21,3 +21,5 @@
   this version on.
 - The run list is grouped by dungeon or by the level you were when the run started: click the
   Dungeon or Level heading above it, and click again to turn the order.
+- ForeverDungeonXP now needs RazzhUI installed, and is switched on or off with its checkbox on the
+  RazzhUI page (Options → AddOns → RazzhUI).

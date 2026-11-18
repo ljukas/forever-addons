@@ -1,11 +1,12 @@
 ## Interface: 16001
-## Title: ForeverQuests
+## Title: |cffd6b380RazzhUI|r Quests
 ## Notes: Shows on the experience bar where your XP lands after turning in your completed quests.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
-## Category: Forever Enhanced Addons
 ## X-Category: Quests
+## Dependencies: RazzhUI
+## Group: RazzhUI
 #@do-not-package@
 ## OptionalDeps: ForeverDev
 #@end-do-not-package@

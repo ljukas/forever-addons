@@ -71,6 +71,7 @@ files["addons/ForeverBags/**"].globals = {
 
 files["addons/RazzhUI/**"].globals = {
 	"RazzhUI",
+	"RazzhUIDB",
 	"RazzhUI_OnAddonCompartmentClick",
 }
 

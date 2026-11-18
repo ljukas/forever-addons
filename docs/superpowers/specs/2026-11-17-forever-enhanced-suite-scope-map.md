@@ -46,4 +46,5 @@ hiding a Settings category after it was registered.
    bootstrap and migration loop, the Edit Mode glue and one LibEditMode. Each under
    `docs/refactor-workflow.md`.
 
-Deferred, not planned: a first-run module picker, profiles, a slash command, a minimap button.
+Deferred, not planned: a first-run module picker, profiles, a slash command. (A minimap button was
+on this list until 18 November 2026; it became roadmap step 1b.)

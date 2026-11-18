@@ -85,6 +85,10 @@ and layouts can still change freely.
   when it isn't main.
 - The per-addon release (`<Name>-vX.Y.Z` tags, one zip per addon) is replaced by one suite
   release when that step is built.
+- Since roadmap step 1b (18 November 2026) the core has a minimap button and, for its place and
+  whether it is shown, a small SavedVariables table of its own (`RazzhUIDB`). That is not the
+  shared table rejected above: it holds the core's own settings only, and a module's data stays in
+  the module's table.
 - Open until tested in game: that our Esc-menu button leaves Logout, Exit, Macros and Edit Mode
   untainted, and that it sits well beside EllesmereUI's button when both are installed. If it
   can't be made safe, the Addon Compartment entry stays as the way in and this record is amended.

@@ -118,7 +118,7 @@ Expected: no output.
 |---|---|
 | `info.atlasElementName` | `"UI-HUD-UnitFrame-Player-PortraitOn-Bar-" .. info.atlasElementName`, 1, 1, 1 |
 | `info.atlas` | `info.atlas`, 1, 1, 1 |
-| `altR` given | `"UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana-Status"`, `altR, altG, altB` |
+| no `info`, `altR` given | `"UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana-Status"`, `altR, altG, altB` |
 | `info.r` | the same Mana-Status atlas, `info.r, info.g, info.b` |
 | otherwise (nil token, unknown token) | `"UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana"`, 1, 1, 1 |
 

@@ -146,8 +146,9 @@ declares) instead of `PlayerFrame:GetFrameStrata()`, so nothing of the player fr
   1. `atlasElementName` -> atlas `UI-HUD-UnitFrame-Player-PortraitOn-Bar-<name>`, untinted (mana,
      rage, focus, energy, runic power);
   2. else `atlas` -> that atlas, untinted;
-  3. else `UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana-Status` tinted with the colour
-     `UnitPowerType` returns, or the entry's `r, g, b`, or left as mana when there is neither.
+  3. else `UI-HUD-UnitFrame-Player-PortraitOn-Bar-Mana-Status` tinted with the entry's `r, g, b`
+     (Blizzard's bar keeps its last art there), or, for a power the table doesn't know, with the
+     colour `UnitPowerType` returns, as Blizzard's does; with no power at all it looks like mana.
 
   This is a function of its own that takes the token and colours and returns atlas and tint, so a
   reviewer can check it by reading.

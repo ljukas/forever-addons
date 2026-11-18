@@ -74,22 +74,23 @@ local interpolation = Enum.StatusBarInterpolation.ExponentialEaseOut
 
 local ATLAS_PREFIX = "UI-HUD-UnitFrame-Player-PortraitOn-Bar-"
 
--- The fill's art for a power: its atlas and tint. Blizzard's rules for the player frame's bar
--- (UnitFrameManaBar_UpdateType, Blizzard_UnitFrame/Mainline/UnitFrame.lua) over its PowerBarColor
--- table (PowerBarColorUtil.lua): the player-frame atlas of the power, else the power's own atlas,
--- else the plain bar tinted with the colour the client gives for the power or the table's. A power
--- the table doesn't know, or none (powerToken is nil until the client knows the player), looks
--- like mana. Pure.
+-- The fill's art for a power: its atlas and tint, after Blizzard's rules for the player frame's
+-- bar (UnitFrameManaBar_UpdateType, Blizzard_UnitFrame/Mainline/UnitFrame.lua) over its
+-- PowerBarColor table (PowerBarColorUtil.lua): the player-frame atlas of the power, else the
+-- power's own atlas. A power the table knows only a colour for gets the plain bar in that colour
+-- (Blizzard's bar keeps its last art there); one the table doesn't know gets the plain bar in the
+-- colour the client gives for it, as Blizzard's does. No power at all (powerToken is nil until the
+-- client knows the player) looks like mana. Pure.
 function ns.PowerBar.Art(powerToken, altR, altG, altB)
 	local info = powerToken and PowerBarColor[powerToken]
 	if info and info.atlasElementName then
 		return ATLAS_PREFIX .. info.atlasElementName, 1, 1, 1
 	elseif info and info.atlas then
 		return info.atlas, 1, 1, 1
-	elseif altR then
-		return ATLAS_PREFIX .. "Mana-Status", altR, altG, altB
 	elseif info and info.r then
 		return ATLAS_PREFIX .. "Mana-Status", info.r, info.g, info.b
+	elseif powerToken and altR then
+		return ATLAS_PREFIX .. "Mana-Status", altR, altG, altB
 	end
 	return ATLAS_PREFIX .. "Mana", 1, 1, 1
 end

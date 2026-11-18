@@ -61,8 +61,8 @@ EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
 	if type(RazzhUIDB) ~= "table" then
 		RazzhUIDB = {}
 	end
+	ns.DB.Migrate(RazzhUIDB)
 	ns.db = RazzhUIDB
-	ns.DB.Migrate(ns.db)
 
 	for _, func in ipairs(initializers) do
 		func()

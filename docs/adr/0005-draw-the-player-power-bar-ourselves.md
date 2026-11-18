@@ -1,6 +1,6 @@
 # 0005. Draw the player power bar ourselves, in a resource bars module
 
-Date: 2026-11-18. Status: proposed (in-game checks pending). Supersedes decision 1 of
+Date: 2026-11-18. Status: accepted (in-game checks pending). Supersedes decision 1 of
 [ADR 0002](0002-detach-the-player-power-bar-by-reparenting-blizzards-bar.md); its decisions 2 and 3
 are covered below.
 

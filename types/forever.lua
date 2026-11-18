@@ -188,7 +188,14 @@ PlayerFrame = {}
 -- members our addons use.
 ---@class EditModeManagerFrame : Frame
 ---@field IsSnapEnabled fun(self: EditModeManagerFrame): boolean
+---@field CanEnterEditMode fun(self: EditModeManagerFrame): boolean
 EditModeManagerFrame = {}
+
+-- Blizzard_Settings_Shared/Blizzard_SettingsPanel.lua: the Options window. Only the members our
+-- addons use.
+---@class SettingsPanel : Frame
+---@field Close fun(self: SettingsPanel, skipTransitionBackToOpeningPanel: boolean?)
+SettingsPanel = {}
 
 ---@return TargetFrameHealthBarsContainer
 function PlayerFrame_GetHealthBarContainer() end

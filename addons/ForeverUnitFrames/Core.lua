@@ -9,6 +9,7 @@ local ADDON_NAME, ns = ...
 --   POWER           PowerBar.lua
 --   OFFFORM         OffFormPower.lua
 --   SAVE EDITMODE   EditMode.lua
+--   OPTIONS         Options.lua
 --   ART             Dev/ArtProbe.lua
 local function Nop() end
 
@@ -37,6 +38,8 @@ ns.L = {
 	OFF_FORM = "Other Powers",
 	OFF_FORM_DESC = "Show your mana while in a form, and your energy outside Cat Form once you know it, in a row above the bar.",
 	OFF_FORM_HEIGHT = "Other Powers Height",
+	EDIT_MODE = "Edit Mode",
+	EDIT_MODE_TOOLTIP = "Move the power bar and change its size and other settings in Edit Mode.",
 }
 
 -- Modules register setup that needs ForeverUnitFramesDB. It runs in TOC order once the

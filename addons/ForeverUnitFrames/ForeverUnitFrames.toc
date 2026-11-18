@@ -1,13 +1,14 @@
 ## Interface: 16001
-## Title: ForeverUnitFrames
+## Title: |cffd6b380RazzhUI|r Unit Frames
 ## Notes: Moves the player frame's power bar out to a bar you place and size in Edit Mode, and lets the health bar fill the player frame.
 ## Author: ljukas
 ## X-License: MIT
 ## Version: @project-version@
 ## IconTexture: Interface\Icons\Spell_Holy_PowerInfusion
 ## X-Category: Unit Frames
-## Category: Forever Enhanced Addons
 ## SavedVariables: ForeverUnitFramesDB
+## Dependencies: RazzhUI
+## Group: RazzhUI
 #@do-not-package@
 ## OptionalDeps: ForeverDev
 #@end-do-not-package@
@@ -23,6 +24,7 @@ PowerBar.lua
 OffFormPower.lua
 Snap.lua
 EditMode.lua
+Options.lua
 #@do-not-package@
 Dev\ArtProbe.lua
 #@end-do-not-package@

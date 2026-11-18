@@ -6,3 +6,5 @@
 - Druids see their other powers in the same frame, in a thin row above the power bar: mana while in a form, and energy outside Cat Form once you know it. The row slides up and fades in when it appears, and slides back out when it leaves. Turn the row off or set its height in the bar's Edit Mode dialog.
 - Creating a new Edit Mode layout no longer changes where the power bar sits in one of your character-specific layouts.
 - The player frame's health bar grows to fill the space the power bar leaves.
+- ForeverUnitFrames now needs RazzhUI installed, and is switched on or off with its checkbox on the RazzhUI page (Options → AddOns → RazzhUI).
+- A Unit Frames page under Options → AddOns → RazzhUI has a button that opens Edit Mode, where the power bar is moved and set up.

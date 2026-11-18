@@ -1,5 +1,17 @@
 # RazzhUI Modules Implementation Plan
 
+> **Carried out, then superseded in part (18 November 2026).** This is the plan as it was run,
+> with nine addons; it is kept as the record and is not to be run again. After the build, PR #52
+> replaced ForeverUnitFrames with RazzhUIResourceBars and PR #53 removed ForeverActionBars,
+> ForeverCombat and ForeverQuests, so what the tasks below did to those four addons is not in the
+> merged result. What is: Tasks 1 to 3 for ForeverBags, ForeverCombatText, ForeverDungeonXP,
+> ForeverMinimap and ForeverProfessions, Task 3's Edit Mode page carried over to
+> RazzhUIResourceBars (its "Resource Bars" page), and Task 4. The gates now mean that state:
+> seven modules listed and loading (Bags, Combat Text, Dungeon XP, Minimap, Professions, Resource
+> Bars, Tooltip), a page for each module that has options, and Gate C's Edit Mode checks on the
+> Combat Text and Resource Bars pages. The spec has the same note, and the roadmap's step 2 row
+> says which of these were seen in game and which were not.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** The nine released addons that are not yet RazzhUI modules become modules, with their options under Options > AddOns > RazzhUI and no change to anything a player has saved.

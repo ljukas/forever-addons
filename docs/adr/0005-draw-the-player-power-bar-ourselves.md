@@ -30,8 +30,8 @@ clean in game since 12 November 2026.
 2. **The addon never touches Blizzard's player frame.** The health bar growth and the removal of
    Blizzard's mana bar go. A player who still shows Blizzard's player frame sees its mana bar as
    well as ours.
-3. **The addon is renamed ForeverResourceBars** ("RazzhUI Resource Bars"), with its own
-   `ForeverResourceBarsDB`. Nothing was released under the old name.
+3. **The addon is renamed RazzhUIResourceBars** ("RazzhUI Resource Bars"), a RazzhUI module with
+   its own `RazzhUIResourceBarsDB`. Nothing was released under the old name.
 4. **Placement stays with LibEditMode** (ADR 0002, decision 3). The combat gate for layout changes
    (ADR 0002, decision 2) goes: it existed for Blizzard's protected bars, and our frames are not
    protected.

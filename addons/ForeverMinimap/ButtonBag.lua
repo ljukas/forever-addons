@@ -98,6 +98,39 @@ local function Reject(frame, name)
 	return nil, ring
 end
 
+-- For the log (dev only): what a collected frame looks like, so a button another addon hid, faded,
+-- resized, took or dressed up is told from one its own addon hides. `wanted` is what EllesmereUI's
+-- minimap recorded as the shown state the button's addon asked for (nil when it has no record).
+local function LogState(frame, saved)
+	local function Text(value, format)
+		if IsSecret(value) then
+			return "secret"
+		end
+		return format and type(value) == "number" and string.format(format, value) or tostring(value)
+	end
+	local parent = frame:GetParent()
+	local parentName = "other"
+	if IsSecret(parent) then
+		parentName = "secret"
+	elseif parent == container then
+		parentName = "bag"
+	elseif parent then
+		parentName = H.Name(parent) or "unnamed"
+	end
+	local wanted = rawget(_G, "_EBS_AddonVisible")
+	wanted = type(wanted) == "table" and wanted[frame]
+	local state = string.format(
+		"shown %s alpha %s width %s parent %s children %d wanted %s",
+		Text(frame:IsShown()),
+		Text(frame:GetAlpha(), "%.2f"),
+		Text(frame:GetWidth(), "%.1f"),
+		parentName,
+		select("#", frame:GetChildren()),
+		Text(wanted)
+	)
+	ns.dev:LogChanged("state:" .. saved.key, state, "BAG", "state", saved.key, state)
+end
+
 -- Lays the shown collected buttons out along the strip, sorted by label, each SIZE pixels across
 -- times the size setting.
 local function Layout()
@@ -105,6 +138,9 @@ local function Layout()
 	local shown = {}
 	layingOut = true
 	for frame, saved in pairs(collected) do
+		if ns.dev.enabled then
+			LogState(frame, saved)
+		end
 		-- Taken back by its addon (a foreign SetParent): bring it home.
 		if frame:GetParent() ~= container then
 			frame:SetParent(container)
@@ -632,6 +668,13 @@ ns.OnInitialize(function()
 		showAnim:Stop()
 		hideAnim:Stop()
 		WatchIdle(open)
+		-- What the player sees on opening: alpha changes fire none of the hooks Layout runs on.
+		if open and ns.dev.enabled then
+			ns.log("BAG", "open")
+			for frame, saved in pairs(collected) do
+				LogState(frame, saved)
+			end
+		end
 		if open then
 			container:Show()
 			-- Reversed: from faded out beside our button to its place.

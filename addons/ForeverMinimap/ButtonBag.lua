@@ -11,8 +11,9 @@ local ADDON_NAME, ns = ...
 -- and closing the bag hides it through the parent. Its parent, strata, level and scale are saved
 -- and restored when it leaves. Its anchors are those its addon last gave it (recorded while it is
 -- in the bag); a LibDBIcon button is placed by LibDBIcon itself. Blizzard's and protected frames are
--- never touched (Logic/ButtonRules.lua and the checks in Reject). Nothing is moved or hooked while
--- the bag is turned off.
+-- never touched (Logic/ButtonRules.lua and the checks in Reject). No button is moved, and none of
+-- Collect's hooks go in, while the bag is turned off or another addon gathers the buttons
+-- (ButtonBagHelpers' Enabled); the scan still runs then, and only reads.
 ns.ButtonBag = {}
 
 -- A gathered button's size in pixels at 100%, whatever its own (31 is LibDBIcon's and Cinematic's),
@@ -43,9 +44,8 @@ local function LibDBIcon()
 	return LibStub and LibStub("LibDBIcon-1.0", true)
 end
 
-local function Enabled()
-	return ns.Options.Get("showButtonBag")
-end
+-- Off, too, while another addon gathers the buttons (Logic/ButtonBagHelpers.lua).
+local Enabled = H.Enabled
 
 -- The size setting, kept in the slider's range; a hand-edited one that isn't a number reads as 1.
 local function Scale()
@@ -98,11 +98,46 @@ local function Reject(frame, name)
 	return nil, ring
 end
 
+-- For the log (dev only): what a collected frame looks like, so a button another addon hid, faded,
+-- resized, took or dressed up (a child frame added) is told from one its own addon hides.
+local function LogState(frame, saved)
+	local function Text(value, format)
+		if IsSecret(value) then
+			return "secret"
+		end
+		return format and type(value) == "number" and string.format(format, value) or tostring(value)
+	end
+	local parent = frame:GetParent()
+	local parentName = "other"
+	if IsSecret(parent) then
+		parentName = "secret"
+	elseif parent == container then
+		parentName = "bag"
+	elseif parent then
+		parentName = H.Name(parent) or "unnamed"
+	end
+	local state = string.format(
+		"shown %s alpha %s width %s parent %s children %d",
+		Text(frame:IsShown()),
+		Text(frame:GetAlpha(), "%.2f"),
+		Text(frame:GetWidth(), "%.1f"),
+		parentName,
+		select("#", frame:GetChildren())
+	)
+	ns.dev:LogChanged("state:" .. saved.key, state, "BAG", "state", saved.key, state)
+end
+
 -- Lays the shown collected buttons out along the strip, sorted by label, each SIZE pixels across
 -- times the size setting.
 local function Layout()
 	local size = SIZE * Scale()
 	local shown = {}
+	-- Before layingOut is set: an error in the log must not leave the hooks ignoring every move.
+	if ns.dev.enabled then
+		for frame, saved in pairs(collected) do
+			LogState(frame, saved)
+		end
+	end
 	layingOut = true
 	for frame, saved in pairs(collected) do
 		-- Taken back by its addon (a foreign SetParent): bring it home.
@@ -632,6 +667,13 @@ ns.OnInitialize(function()
 		showAnim:Stop()
 		hideAnim:Stop()
 		WatchIdle(open)
+		-- What the player sees on opening: alpha changes fire none of the hooks Layout runs on.
+		if open and ns.dev.enabled then
+			ns.log("BAG", "open")
+			for frame, saved in pairs(collected) do
+				LogState(frame, saved)
+			end
+		end
 		if open then
 			container:Show()
 			-- Reversed: from faded out beside our button to its place.
@@ -652,6 +694,16 @@ ns.OnInitialize(function()
 	events:RegisterEvent("ADDON_LOADED")
 	events:SetScript("OnEvent", function(_, event)
 		if event == "PLAYER_LOGIN" then
+			-- Every addon that loads at startup has by now, one that gathers the buttons itself
+			-- included, whichever of the two loaded first: the bag and its button stand down here.
+			ns.BagButton:Refresh()
+			OnOptionChanged()
+			if ns.dev.enabled then
+				local other = H.OtherCollector()
+				if other then
+					ns.log("BAG", "off", other)
+				end
+			end
 			Scan()
 			-- Some addons make their button a little after login.
 			C_Timer.After(2, Scan)

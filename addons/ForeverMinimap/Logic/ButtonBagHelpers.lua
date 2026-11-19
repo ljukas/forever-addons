@@ -4,6 +4,8 @@ local ADDON_NAME, ns = ...
 -- moving buttons. Unlike the other Logic files these read the client (frames, settings, libraries),
 -- but none of them changes anything.
 --   IsSecret(...)               whether any argument is a secret value
+--   OtherCollector()            the loaded addon that gathers the buttons itself, or nil
+--   Enabled()                   whether the bag gathers: its setting is on and no such addon is loaded
 --   Direction()                 the bag's direction setting, DOWN when hand-edited to something else
 --   Label(name)                 what the ignore menu calls a button
 --   Name(frame)                 the frame's name, nil when it has none or it is secret
@@ -24,6 +26,29 @@ function H.IsSecret(...)
 		end
 	end
 	return false
+end
+
+-- Addons that gather the minimap's addon buttons themselves whenever they are loaded, with no
+-- setting that stops them. Two collectors on the same buttons undo each other: the other one hides
+-- and restyles buttons the bag then shows half of, in the wrong dress. So the bag stands down.
+--   EllesmereUIMinimap  hides every named button on the minimap (and fades it again on each Show),
+--                       and shows them in its own "Addon Buttons" flyout or on its button row,
+--                       resized and with its own backdrop.
+local OTHER_COLLECTORS = { "EllesmereUIMinimap" }
+
+-- Asked each time rather than remembered: one that loads after this addon is first seen later.
+-- An addon that isn't installed is never asked about; what IsAddOnLoaded does then is unverified.
+function H.OtherCollector()
+	for _, name in ipairs(OTHER_COLLECTORS) do
+		if C_AddOns.DoesAddOnExist(name) and C_AddOns.IsAddOnLoaded(name) then
+			return name
+		end
+	end
+	return nil
+end
+
+function H.Enabled()
+	return ns.Options.Get("showButtonBag") and H.OtherCollector() == nil
 end
 
 -- A hand-edited direction outside the four falls back to DOWN.

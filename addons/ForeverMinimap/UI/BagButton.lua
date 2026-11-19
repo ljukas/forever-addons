@@ -148,9 +148,10 @@ function ForeverMinimapBagButtonMixin:OnLeave()
 	GameTooltip:Hide()
 end
 
--- Shown only while the setting is on; turning it off closes the bag.
+-- Shown only while the bag gathers (its setting is on and no other addon gathers the buttons);
+-- turning it off closes the bag.
 function ForeverMinimapBagButtonMixin:Refresh()
-	local show = ns.Options.Get("showButtonBag")
+	local show = ns.ButtonBagHelpers.Enabled()
 	if not show then
 		self:SetOpen(false)
 	end

@@ -4,23 +4,9 @@
 	     the selection bar are the ones Blizzard's own Forever lists use (the character frame's
 	     title list, Camelot/PaperDollFrame.xml). The ScrollBox takes each row's height from here. -->
 
-	<!-- A dungeon's heading in the run list. -->
-	<Frame name="ForeverDungeonXPHeaderTemplate" virtual="true">
-		<Size y="24"/>
-		<Layers>
-			<Layer level="ARTWORK">
-				<FontString parentKey="Text" inherits="GameFontNormal" justifyH="LEFT" wordwrap="false">
-					<Anchors>
-						<Anchor point="BOTTOMLEFT" x="6" y="4"/>
-						<Anchor point="BOTTOMRIGHT" x="-6" y="4"/>
-					</Anchors>
-				</FontString>
-			</Layer>
-		</Layers>
-	</Frame>
-
-	<!-- One run in the run list: its title, then the level it started at and its experience per
-	     hour in two columns. UI/Journal.lua's run list headings use the same widths. -->
+	<!-- One run in the run list: its dungeon, then the day it started, the level it started at and
+	     its experience per hour in three columns, and its totals under them. UI/Journal.lua's run
+	     list headings use the same widths. -->
 	<Button name="ForeverDungeonXPRunTemplate" registerForClicks="LeftButtonUp, RightButtonUp" virtual="true">
 		<Size y="36"/>
 		<Layers>
@@ -40,10 +26,16 @@
 						<Anchor point="TOPRIGHT" relativeKey="$parent.Rate" relativePoint="TOPLEFT"/>
 					</Anchors>
 				</FontString>
+				<FontString parentKey="Date" inherits="GameFontHighlight" justifyH="RIGHT">
+					<Size x="56"/>
+					<Anchors>
+						<Anchor point="TOPRIGHT" relativeKey="$parent.Level" relativePoint="TOPLEFT"/>
+					</Anchors>
+				</FontString>
 				<FontString parentKey="Title" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="false">
 					<Anchors>
 						<Anchor point="TOPLEFT" x="12" y="-5"/>
-						<Anchor point="RIGHT" relativeKey="$parent.Level" relativePoint="LEFT" x="-6"/>
+						<Anchor point="RIGHT" relativeKey="$parent.Date" relativePoint="LEFT" x="-6"/>
 					</Anchors>
 				</FontString>
 				<FontString parentKey="Summary" inherits="GameFontDisableSmall" justifyH="LEFT" wordwrap="false">

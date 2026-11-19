@@ -19,10 +19,10 @@
   time into the run.
   Switch between Creatures and Timeline with the tabs under the journal. Recorded for runs from
   this version on.
-- The run list is grouped by dungeon or by the level you were when the run started: click the
-  Dungeon or Level heading above it, and click again to turn the order.
-- The run list has three columns, Dungeon, Level and XP/h, each under its own heading. Click XP/h
-  to rank every run by its experience per hour, best first, across all dungeons; click again to
-  turn the order. A run's share of a level stands in the line under it.
+- The run list is a table with Dungeon, Date, Level and XP/h columns, newest run first. Click a
+  heading to order every run by that column, such as XP/h to see your best runs across all
+  dungeons; click again to turn the order.
+- Experience per hour leaves out the rested bonus, in the run list and in a run's totals, so
+  rested and unrested runs compare. A rested run shows its rate with the bonus beside it.
 - ForeverDungeonXP now needs RazzhUI installed, and is switched on or off with its checkbox on the
   RazzhUI page (Options → AddOns → RazzhUI).

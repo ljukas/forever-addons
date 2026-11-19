@@ -1,8 +1,8 @@
 local _, ns = ...
 
--- The journal window: one character's runs, or all characters', on the left, grouped by dungeon
--- or by level or ranked by experience per hour (Logic/RunList.lua); the selected run's totals
--- on the right, with its creatures or its timeline (Logic/Timeline.lua) under them, switched by
+-- The journal window: one character's runs, or all characters', on the left, a table ordered by
+-- the column whose heading was clicked (Logic/RunList.lua); the selected run's totals on the
+-- right, with its creatures or its timeline (Logic/Timeline.lua) under them, switched by
 -- Blizzard's panel tabs. Built on first use from Blizzard's own panel pieces (ButtonFrameTemplate
 -- without a portrait as the addon list uses it, InsetFrameTemplate, PanelDragBarTemplate,
 -- WowScrollBoxList, MinimalScrollBar); the rows are in UI/Templates.xml.
@@ -15,8 +15,7 @@ local L = ns.L
 
 local FRAME_NAME = "ForeverDungeonXPFrame"
 local WIDTH, HEIGHT = 850, 470
--- Room beside the two number columns (UI/Templates.xml) for the longest kind of title, a
--- character's name, a dungeon's and a date: "Thrall - Shadowfang Keep - 16 Nov".
+-- Room beside the date, level and rate columns (UI/Templates.xml) for a dungeon's name.
 local LIST_WIDTH = 380
 -- Blizzard's inset offsets for a panel without a portrait (SharedUIPanelTemplates.lua).
 local INSET_LEFT, INSET_TOP, INSET_RIGHT, INSET_BOTTOM = 9, -24, -6, 4
@@ -40,9 +39,9 @@ local sortKey, sortAscending = "xp", false
 -- What the run's lower part shows, for the session: its "creatures" table or its "timeline".
 local detailView = "creatures"
 local VIEWS = { "creatures", "timeline" }
--- The run list's grouping and order (Logic/RunList.lua's keys: "dungeon", "level" or "rate"),
--- for the session: by dungeon, A to Z, until a heading is clicked.
-local runSortKey, runSortAscending = "dungeon", true
+-- The run list's order (Logic/RunList.lua's keys: "dungeon", "date", "level" or "rate"), for
+-- the session: newest first until a heading is clicked.
+local runSortKey, runSortAscending = "date", false
 
 -- Blizzard's own rank art: the nameplates' elite dragons and the target frame's skull.
 local RANK_ATLAS = { elite = "nameplates-icon-elite-gold", rare = "nameplates-icon-elite-silver" }
@@ -84,24 +83,6 @@ local function Entries()
 	return entries
 end
 
--- A run row's first line: whose run it is when all characters are listed, the dungeon when the
--- list's headers aren't dungeons (else the run's number in it), and when it started. The date
--- stands last and is the part cut off if the row is too narrow.
---   one character, by dungeon:   "Run 2 - 12 Nov 21:04"
---   one character, by level:     "Deadmines - 12 Nov 21:04"
---   all characters, by dungeon:  "Thrall - Run 2 - 12 Nov"
---   all characters, by rate:     "Thrall - Deadmines - 12 Nov"
-local function RunTitle(data)
-	local run = data.run
-	local parts = {}
-	if viewAll then
-		table.insert(parts, ClassColored(data.class, ShortName(data.key)))
-	end
-	table.insert(parts, runSortKey == "dungeon" and L.RUN_NUMBER:format(run.number) or run.name)
-	table.insert(parts, date(#parts == 2 and "%d %b" or "%d %b %H:%M", run.firstKill))
-	return table.concat(parts, L.RUN_TITLE_SEPARATOR)
-end
-
 ----------------------------------------------------------------------------------------------
 -- The frame.
 
@@ -113,7 +94,7 @@ local function ScrollToSelected()
 	C_Timer.After(0, function()
 		if frame:IsShown() then
 			frame.RunList:ScrollToElementDataByPredicate(function(data)
-				return data.run ~= nil and data.run.id == selectedID and data.key == selectedKey
+				return data.run.id == selectedID and data.key == selectedKey
 			end, ScrollBoxConstants.AlignCenter, 0, ScrollBoxConstants.NoScrollInterpolation)
 		end
 	end)
@@ -138,33 +119,30 @@ local function OpenRunMenu(owner, key, id)
 	end)
 end
 
-local function InitHeader(row, data)
-	if data.level then
-		row.Text:SetText(
-			data.count == 1 and L.LEVEL_HEADER_ONE:format(data.level) or L.LEVEL_HEADER:format(data.level, data.count)
-		)
-	else
-		row.Text:SetText(
-			(data.count == 1 and L.DUNGEON_HEADER_ONE or L.DUNGEON_HEADER):format(data.dungeon, data.count)
-		)
-	end
-end
-
+-- A run's row, the same whatever the list is ordered by: its columns on the first line (the
+-- dungeon, the day it started, the level it started at and its experience per hour without the
+-- rested bonus), and under them its totals, after whose run it is when all characters are listed.
+--   Shadowfang Keep                16 Nov    22    9,677
+--   Thrall - 13,994 XP (51%) - 120 kills - 31 min
 local function InitRun(row, data)
 	local run = data.run
-	row.Title:SetText(RunTitle(data))
-	-- Saved data isn't checked for a level: a run without one must not throw.
+	-- Saved data is only checked for a run's numbers (Database.lua): a missing or damaged name,
+	-- time or level must not throw.
+	row.Title:SetText(tostring(run.name or ""))
+	row.Date:SetText(type(run.firstKill) == "number" and date("%d %b", run.firstKill) or L.NONE)
 	row.Level:SetText(type(run.level) == "number" and tostring(run.level) or L.NONE)
 	-- A run shorter than a minute has no rate.
 	row.Rate:SetText(data.rate and Number(data.rate) or L.NONE)
-	row.Summary:SetText(
-		L.RUN_SUMMARY:format(
-			Number(run.xp),
-			ns.Format.Share(run.share),
-			Kills(run.kills),
-			ns.Format.Duration(ns.Format.RunSeconds(run))
-		)
+	local summary = L.RUN_SUMMARY:format(
+		Number(run.xp),
+		ns.Format.Share(run.share),
+		Kills(run.kills),
+		ns.Format.Duration(ns.Format.RunSeconds(run))
 	)
+	if viewAll then
+		summary = L.RUN_SUMMARY_OF:format(ClassColored(data.class, ShortName(data.key)), summary)
+	end
+	row.Summary:SetText(summary)
 	row.SelectedBar:SetShown(run.id == selectedID and data.key == selectedKey)
 	row:SetScript("OnClick", function(self, button)
 		if button == "RightButton" then
@@ -255,8 +233,8 @@ local function SortCreatures(key)
 	frame.CreatureList:ScrollToBegin()
 end
 
--- A click on a run list heading: dungeons start A to Z, levels highest first and rates best
--- first; a second click turns the order.
+-- A click on a run list heading: dungeons start A to Z, dates newest first, levels highest
+-- first and rates best first; a second click turns the order.
 local function SortRuns(key)
 	if runSortKey == key then
 		runSortAscending = not runSortAscending
@@ -426,12 +404,8 @@ local function CreateJournal()
 	list:SetPoint("TOPLEFT", INSET_LEFT, INSET_TOP - PICKER_HEIGHT - HEADINGS_HEIGHT)
 	list:SetPoint("BOTTOMLEFT", INSET_LEFT, INSET_BOTTOM)
 	list:SetWidth(LIST_WIDTH)
-	frame.RunList = CreateList(list, -4, function(factory, data)
-		if data.header then
-			factory("ForeverDungeonXPHeaderTemplate", InitHeader)
-		else
-			factory("ForeverDungeonXPRunTemplate", InitRun)
-		end
+	frame.RunList = CreateList(list, -4, function(factory)
+		factory("ForeverDungeonXPRunTemplate", InitRun)
 	end)
 
 	-- Both lists' column headings rest on their inset's top edge, across its whole width (over
@@ -440,9 +414,9 @@ local function CreateJournal()
 	-- (CreateList), their numbers 8 in from each column's right edge (UI/Templates.xml).
 	local OVERLAP, ROW_LEFT, ROW_RIGHT = 2, 4, 20
 
-	-- The run list's headings, each over its column in the run rows: the dungeon (and so the
-	-- run's title), the level the run started at and its experience per hour. A click orders
-	-- the list by that column: grouped by dungeon or by level, or every run by its rate.
+	-- The run list's headings, each over its column in the run rows: the dungeon, the day the
+	-- run started, the level it started at and its experience per hour. A click orders the
+	-- list by that column.
 	local function RunHeading(text, key, justify, offset)
 		local heading = CreateHeading(frame, text, key, justify, offset, SortRuns)
 		heading:SetFrameLevel(list:GetFrameLevel() + 1)
@@ -454,11 +428,14 @@ local function CreateJournal()
 	local byLevel = RunHeading(L.COLUMN_LEVEL, "level", "RIGHT", -(OVERLAP + 8))
 	byLevel:SetPoint("BOTTOMRIGHT", byRate, "BOTTOMLEFT", OVERLAP, 0)
 	byLevel:SetWidth(54 + OVERLAP)
-	-- Over the runs' titles, 12 in from the rows' left.
+	local byDate = RunHeading(L.COLUMN_DATE, "date", "RIGHT", -(OVERLAP + 8))
+	byDate:SetPoint("BOTTOMRIGHT", byLevel, "BOTTOMLEFT", OVERLAP, 0)
+	byDate:SetWidth(56 + OVERLAP)
+	-- Over the dungeons' names, 12 in from the rows' left.
 	local byDungeon = RunHeading(L.COLUMN_DUNGEON, "dungeon", "LEFT", ROW_LEFT + 12)
 	byDungeon:SetPoint("BOTTOMLEFT", list, "TOPLEFT", 0, -2)
-	byDungeon:SetPoint("BOTTOMRIGHT", byLevel, "BOTTOMLEFT", OVERLAP, 0)
-	frame.RunHeadings = { byDungeon, byLevel, byRate }
+	byDungeon:SetPoint("BOTTOMRIGHT", byDate, "BOTTOMLEFT", OVERLAP, 0)
+	frame.RunHeadings = { byDungeon, byDate, byLevel, byRate }
 
 	-- The run beside the list, laid out as Blizzard's rosters are (the communities member
 	-- list): the title and totals on the panel's own background, and an inset for the creature
@@ -612,25 +589,25 @@ local function ShowRun(run, class)
 	content.Party.members = members
 	content.Party.Text:SetText(#names > 0 and L.PARTY:format(table.concat(names, ", ")) or "")
 	content.Party:SetShown(#names > 0)
-	local seconds = ns.Format.RunSeconds(run)
-	local perHour = ns.Format.PerHour(run.xp, seconds)
+	-- The hourly rate leaves the rested bonus out, as the run list's does, so runs compare.
+	local perHour = ns.Format.Rate(run)
 	local values = {
 		Number(run.xp),
 		ns.Format.Share(run.share),
 		Number(run.kills),
-		ns.Format.Duration(seconds),
+		ns.Format.Duration(ns.Format.RunSeconds(run)),
 		perHour and Number(perHour) or L.NONE,
 	}
 	-- With rested experience among the kills: how much of the total it was, and the hourly
-	-- rate the run would have had without it.
+	-- rate the run had with it.
 	local rested = run.rested or 0
-	local unrestedPerHour = rested > 0 and ns.Format.PerHour(run.xp - rested, seconds)
+	local withRested = rested > 0 and ns.Format.RateWithRested(run)
 	local subs = {
 		rested > 0 and L.STAT_RESTED:format(Number(rested)) or "",
 		"",
 		"",
 		"",
-		unrestedPerHour and L.STAT_UNRESTED:format(Number(unrestedPerHour)) or "",
+		withRested and L.STAT_WITH_RESTED:format(Number(withRested)) or "",
 	}
 	for index, value in ipairs(values) do
 		content.Stats[index].Value:SetText(value)
@@ -675,16 +652,14 @@ function Refresh()
 	local recordingKey = ns.CharacterKey()
 	local selected, current, newest
 	for _, row in ipairs(rows) do
-		if row.run then
-			if row.run.id == selectedID and row.key == selectedKey then
-				selected = row
-			end
-			if recording and row.run.id == recording.id and row.key == recordingKey then
-				current = row
-			end
-			if not newest or (row.run.firstKill or 0) > (newest.run.firstKill or 0) then
-				newest = row
-			end
+		if row.run.id == selectedID and row.key == selectedKey then
+			selected = row
+		end
+		if recording and row.run.id == recording.id and row.key == recordingKey then
+			current = row
+		end
+		if not newest or (row.run.firstKill or 0) > (newest.run.firstKill or 0) then
+			newest = row
 		end
 	end
 	selected = selected or current or newest

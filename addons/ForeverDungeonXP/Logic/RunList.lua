@@ -22,8 +22,11 @@ local function Newer(a, b)
 end
 
 -- What each column orders the runs by; nil for a run without it (or with a damaged field).
--- "date" has none: it is Newer's own order.
 local VALUE = {
+	date = function(entry)
+		local time = entry.run.firstKill
+		return type(time) == "number" and time or nil
+	end,
 	dungeon = function(entry)
 		local name = entry.run.name
 		return type(name) == "string" and name or nil
@@ -45,7 +48,8 @@ local VALUE = {
 --     when it started) or "rate" (its experience per hour, ns.Format.Rate)
 --   ascending: oldest, A to Z or lowest first; else the reverse
 -- Runs alike in the column go newest first whichever way the order goes, and a run without the
--- column's value (a rate for a run shorter than a minute) stands last whichever way it goes.
+-- column's value (a rate for a run shorter than a minute, a date for a run with a damaged time)
+-- stands last whichever way it goes.
 -- Returns the entries themselves, each with rate (nil for a run without one) added.
 --   rates 12843, none, 27085, by "rate" descending -> 27085, 12843, none (and ascending:
 --   12843, 27085, none)
@@ -59,14 +63,8 @@ function ns.RunList.Rows(entries, sortKey, ascending)
 			table.insert(rows, entry)
 		end
 	end
-	local value = VALUE[sortKey]
+	local value = VALUE[sortKey] or VALUE.date
 	table.sort(rows, function(a, b)
-		if not value then
-			if ascending then
-				return Newer(b, a)
-			end
-			return Newer(a, b)
-		end
 		local aValue, bValue = value(a), value(b)
 		if aValue == bValue then
 			return Newer(a, b)

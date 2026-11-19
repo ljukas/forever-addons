@@ -14,20 +14,20 @@
 				<Texture parentKey="SelectedBar" file="Interface\FriendsFrame\UI-FriendsFrame-HighlightBar" alpha="0.4" alphaMode="ADD" setAllPoints="true" hidden="true"/>
 			</Layer>
 			<Layer level="ARTWORK">
-				<FontString parentKey="Rate" inherits="GameFontHighlight" justifyH="RIGHT">
+				<FontString parentKey="Rate" inherits="GameFontHighlight" justifyH="RIGHT" wordwrap="false">
 					<Size x="62"/>
 					<Anchors>
 						<Anchor point="TOPRIGHT" x="-8" y="-5"/>
 					</Anchors>
 				</FontString>
-				<FontString parentKey="Level" inherits="GameFontHighlight" justifyH="RIGHT">
+				<FontString parentKey="Level" inherits="GameFontHighlight" justifyH="RIGHT" wordwrap="false">
 					<Size x="54"/>
 					<Anchors>
 						<Anchor point="TOPRIGHT" relativeKey="$parent.Rate" relativePoint="TOPLEFT"/>
 					</Anchors>
 				</FontString>
-				<FontString parentKey="Date" inherits="GameFontHighlight" justifyH="RIGHT">
-					<Size x="56"/>
+				<FontString parentKey="Date" inherits="GameFontHighlight" justifyH="RIGHT" wordwrap="false">
+					<Size x="50"/>
 					<Anchors>
 						<Anchor point="TOPRIGHT" relativeKey="$parent.Level" relativePoint="TOPLEFT"/>
 					</Anchors>

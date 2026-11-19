@@ -52,8 +52,9 @@ end
 -- recorded before the rested bonus was kept has none to leave out.
 --   13994 XP, 8994 of it rested, in 31 minutes -> 9677        9418 XP in 44 minutes -> 12843
 function ns.Format.Rate(run)
-	local rested = type(run.rested) == "number" and run.rested or 0
-	return ns.Format.PerHour(math.max(0, run.xp - rested), ns.Format.RunSeconds(run))
+	-- Kept between none and all of the experience: a damaged figure must not raise the rate.
+	local rested = type(run.rested) == "number" and math.min(math.max(0, run.rested), run.xp) or 0
+	return ns.Format.PerHour(run.xp - rested, ns.Format.RunSeconds(run))
 end
 
 -- The same with the rested bonus in it: what the run paid.

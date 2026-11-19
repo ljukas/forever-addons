@@ -430,7 +430,7 @@ local function CreateJournal()
 	byLevel:SetWidth(54 + OVERLAP)
 	local byDate = RunHeading(L.COLUMN_DATE, "date", "RIGHT", -(OVERLAP + 8))
 	byDate:SetPoint("BOTTOMRIGHT", byLevel, "BOTTOMLEFT", OVERLAP, 0)
-	byDate:SetWidth(56 + OVERLAP)
+	byDate:SetWidth(50 + OVERLAP)
 	-- Over the dungeons' names, 12 in from the rows' left.
 	local byDungeon = RunHeading(L.COLUMN_DUNGEON, "dungeon", "LEFT", ROW_LEFT + 12)
 	byDungeon:SetPoint("BOTTOMLEFT", list, "TOPLEFT", 0, -2)
@@ -599,15 +599,16 @@ local function ShowRun(run, class)
 		perHour and Number(perHour) or L.NONE,
 	}
 	-- With rested experience among the kills: how much of the total it was, and the hourly
-	-- rate the run had with it.
+	-- rate the run had with it (left out when so little was rested that the two round alike).
 	local rested = run.rested or 0
-	local withRested = rested > 0 and ns.Format.RateWithRested(run)
+	local withRested = rested > 0 and ns.Format.RateWithRested(run) or nil
+	local showWithRested = withRested ~= nil and withRested ~= perHour
 	local subs = {
 		rested > 0 and L.STAT_RESTED:format(Number(rested)) or "",
 		"",
 		"",
 		"",
-		withRested and L.STAT_WITH_RESTED:format(Number(withRested)) or "",
+		showWithRested and L.STAT_WITH_RESTED:format(Number(withRested)) or "",
 	}
 	for index, value in ipairs(values) do
 		content.Stats[index].Value:SetText(value)

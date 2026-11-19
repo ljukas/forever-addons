@@ -1,7 +1,8 @@
 local _, ns = ...
 
--- The journal window: one character's runs, or all characters', grouped by dungeon or by level
--- on the left (Logic/RunList.lua), the selected run's totals on the right, with its creatures
+-- The journal window: one character's runs, or all characters', on the left, grouped by dungeon
+-- or by level or ranked by experience per hour (Logic/RunList.lua); the selected run's totals
+-- on the right, with its creatures
 -- or its timeline (Logic/Timeline.lua) under them, switched by Blizzard's panel tabs. Built on
 -- first use from Blizzard's own panel pieces (ButtonFrameTemplate without a portrait as the addon list uses it, InsetFrameTemplate,
 -- PanelDragBarTemplate, WowScrollBoxList, MinimalScrollBar); the rows are in UI/Templates.xml.
@@ -13,8 +14,9 @@ ns.Journal = {}
 local L = ns.L
 
 local FRAME_NAME = "ForeverDungeonXPFrame"
-local WIDTH, HEIGHT = 720, 470
-local LIST_WIDTH = 250
+local WIDTH, HEIGHT = 790, 470
+-- Room for a run's title beside its two number columns (UI/Templates.xml).
+local LIST_WIDTH = 320
 -- Blizzard's inset offsets for a panel without a portrait (SharedUIPanelTemplates.lua).
 local INSET_LEFT, INSET_TOP, INSET_RIGHT, INSET_BOTTOM = 9, -24, -6, 4
 local INSET_GAP = 4
@@ -37,8 +39,8 @@ local sortKey, sortAscending = "xp", false
 -- What the run's lower part shows, for the session: its "creatures" table or its "timeline".
 local detailView = "creatures"
 local VIEWS = { "creatures", "timeline" }
--- The run list's grouping and order (Logic/RunList.lua's keys), for the session: by dungeon,
--- A to Z, until a heading is clicked.
+-- The run list's grouping and order (Logic/RunList.lua's keys: "dungeon", "level" or "rate"),
+-- for the session: by dungeon, A to Z, until a heading is clicked.
 local runSortKey, runSortAscending = "dungeon", true
 
 -- Blizzard's own rank art: the nameplates' elite dragons and the target frame's skull.
@@ -87,6 +89,7 @@ end
 --   one character, by dungeon:   "Run 2 - 12 Nov 21:04"
 --   one character, by level:     "Deadmines - 12 Nov 21:04"
 --   all characters, by dungeon:  "Thrall - Run 2 - 12 Nov"
+--   all characters, by rate:     "Thrall - Deadmines - 12 Nov"
 local function RunTitle(data)
 	local run = data.run
 	local parts = {}
@@ -149,9 +152,17 @@ end
 local function InitRun(row, data)
 	local run = data.run
 	row.Title:SetText(RunTitle(data))
-	row.Share:SetText(ns.Format.Share(run.share))
+	-- Saved data isn't checked for a level: a run without one must not throw.
+	row.Level:SetText(type(run.level) == "number" and tostring(run.level) or L.NONE)
+	-- A run shorter than a minute has no rate.
+	row.Rate:SetText(data.rate and Number(data.rate) or L.NONE)
 	row.Summary:SetText(
-		L.RUN_SUMMARY:format(Number(run.xp), Kills(run.kills), ns.Format.Duration(ns.Format.RunSeconds(run)))
+		L.RUN_SUMMARY:format(
+			Number(run.xp),
+			ns.Format.Share(run.share),
+			Kills(run.kills),
+			ns.Format.Duration(ns.Format.RunSeconds(run))
+		)
 	)
 	row.SelectedBar:SetShown(run.id == selectedID and data.key == selectedKey)
 	row:SetScript("OnClick", function(self, button)
@@ -243,7 +254,8 @@ local function SortCreatures(key)
 	frame.CreatureList:ScrollToBegin()
 end
 
--- A click on a run list heading: dungeons start A to Z, levels highest first.
+-- A click on a run list heading: dungeons start A to Z, levels highest first and rates best
+-- first; a second click turns the order.
 local function SortRuns(key)
 	if runSortKey == key then
 		runSortAscending = not runSortAscending
@@ -252,6 +264,10 @@ local function SortRuns(key)
 	end
 	Refresh()
 	frame.RunList:ScrollToBegin()
+	if ns.dev.enabled then
+		local rows = frame.RunList:GetDataProvider():GetSize()
+		ns.log("UI", "sort", runSortKey, runSortAscending and "ascending" or "descending", "rows", rows)
+	end
 end
 
 -- Shows the sort arrow on the heading a list is sorted by.
@@ -417,17 +433,30 @@ local function CreateJournal()
 		end
 	end)
 
-	-- The run list's headings, resting on its inset as the creature table's do: what the runs
-	-- are grouped by, and in which order.
-	local byLevel = CreateHeading(frame, L.COLUMN_LEVEL, "level", "RIGHT", -28, SortRuns)
-	byLevel:SetFrameLevel(list:GetFrameLevel() + 1)
-	byLevel:SetPoint("BOTTOMRIGHT", list, "TOPRIGHT", 0, -2)
-	byLevel:SetWidth(90)
-	local byDungeon = CreateHeading(frame, L.COLUMN_DUNGEON, "dungeon", "LEFT", 10, SortRuns)
-	byDungeon:SetFrameLevel(list:GetFrameLevel() + 1)
+	-- Both lists' column headings rest on their inset's top edge, across its whole width (over
+	-- the scroll bar too), each overlapping the next by OVERLAP as ColumnDisplayMixin lays them
+	-- out. The rows start ROW_LEFT in from the inset's left and end ROW_RIGHT in from its right
+	-- (CreateList), their numbers 8 in from each column's right edge (UI/Templates.xml).
+	local OVERLAP, ROW_LEFT, ROW_RIGHT = 2, 4, 20
+
+	-- The run list's headings, each over its column in the run rows: the dungeon (and so the
+	-- run's title), the level the run started at and its experience per hour. A click orders
+	-- the list by that column: grouped by dungeon or by level, or every run by its rate.
+	local function RunHeading(text, key, justify, offset)
+		local heading = CreateHeading(frame, text, key, justify, offset, SortRuns)
+		heading:SetFrameLevel(list:GetFrameLevel() + 1)
+		return heading
+	end
+	local byRate = RunHeading(L.COLUMN_RATE, "rate", "RIGHT", -(ROW_RIGHT + 8))
+	byRate:SetPoint("BOTTOMRIGHT", list, "TOPRIGHT", 0, -2)
+	byRate:SetWidth(62 + ROW_RIGHT)
+	local byLevel = RunHeading(L.COLUMN_LEVEL, "level", "RIGHT", -(OVERLAP + 8))
+	byLevel:SetPoint("BOTTOMRIGHT", byRate, "BOTTOMLEFT", OVERLAP, 0)
+	byLevel:SetWidth(58 + OVERLAP)
+	local byDungeon = RunHeading(L.COLUMN_DUNGEON, "dungeon", "LEFT", 10)
 	byDungeon:SetPoint("BOTTOMLEFT", list, "TOPLEFT", 0, -2)
-	byDungeon:SetPoint("BOTTOMRIGHT", byLevel, "BOTTOMLEFT", 2, 0)
-	frame.RunHeadings = { byDungeon, byLevel }
+	byDungeon:SetPoint("BOTTOMRIGHT", byLevel, "BOTTOMLEFT", OVERLAP, 0)
+	frame.RunHeadings = { byDungeon, byLevel, byRate }
 
 	-- The run beside the list, laid out as Blizzard's rosters are (the communities member
 	-- list): the title and totals on the panel's own background, and an inset for the creature
@@ -497,12 +526,8 @@ local function CreateJournal()
 		factory("ForeverDungeonXPEventTemplate", InitEvent)
 	end)
 
-	-- Column headings on the inset's top edge, across its whole width (over the scroll bar
-	-- too), each overlapping the next by OVERLAP as ColumnDisplayMixin lays them out. The
-	-- offsets put each label over its column in the rows (UI/Templates.xml): the rows start
-	-- 4 in from the inset's left and end 20 in from its right (CreateList), their numbers 8
-	-- in from each column's right edge, their names 26 in from the left.
-	local OVERLAP, ROW_LEFT, ROW_RIGHT = 2, 4, 20
+	-- The creature table's headings, laid out as the run list's are. The offsets put each label
+	-- over its column in the rows (UI/Templates.xml), the names 26 in from the rows' left.
 	local function Heading(text, key, justify, offset)
 		local heading = CreateHeading(content, text, key, justify, offset, SortCreatures)
 		heading:SetFrameLevel(rows:GetFrameLevel() + 1)

@@ -2,12 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** The journal's run list gets three headings that name their columns, `Dungeon | Level |
-XP/h`, and a click on `XP/h` ranks every listed run by experience per hour in one flat list.
+**Goal:** The journal's run list becomes one table whose headings name their columns, `Dungeon |
+Date | Level | XP/h`, and a click on a heading orders every listed run by that column: `XP/h`
+gives the best runs across all dungeons.
 
-**Architecture:** The ordering stays in the pure `Logic/RunList.lua`, which takes a third sort key
-(`"rate"`) and puts each run's rate on its row. `UI/Journal.lua` adds the heading and fills two
-number columns in the run row (`UI/Templates.xml`). Nothing saved changes.
+**Architecture:** The ordering stays in the pure `Logic/RunList.lua`, which orders the runs by
+one of four keys and puts each run's rate on its row. `UI/Journal.lua` has the headings and fills
+the columns in the run row (`UI/Templates.xml`). Nothing saved changes. Tasks 1 and 2 built a
+first design that Task 3 replaced after the in-game test; where they differ, Task 3 and the
+spec's Design section hold.
 
 **Tech Stack:** Lua 5.1 on the Forever client (interface 16001), Blizzard's
 `ColumnDisplayButtonNoScriptsTemplate` and ScrollBox, already used by the journal. No automated
@@ -26,8 +29,8 @@ One PR: `feat(foreverdungeonxp): rank the run list by experience per hour`.
 - Strings in `ns.L` (`Strings.lua`), plain ASCII.
 - Logging through `ns.log` with the existing tag `UI`; work done only for a log line goes inside
   `if ns.dev.enabled then`.
-- The rate is one number everywhere: `ns.Format.PerHour(run.xp, ns.Format.RunSeconds(run))`,
-  rested bonus included, nil for a run shorter than a minute.
+- The rate is one number everywhere, `ns.Format.Rate(run)`: without the rested bonus (since
+  Task 3), nil for a run shorter than a minute.
 - After every task: `stylua addons template types` and `scripts/lint.sh` clean, then one commit
   with `git add <paths>` and `git branch --show-current` in the same command.
 
@@ -42,8 +45,9 @@ One PR: `feat(foreverdungeonxp): rank the run list by experience per hour`.
    throw.
 4. **The run being recorded** in the flat list: its rate changes with every kill, so the list
    reorders while open. The selection must stay on the same run.
-5. **Labels over columns:** each heading's label must stand over its column's numbers. The offsets
-   in Task 2 are derived from the row template's anchors; a change to one needs the other.
+5. **Labels over columns:** each heading's label must stand over its column's numbers. The
+   heading widths and offsets in `UI/Journal.lua` are derived from the row template's anchors; a
+   change to one needs the other.
 
 ---
 
@@ -169,11 +173,11 @@ first two built where they differ.
   rested, in 31 minutes gives 9677; with rested 27085) and damaged names, levels and times. Run
   it and see it fail.
 - [ ] **Step 2: The logic.** One comparator over a table of per-column values.
-- [ ] **Step 3: The row.** A `Date` font string (width 56) left of `Level`; the title is the
+- [ ] **Step 3: The row.** A `Date` font string (width 50) left of `Level`; the title is the
   dungeon's name; the grey line starts with the character's class-coloured name when all
   characters are listed (`L.RUN_SUMMARY_OF`). The header row template, `InitHeader`, `RunTitle`
   and their strings go.
-- [ ] **Step 4: The headings.** A fourth, `L.COLUMN_DATE`, key `"date"`, width `56 + OVERLAP`,
+- [ ] **Step 4: The headings.** A fourth, `L.COLUMN_DATE`, key `"date"`, width `50 + OVERLAP`,
   between Dungeon and Level. The list opens by `"date"`, descending.
 - [ ] **Step 5: The run's side.** "XP per hour" is `ns.Format.Rate`; a rested run's small line
   is `L.STAT_WITH_RESTED` with `ns.Format.RateWithRested`.
@@ -200,6 +204,6 @@ No value here can be secret: every number comes from saved runs. The game shows 
 | Labels over columns | by eye, all four orders | each label over its column, arrow inside its heading |
 | Rows keep their shape | click each heading | only the order changes |
 | XP/h order is right | click XP/h, select runs top to bottom | the right side's "XP per hour" falls, and equals the row's number |
-| Rested runs | select a run with rested experience | its row's rate is lower than the "with rested" line on the right |
+| Rested runs | select a run with rested experience | its row's rate is lower than the "rested" line under "XP per hour" on the right |
 | All characters | pick "All characters" | the name starts the grey line in its class colour |
 | Window width | by eye | 850 wide sits well; else tune `WIDTH` / `LIST_WIDTH` |

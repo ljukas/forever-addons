@@ -80,17 +80,19 @@ directions *(my call: a turned order then doesn't also flip the runs inside a du
 `ns.Format.Rate` is kill experience minus the rested bonus, over the time from first to last
 kill. It is the number in the list, the number the list is ordered by, and the big "XP per hour"
 on the right. A rested run shows its rate with the bonus as the small line under that
-("27,085 with rested"). A run recorded before the rested bonus was kept has no figure to leave
+("27,085 rested"; the step's review found "with rested" too wide for its place), unless the two
+round to the same number. A run recorded before the rested bonus was kept has no figure to leave
 out, so its whole rate counts as unrested; nothing saved can correct that.
 
 **Runs without a value.** A run shorter than a minute has no rate (`ns.Format.PerHour` returns
 nil, so one pack doesn't read as millions per hour). It shows "-" and stands last in the XP/h
-order in both directions *(my call)*. The same goes for a damaged run without a name or level in
-those columns' orders.
+order in both directions *(my call)*. The same goes for a damaged run without a name, level or
+start time in those columns' orders.
 
 **Width.** The list is 380 wide and the window 850 (from 250 and 720), so the run's side keeps
 its width *(my call; seen in game by the user on 2026-11-19 without objection)*. The columns
-take 56 (date), 54 (level) and 62 (XP/h), which leaves the dungeon's name 158. The character
+take 50 (date), 54 (level) and 62 (XP/h), which leaves the dungeon's name 164: room for the
+longest, "The Temple of Atal'Hakkar", at about 160. The character
 dropdown above the list is as wide as the list.
 
 ## In-game checks

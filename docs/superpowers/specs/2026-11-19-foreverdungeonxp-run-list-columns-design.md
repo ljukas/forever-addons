@@ -1,7 +1,7 @@
 # ForeverDungeonXP: run list columns and an XP per hour order
 
 Date: 2026-11-19. One step, one PR.
-Working PR title: `feat(foreverdungeonxp): rank the run list by experience per hour`.
+PR title: `feat(foreverdungeonxp): make the run list a sortable table`.
 
 ## Intent
 

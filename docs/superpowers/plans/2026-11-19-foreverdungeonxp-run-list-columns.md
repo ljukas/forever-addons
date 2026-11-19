@@ -19,7 +19,7 @@ rest with `scripts/lint.sh` and in game.
 
 **Spec:** `docs/superpowers/specs/2026-11-19-foreverdungeonxp-run-list-columns-design.md`
 
-One PR: `feat(foreverdungeonxp): rank the run list by experience per hour`.
+One PR: `feat(foreverdungeonxp): make the run list a sortable table`.
 
 ## Global Constraints
 

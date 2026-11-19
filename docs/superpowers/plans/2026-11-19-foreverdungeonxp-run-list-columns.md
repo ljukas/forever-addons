@@ -112,24 +112,24 @@ One PR: `feat(foreverdungeonxp): rank the run list by experience per hour`.
 - [ ] **Step 2: The run row** (`ForeverDungeonXPRunTemplate`). Replace `Share` with two
   right-justified `GameFontHighlight` font strings on the title's line:
   - `Rate`: width 62, `TOPRIGHT` at x -8, y -5.
-  - `Level`: width 58, its `TOPRIGHT` on `Rate`'s `TOPLEFT`.
+  - `Level`: width 54, its `TOPRIGHT` on `Rate`'s `TOPLEFT`.
   - `Title` ends 6 left of `Level`.
 
   The template's comment says the headings in `UI/Journal.lua` use the same widths.
 
-- [ ] **Step 3: The window.** `WIDTH = 790`, `LIST_WIDTH = 320` (the spec's 770 and 300 left the
-  title 20 short once the Level heading had room for its label and arrow; the run's side keeps its
-  451).
+- [ ] **Step 3: The window.** `WIDTH = 850`, `LIST_WIDTH = 380`: the title gets 214, enough for
+  "Bengan - Shadowfang Keep - 16 Nov" at about 211, and the run's side keeps its 451. (First
+  built at 790 and 320, which the step's review found too narrow for the flat list's titles.)
 
 - [ ] **Step 4: The headings.** Move `OVERLAP, ROW_LEFT, ROW_RIGHT = 2, 4, 20` above the run
   list's headings so both lists use them. Three headings through `CreateHeading(..., SortRuns)`,
   right to left:
   - `L.COLUMN_RATE`, key `"rate"`, `"RIGHT"`, offset `-(ROW_RIGHT + 8)`; width `62 + ROW_RIGHT`;
     its `BOTTOMRIGHT` on the list's `TOPRIGHT` at 0, -2.
-  - `L.COLUMN_LEVEL`, key `"level"`, `"RIGHT"`, offset `-(OVERLAP + 8)`; width `58 + OVERLAP`;
+  - `L.COLUMN_LEVEL`, key `"level"`, `"RIGHT"`, offset `-(OVERLAP + 8)`; width `54 + OVERLAP`;
     its `BOTTOMRIGHT` on the rate heading's `BOTTOMLEFT` at `OVERLAP`, 0.
-  - `L.COLUMN_DUNGEON`, key `"dungeon"`, as today, ending on the level heading's `BOTTOMLEFT` at
-    `OVERLAP`, 0.
+  - `L.COLUMN_DUNGEON`, key `"dungeon"`, `"LEFT"`, offset `ROW_LEFT + 12` (over the titles),
+    ending on the level heading's `BOTTOMLEFT` at `OVERLAP`, 0.
 
   `frame.RunHeadings` holds all three.
 
@@ -165,4 +165,4 @@ No value here can be secret: every number comes from saved runs. The game shows 
 | Labels over columns | by eye, all three orders | "Level" over the levels, "XP/h" over the rates, arrow inside its heading |
 | Flat order is right | click XP/h, select runs top to bottom | the right side's "XP per hour" falls, and equals the row's number |
 | Titles fit | "All characters", XP/h order | the name and dungeon readable; only the date cut |
-| Window width | by eye | 790 wide sits well; else tune `WIDTH` / `LIST_WIDTH` |
+| Window width | by eye | 850 wide sits well; else tune `WIDTH` / `LIST_WIDTH` |

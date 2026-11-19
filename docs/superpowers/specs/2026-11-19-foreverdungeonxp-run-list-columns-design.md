@@ -69,8 +69,11 @@ nil, so one pack doesn't read as millions per hour). It shows "-" and stands las
 list in both directions *(my call)*. Runs with the same rate go newest first.
 
 **Width.** Two number columns don't fit beside the title in the list's 250 pixels. The list
-grows to 300 and the window from 720 to 770, so the run's side keeps its width *(my call; the
-numbers are to be judged in game)*.
+grows to 380 and the window from 720 to 850, so the run's side keeps its width *(my call; the
+numbers are to be judged in game)*. First written as 300 and 770; the step's review worked out
+that the flat list's longest kind of title, "Bengan - Shadowfang Keep - 16 Nov", needs about 211
+pixels, which the columns (62 for XP/h, 54 for Level) leave only at 380. The character dropdown
+above the list is as wide as the list.
 
 ## Left to the builder
 

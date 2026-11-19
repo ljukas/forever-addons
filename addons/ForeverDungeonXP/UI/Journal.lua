@@ -2,10 +2,10 @@ local _, ns = ...
 
 -- The journal window: one character's runs, or all characters', on the left, grouped by dungeon
 -- or by level or ranked by experience per hour (Logic/RunList.lua); the selected run's totals
--- on the right, with its creatures
--- or its timeline (Logic/Timeline.lua) under them, switched by Blizzard's panel tabs. Built on
--- first use from Blizzard's own panel pieces (ButtonFrameTemplate without a portrait as the addon list uses it, InsetFrameTemplate,
--- PanelDragBarTemplate, WowScrollBoxList, MinimalScrollBar); the rows are in UI/Templates.xml.
+-- on the right, with its creatures or its timeline (Logic/Timeline.lua) under them, switched by
+-- Blizzard's panel tabs. Built on first use from Blizzard's own panel pieces (ButtonFrameTemplate
+-- without a portrait as the addon list uses it, InsetFrameTemplate, PanelDragBarTemplate,
+-- WowScrollBoxList, MinimalScrollBar); the rows are in UI/Templates.xml.
 -- It holds no secure frames, so it opens and closes in combat with plain Show and Hide, and
 -- Escape closes it through UISpecialFrames.
 
@@ -14,9 +14,10 @@ ns.Journal = {}
 local L = ns.L
 
 local FRAME_NAME = "ForeverDungeonXPFrame"
-local WIDTH, HEIGHT = 790, 470
--- Room for a run's title beside its two number columns (UI/Templates.xml).
-local LIST_WIDTH = 320
+local WIDTH, HEIGHT = 850, 470
+-- Room beside the two number columns (UI/Templates.xml) for the longest kind of title, a
+-- character's name, a dungeon's and a date: "Thrall - Shadowfang Keep - 16 Nov".
+local LIST_WIDTH = 380
 -- Blizzard's inset offsets for a panel without a portrait (SharedUIPanelTemplates.lua).
 local INSET_LEFT, INSET_TOP, INSET_RIGHT, INSET_BOTTOM = 9, -24, -6, 4
 local INSET_GAP = 4
@@ -452,8 +453,9 @@ local function CreateJournal()
 	byRate:SetWidth(62 + ROW_RIGHT)
 	local byLevel = RunHeading(L.COLUMN_LEVEL, "level", "RIGHT", -(OVERLAP + 8))
 	byLevel:SetPoint("BOTTOMRIGHT", byRate, "BOTTOMLEFT", OVERLAP, 0)
-	byLevel:SetWidth(58 + OVERLAP)
-	local byDungeon = RunHeading(L.COLUMN_DUNGEON, "dungeon", "LEFT", 10)
+	byLevel:SetWidth(54 + OVERLAP)
+	-- Over the runs' titles, 12 in from the rows' left.
+	local byDungeon = RunHeading(L.COLUMN_DUNGEON, "dungeon", "LEFT", ROW_LEFT + 12)
 	byDungeon:SetPoint("BOTTOMLEFT", list, "TOPLEFT", 0, -2)
 	byDungeon:SetPoint("BOTTOMRIGHT", byLevel, "BOTTOMLEFT", OVERLAP, 0)
 	frame.RunHeadings = { byDungeon, byLevel, byRate }

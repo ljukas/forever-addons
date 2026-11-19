@@ -7,86 +7,98 @@ Working PR title: `feat(foreverdungeonxp): rank the run list by experience per h
 
 The user wants to find their best runs overall: the run list on the journal's left, ordered by
 experience per hour across every dungeon. They also want each heading above the list to name what
-stands under it, which it doesn't today:
+stands under it, which it didn't:
 
-- "Dungeon" and "Level" choose how the list is grouped. Neither is a column.
-- Under "Level" stands the run's share of a level (44%), which the right side calls "Of a level".
-- The experience per hour is only worked out for the selected run, on the right.
+- "Dungeon" and "Level" chose how the list was grouped. Neither was a column.
+- Under "Level" stood the run's share of a level (44%), which the right side calls "Of a level".
+- The experience per hour was only worked out for the selected run, on the right.
 
 ## Goals, non-goals
 
-- **Goal:** one click on a heading ranks every listed run by experience per hour, best first, in
-  one list without group headers.
-- **Goal:** three headings, `Dungeon | Level | XP/h`, each over the thing it names in the rows.
-- **Not in this step:** sorting by share of a level, by date or by total experience; a separate
-  "group by" control; remembering the order between sessions (it lasts for the session, as today).
+- **Goal:** one click on a heading orders every listed run by that column; XP/h gives the best
+  runs across all dungeons.
+- **Goal:** each heading stands over the thing it names in the rows.
+- **Goal:** a row looks the same whatever the list is ordered by.
+- **Goal:** rested and unrested runs compare: the rate leaves the rested bonus out.
+- **Not in this step:** sorting by share of a level or total experience; a "group by" control;
+  remembering the order between sessions (it lasts for the session).
 - **Must not happen:** a change to what is saved. `ForeverDungeonXPDB` is only read.
 
 ## Approaches
 
-- **A. Three real columns (picked by the user).** The headings stay the list's only control. The
-  two that name a category (Dungeon, Level) group the list as they do today; the one that names a
-  number (XP/h) ranks it flat. One click to the ranking, no new control.
-- **B. Grouping as its own control.** A "Group by: Dungeon / Level / None" dropdown beside the
-  character picker, and headings that sort inside the chosen grouping. It could also answer "best
-  run per dungeon", but adds a control and makes the ranking two steps.
-- **C. XP/h in place of the Level heading.** Dropped: it loses the grouping by level.
+First round, how sorting by a number meets the grouping:
+
+- **A. Three columns, grouped or flat by heading (picked first, then replaced).** Dungeon and
+  Level kept grouping the list under gold headers; XP/h ranked it flat. Built and tested in game
+  on 2026-11-19. The user found it janky: the row's title changed with the order ("Run 1 - 12 Nov"
+  under a dungeon header, "Wailing Caverns - 16 Nov" otherwise) and the headers came and went.
+- **B. Grouping as its own control.** A "Group by" dropdown beside the character picker. One
+  more control, and the ranking two steps away.
+- **C. XP/h in place of the Level heading.** Loses the level.
+
+Second round, after the test, one flat table in all three, differing in where the date goes:
+
+- **Date in the grey line**, three headings. No way to order by date.
+- **Date as its own column (picked by the user)**, four headings. Every heading is a real
+  column, and the journal can open newest first.
+- **One line per run**, no grey line. Denser, but loses the totals at a glance and has no place
+  for the character's name.
 
 ## Design
 
-What the user agreed to on 2026-11-19, from a text sketch. The rest is marked *(my call)*.
+Agreed with the user on 2026-11-19 from a mockup. The rest is marked *(my call)*.
 
-**Headings.** `Dungeon` on the left, then `Level` and `XP/h` on the right, in Blizzard's list
-heading buttons as today, with the sort arrow on the active one.
+**One flat table.** No group headers. A heading click only moves rows.
 
-| Heading | List | First click | Second click |
-| --- | --- | --- | --- |
-| Dungeon | grouped by dungeon, as today | dungeons A to Z | Z to A |
-| Level | grouped by level, as today | highest level first | lowest first |
-| XP/h | flat, no group headers | best rate first | worst first |
+| Heading | First click | Second click |
+| --- | --- | --- |
+| Dungeon | A to Z | Z to A |
+| Date | newest first | oldest first |
+| Level | highest first | lowest first |
+| XP/h | best first | worst first |
 
-Inside a group the runs stay newest first. The list opens grouped by dungeon, as today.
+The list opens by date, newest first. Runs alike in the ordered column go newest first in both
+directions *(my call: a turned order then doesn't also flip the runs inside a dungeon)*.
 
-**Rows.**
+**Rows**, the same in every order:
 
 ```
-| Dungeon ^                   | Level |   XP/h |
- Deadmines - 1 run
-   Bengan - Run 1 - 12 Nov        19    12,675
-   9,418 XP (44%) - 194 kills - 44 min
+| Dungeon                | Date   | Level |   XP/h |
+  Shadowfang Keep          16 Nov     22     9,677
+  13,994 XP (51%) - 120 kills - 31 min
 ```
 
-- The first line keeps its title rules: the character's name when all characters are listed, the
-  run's number under a dungeon header and the dungeon's name otherwise (so also in the flat list:
-  "Bengan - Shadowfang Keep - 16 Nov"), then the date, which is cut off first.
-- `Level` is the level the run started at (`run.level`), the number the level headers group by.
-- `XP/h` is the rate the right side shows as "XP per hour": kill experience over the time from
-  first to last kill, rested bonus included.
-- The share of a level moves into the grey line, in brackets after the experience *(my call)*.
+- `Dungeon` is the run's dungeon name. The run's number ("Run 1") is no longer in the row; the
+  right side's header still has it.
+- `Date` is the day the run started. The time of day is no longer shown.
+- `Level` is the level the run started at (`run.level`).
+- `XP/h` is the rate without the rested bonus (below).
+- The grey line has the run's experience, its share of a level in brackets, kills and time. With
+  all characters listed it starts with the character's name in its class colour.
 
-**Runs without a rate.** A run shorter than a minute has no rate (`ns.Format.PerHour` returns
-nil, so one pack doesn't read as millions per hour). It shows "-" and stands last in the flat
-list in both directions *(my call)*. Runs with the same rate go newest first.
+**Unrested rate.** The user asked for it: with the bonus in, rested runs stand out too much.
+`ns.Format.Rate` is kill experience minus the rested bonus, over the time from first to last
+kill. It is the number in the list, the number the list is ordered by, and the big "XP per hour"
+on the right. A rested run shows its rate with the bonus as the small line under that
+("27,085 with rested"). A run recorded before the rested bonus was kept has no figure to leave
+out, so its whole rate counts as unrested; nothing saved can correct that.
 
-**Width.** Two number columns don't fit beside the title in the list's 250 pixels. The list
-grows to 380 and the window from 720 to 850, so the run's side keeps its width *(my call; the
-numbers are to be judged in game)*. First written as 300 and 770; the step's review worked out
-that the flat list's longest kind of title, "Bengan - Shadowfang Keep - 16 Nov", needs about 211
-pixels, which the columns (62 for XP/h, 54 for Level) leave only at 380. The character dropdown
-above the list is as wide as the list.
+**Runs without a value.** A run shorter than a minute has no rate (`ns.Format.PerHour` returns
+nil, so one pack doesn't read as millions per hour). It shows "-" and stands last in the XP/h
+order in both directions *(my call)*. The same goes for a damaged run without a name or level in
+those columns' orders.
 
-## Left to the builder
-
-- The column widths and label offsets, so each label stands over its column's numbers.
-- The heading's text: "XP/h" unless it doesn't fit its column.
-- Where the ordering lives: `Logic/RunList.lua` is pure and takes the new sort key; the rate
-  comes from `ns.Format`.
+**Width.** The list is 380 wide and the window 850 (from 250 and 720), so the run's side keeps
+its width *(my call; seen in game by the user on 2026-11-19 without objection)*. The columns
+take 56 (date), 54 (level) and 62 (XP/h), which leaves the dungeon's name 158. The character
+dropdown above the list is as wide as the list.
 
 ## In-game checks
 
-Nothing here depends on a value the client could hide: every number comes from saved runs. What
-only the game can show is the look:
+No value here can be secret: every number comes from saved runs. What only the game can show is
+the look:
 
-- each heading's label stands over its column, in all three orders;
-- titles and the grey line fit at the new width, with all characters listed;
-- the flat list's order matches the "XP per hour" shown for each run on the right.
+- each heading's label stands over its column, and rows look the same in all four orders;
+- the XP/h order matches the "XP per hour" shown for each run on the right;
+- a rested run shows a lower rate in the list than its "with rested" line on the right;
+- with all characters listed, the name starts the grey line in its class colour.

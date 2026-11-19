@@ -146,6 +146,41 @@ One PR: `feat(foreverdungeonxp): rank the run list by experience per hour`.
 
 - [ ] **Step 7: Lint and commit.** `feat(foreverdungeonxp): show level and XP/h columns in the run list`
 
+### Task 3: One flat table and an unrested rate (after the in-game test)
+
+Tasks 1 and 2 built the first design: Dungeon and Level grouped the list, XP/h ranked it flat.
+In game the user found the rows changing shape between orders janky, and asked for the rate
+without the rested bonus. The spec's Design section was rewritten; this task replaces what the
+first two built where they differ.
+
+**Files:**
+- Modify: `addons/ForeverDungeonXP/Logic/Format.lua`, `Logic/RunList.lua`
+- Modify: `addons/ForeverDungeonXP/Strings.lua`, `UI/Templates.xml`, `UI/Journal.lua`, `CHANGELOG.md`
+- Check (not committed): the LuaJIT script, rewritten for the four orders
+
+**Interfaces:**
+- Produces: `ns.Format.Rate(run)` leaves `run.rested` out (never below 0);
+  `ns.Format.RateWithRested(run)` is the old rate.
+- Produces: `ns.RunList.Rows(entries, sortKey, ascending)` returns run rows only, never headers.
+  `sortKey` is `"date"`, `"dungeon"`, `"level"` or `"rate"`. Runs alike in the column go newest
+  first in both directions; a run without the column's value stands last in both.
+
+- [ ] **Step 1: Rewrite the check** for the four orders, the unrested rate (13994 XP, 8994 of it
+  rested, in 31 minutes gives 9677; with rested 27085) and damaged names, levels and times. Run
+  it and see it fail.
+- [ ] **Step 2: The logic.** One comparator over a table of per-column values.
+- [ ] **Step 3: The row.** A `Date` font string (width 56) left of `Level`; the title is the
+  dungeon's name; the grey line starts with the character's class-coloured name when all
+  characters are listed (`L.RUN_SUMMARY_OF`). The header row template, `InitHeader`, `RunTitle`
+  and their strings go.
+- [ ] **Step 4: The headings.** A fourth, `L.COLUMN_DATE`, key `"date"`, width `56 + OVERLAP`,
+  between Dungeon and Level. The list opens by `"date"`, descending.
+- [ ] **Step 5: The run's side.** "XP per hour" is `ns.Format.Rate`; a rested run's small line
+  is `L.STAT_WITH_RESTED` with `ns.Format.RateWithRested`.
+- [ ] **Step 6: CHANGELOG.** The table and its orders; the unrested rate. The earlier unreleased
+  line about grouping goes: no player saw it.
+- [ ] **Step 7: Check, lint and commit.**
+
 ---
 
 ## Step reviewers (Phase 5)
@@ -162,7 +197,9 @@ No value here can be secret: every number comes from saved runs. The game shows 
 | --- | --- | --- |
 | No errors | open the journal, click each heading twice, `/rl`, `scripts/devlog.sh --errors` | clean |
 | Sort clicks arrive | `scripts/devlog.sh --addon ForeverDungeonXP --tag UI` | a `sort` line per click with the key and direction |
-| Labels over columns | by eye, all three orders | "Level" over the levels, "XP/h" over the rates, arrow inside its heading |
-| Flat order is right | click XP/h, select runs top to bottom | the right side's "XP per hour" falls, and equals the row's number |
-| Titles fit | "All characters", XP/h order | the name and dungeon readable; only the date cut |
+| Labels over columns | by eye, all four orders | each label over its column, arrow inside its heading |
+| Rows keep their shape | click each heading | only the order changes |
+| XP/h order is right | click XP/h, select runs top to bottom | the right side's "XP per hour" falls, and equals the row's number |
+| Rested runs | select a run with rested experience | its row's rate is lower than the "with rested" line on the right |
+| All characters | pick "All characters" | the name starts the grey line in its class colour |
 | Window width | by eye | 850 wide sits well; else tune `WIDTH` / `LIST_WIDTH` |

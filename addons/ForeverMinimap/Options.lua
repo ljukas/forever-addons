@@ -64,21 +64,24 @@ ns.OnInitialize(function()
 	end)
 
 	-- Greyed out, with the reason, while another addon gathers the buttons (ButtonBagHelpers.lua).
-	-- The saved setting is left as it is, so the bag is back once that addon is turned off.
-	local otherCollector = ns.ButtonBagHelpers.OtherCollector()
-	local otherTitle = otherCollector and (C_AddOns.GetAddOnTitle(otherCollector) or otherCollector)
+	-- The saved setting is left as it is, so the bag is back once that addon is turned off. Asked
+	-- when the panel shows the row, not here: that addon may load after this one.
+	local OtherCollector = ns.ButtonBagHelpers.OtherCollector
+	local function BagTooltip()
+		local other = OtherCollector()
+		if other then
+			return L.BUTTON_BAG_BLOCKED:format(C_AddOns.GetAddOnTitle(other) or other)
+		end
+		return L.SHOW_BUTTON_BAG_TOOLTIP
+	end
 	local bag = Register("showButtonBag", Settings.VarType.Boolean, L.SHOW_BUTTON_BAG)
-	local bagInitializer = Settings.CreateCheckbox(
-		category,
-		bag,
-		otherTitle and L.BUTTON_BAG_BLOCKED:format(otherTitle) or L.SHOW_BUTTON_BAG_TOOLTIP
-	)
+	local bagInitializer = Settings.CreateCheckbox(category, bag, BagTooltip)
 	bagInitializer:AddModifyPredicate(function()
-		return not otherCollector
+		return not OtherCollector()
 	end)
 	-- The bag's other options only matter while it gathers.
 	local function BagOn()
-		return not otherCollector and bag:GetValue()
+		return not OtherCollector() and bag:GetValue()
 	end
 
 	local direction = Register("buttonBagDirection", Settings.VarType.Number, L.BUTTON_BAG_DIRECTION)

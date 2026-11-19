@@ -33,12 +33,14 @@ end
 -- and restyles buttons the bag then shows half of, in the wrong dress. So the bag stands down.
 --   EllesmereUIMinimap  hides every named button on the minimap (and fades it again on each Show),
 --                       and shows them in its own "Addon Buttons" flyout or on its button row,
---                       resized and with its own backdrop. It loads before this addon.
+--                       resized and with its own backdrop.
 local OTHER_COLLECTORS = { "EllesmereUIMinimap" }
 
+-- Asked each time rather than remembered: one that loads after this addon is first seen later.
+-- An addon that isn't installed is never asked about; what IsAddOnLoaded does then is unverified.
 function H.OtherCollector()
 	for _, name in ipairs(OTHER_COLLECTORS) do
-		if C_AddOns.IsAddOnLoaded(name) then
+		if C_AddOns.DoesAddOnExist(name) and C_AddOns.IsAddOnLoaded(name) then
 			return name
 		end
 	end

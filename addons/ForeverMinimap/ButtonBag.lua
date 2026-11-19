@@ -11,8 +11,9 @@ local ADDON_NAME, ns = ...
 -- and closing the bag hides it through the parent. Its parent, strata, level and scale are saved
 -- and restored when it leaves. Its anchors are those its addon last gave it (recorded while it is
 -- in the bag); a LibDBIcon button is placed by LibDBIcon itself. Blizzard's and protected frames are
--- never touched (Logic/ButtonRules.lua and the checks in Reject). Nothing is moved or hooked while
--- the bag is turned off, or while another addon gathers the buttons (ButtonBagHelpers' Enabled).
+-- never touched (Logic/ButtonRules.lua and the checks in Reject). No button is moved, and none of
+-- Collect's hooks go in, while the bag is turned off or another addon gathers the buttons
+-- (ButtonBagHelpers' Enabled); the scan still runs then, and only reads.
 ns.ButtonBag = {}
 
 -- A gathered button's size in pixels at 100%, whatever its own (31 is LibDBIcon's and Cinematic's),
@@ -131,11 +132,14 @@ end
 local function Layout()
 	local size = SIZE * Scale()
 	local shown = {}
-	layingOut = true
-	for frame, saved in pairs(collected) do
-		if ns.dev.enabled then
+	-- Before layingOut is set: an error in the log must not leave the hooks ignoring every move.
+	if ns.dev.enabled then
+		for frame, saved in pairs(collected) do
 			LogState(frame, saved)
 		end
+	end
+	layingOut = true
+	for frame, saved in pairs(collected) do
 		-- Taken back by its addon (a foreign SetParent): bring it home.
 		if frame:GetParent() ~= container then
 			frame:SetParent(container)
@@ -684,16 +688,22 @@ ns.OnInitialize(function()
 	end, ns.ButtonBag)
 	lastEnabled, lastDirection, lastScale = Enabled(), Direction(), Scale()
 	ns.callbacks:RegisterCallback("OptionChanged", OnOptionChanged, ns.ButtonBag)
-	local other = H.OtherCollector()
-	if other then
-		ns.log("BAG", "off", other)
-	end
 
 	local events = CreateFrame("Frame")
 	events:RegisterEvent("PLAYER_LOGIN")
 	events:RegisterEvent("ADDON_LOADED")
 	events:SetScript("OnEvent", function(_, event)
 		if event == "PLAYER_LOGIN" then
+			-- Every addon that loads at startup has by now, one that gathers the buttons itself
+			-- included, whichever of the two loaded first: the bag and its button stand down here.
+			ns.BagButton:Refresh()
+			OnOptionChanged()
+			if ns.dev.enabled then
+				local other = H.OtherCollector()
+				if other then
+					ns.log("BAG", "off", other)
+				end
+			end
 			Scan()
 			-- Some addons make their button a little after login.
 			C_Timer.After(2, Scan)

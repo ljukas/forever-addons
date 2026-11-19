@@ -45,6 +45,13 @@ function ns.Format.RunSeconds(run)
 	return math.max(0, run.lastKill - run.firstKill)
 end
 
+-- A run's experience per hour, from its first kill to its last, rested bonus included; nil for
+-- a run shorter than a minute (PerHour).
+--   9418 XP in 44 minutes -> 12843
+function ns.Format.Rate(run)
+	return ns.Format.PerHour(run.xp, ns.Format.RunSeconds(run))
+end
+
 -- A run's party members { name, class, level, role } by name, for display; empty for a run
 -- alone or recorded before members were kept.
 function ns.Format.Party(run)

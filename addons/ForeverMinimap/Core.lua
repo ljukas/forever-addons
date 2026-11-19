@@ -33,6 +33,7 @@ ns.L = {
 	NODE_ICONS_BLOCKED = "Not available: since the game's update of 7 November 2026, addons can no longer read the herbs, ore and chests on the minimap.",
 	SHOW_BUTTON_BAG = "Gather addon minimap buttons",
 	SHOW_BUTTON_BAG_TOOLTIP = "Collect the minimap buttons other addons add into one button on the minimap edge.",
+	BUTTON_BAG_BLOCKED = "Not available while %s is on: it gathers the addon buttons itself, and two addons doing that hide and restyle each other's buttons.",
 	BUTTON_BAG_DIRECTION = "Open buttons towards",
 	DIRECTION_DOWN = "Down",
 	DIRECTION_UP = "Up",

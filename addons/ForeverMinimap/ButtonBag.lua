@@ -12,7 +12,7 @@ local ADDON_NAME, ns = ...
 -- and restored when it leaves. Its anchors are those its addon last gave it (recorded while it is
 -- in the bag); a LibDBIcon button is placed by LibDBIcon itself. Blizzard's and protected frames are
 -- never touched (Logic/ButtonRules.lua and the checks in Reject). Nothing is moved or hooked while
--- the bag is turned off.
+-- the bag is turned off, or while another addon gathers the buttons (ButtonBagHelpers' Enabled).
 ns.ButtonBag = {}
 
 -- A gathered button's size in pixels at 100%, whatever its own (31 is LibDBIcon's and Cinematic's),
@@ -43,9 +43,8 @@ local function LibDBIcon()
 	return LibStub and LibStub("LibDBIcon-1.0", true)
 end
 
-local function Enabled()
-	return ns.Options.Get("showButtonBag")
-end
+-- Off, too, while another addon gathers the buttons (Logic/ButtonBagHelpers.lua).
+local Enabled = H.Enabled
 
 -- The size setting, kept in the slider's range; a hand-edited one that isn't a number reads as 1.
 local function Scale()
@@ -685,6 +684,10 @@ ns.OnInitialize(function()
 	end, ns.ButtonBag)
 	lastEnabled, lastDirection, lastScale = Enabled(), Direction(), Scale()
 	ns.callbacks:RegisterCallback("OptionChanged", OnOptionChanged, ns.ButtonBag)
+	local other = H.OtherCollector()
+	if other then
+		ns.log("BAG", "off", other)
+	end
 
 	local events = CreateFrame("Frame")
 	events:RegisterEvent("PLAYER_LOGIN")

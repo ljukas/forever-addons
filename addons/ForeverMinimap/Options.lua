@@ -63,8 +63,23 @@ ns.OnInitialize(function()
 		return not blocked
 	end)
 
+	-- Greyed out, with the reason, while another addon gathers the buttons (ButtonBagHelpers.lua).
+	-- The saved setting is left as it is, so the bag is back once that addon is turned off.
+	local otherCollector = ns.ButtonBagHelpers.OtherCollector()
+	local otherTitle = otherCollector and (C_AddOns.GetAddOnTitle(otherCollector) or otherCollector)
 	local bag = Register("showButtonBag", Settings.VarType.Boolean, L.SHOW_BUTTON_BAG)
-	local bagInitializer = Settings.CreateCheckbox(category, bag, L.SHOW_BUTTON_BAG_TOOLTIP)
+	local bagInitializer = Settings.CreateCheckbox(
+		category,
+		bag,
+		otherTitle and L.BUTTON_BAG_BLOCKED:format(otherTitle) or L.SHOW_BUTTON_BAG_TOOLTIP
+	)
+	bagInitializer:AddModifyPredicate(function()
+		return not otherCollector
+	end)
+	-- The bag's other options only matter while it gathers.
+	local function BagOn()
+		return not otherCollector and bag:GetValue()
+	end
 
 	local direction = Register("buttonBagDirection", Settings.VarType.Number, L.BUTTON_BAG_DIRECTION)
 	local function GetDirections()
@@ -76,10 +91,7 @@ ns.OnInitialize(function()
 		return container:GetData()
 	end
 	local directionInitializer = Settings.CreateDropdown(category, direction, GetDirections)
-	-- The direction only matters while the bag is on.
-	directionInitializer:SetParentInitializer(bagInitializer, function()
-		return bag:GetValue()
-	end)
+	directionInitializer:SetParentInitializer(bagInitializer, BagOn)
 
 	local scale = Register("buttonBagScale", Settings.VarType.Number, L.BUTTON_BAG_SCALE)
 	local scaleOptions = Settings.CreateSliderOptions(ns.Options.SCALE_MIN, ns.Options.SCALE_MAX, ns.Options.SCALE_STEP)
@@ -88,17 +100,13 @@ ns.OnInitialize(function()
 		return FormatPercentage(value, true)
 	end)
 	local scaleInitializer = Settings.CreateSlider(category, scale, scaleOptions, L.BUTTON_BAG_SCALE_TOOLTIP)
-	scaleInitializer:SetParentInitializer(bagInitializer, function()
-		return bag:GetValue()
-	end)
+	scaleInitializer:SetParentInitializer(bagInitializer, BagOn)
 
 	-- The buttons found change at runtime, so the panel opens the same menu as the bag button's
 	-- right click. The click handler gets the clicked button, which the menu anchors to.
 	local keepInitializer = CreateSettingsButtonInitializer(L.KEEP_ON_MINIMAP, L.CHOOSE_BUTTONS, function(button)
 		ns.ButtonBag.OpenIgnoreMenu(button)
 	end, L.KEEP_ON_MINIMAP_TOOLTIP, true)
-	keepInitializer:SetParentInitializer(bagInitializer, function()
-		return bag:GetValue()
-	end)
+	keepInitializer:SetParentInitializer(bagInitializer, BagOn)
 	layout:AddInitializer(keepInitializer)
 end)

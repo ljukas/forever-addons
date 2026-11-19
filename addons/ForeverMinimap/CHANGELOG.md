@@ -38,3 +38,7 @@
   default they now open at the size of a standard minimap button, a little bigger than before.
 - ForeverMinimap now needs RazzhUI installed, and is switched on or off with its checkbox on
   the RazzhUI page (Options → AddOns → RazzhUI).
+- With EllesmereUI's minimap on, the button bag no longer loses most of its buttons or shows one
+  in the wrong look: EllesmereUI gathers addon buttons itself, so the bag now steps aside and
+  leaves them to its "Addon Buttons" flyout. The bag's options are greyed out and say so, and
+  the bag is back as soon as EllesmereUI's minimap is turned off.

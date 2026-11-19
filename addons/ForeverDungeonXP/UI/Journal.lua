@@ -578,7 +578,9 @@ end
 -- class is the run's character's: the class of a timeline name that isn't a party member's.
 local function ShowRun(run, class)
 	local content = frame.Detail.Content
-	content.Header:SetText(L.DETAIL_HEADER:format(run.name, run.number, run.level))
+	-- As in the run's row: a missing or damaged name or level must not throw (the number is
+	-- checked on load, Database.lua).
+	content.Header:SetText(L.DETAIL_HEADER:format(tostring(run.name or ""), run.number, tonumber(run.level) or 0))
 	content.Note:SetShown(run.approximate == true)
 	local members = ns.Format.Party(run)
 	local names = {}
@@ -652,15 +654,18 @@ function Refresh()
 	local recording = not viewedKey and ns.Tracker.CurrentRun()
 	local recordingKey = ns.CharacterKey()
 	local selected, current, newest
+	local newestStarted
 	for _, row in ipairs(rows) do
+		-- A damaged start time counts as none.
+		local started = type(row.run.firstKill) == "number" and row.run.firstKill or 0
 		if row.run.id == selectedID and row.key == selectedKey then
 			selected = row
 		end
 		if recording and row.run.id == recording.id and row.key == recordingKey then
 			current = row
 		end
-		if not newest or (row.run.firstKill or 0) > (newest.run.firstKill or 0) then
-			newest = row
+		if not newest or started > newestStarted then
+			newest, newestStarted = row, started
 		end
 	end
 	selected = selected or current or newest

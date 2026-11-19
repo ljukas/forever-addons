@@ -204,6 +204,6 @@ No value here can be secret: every number comes from saved runs. The game shows 
 | Labels over columns | by eye, all four orders | each label over its column, arrow inside its heading |
 | Rows keep their shape | click each heading | only the order changes |
 | XP/h order is right | click XP/h, select runs top to bottom | the right side's "XP per hour" falls, and equals the row's number |
-| Rested runs | select a run with rested experience | its row's rate is lower than the "rested" line under "XP per hour" on the right |
+| Rested runs | select a run with rested experience | its row's rate is lower than the "w/ rested" line under "XP per hour" on the right |
 | All characters | pick "All characters" | the name starts the grey line in its class colour |
 | Window width | by eye | 850 wide sits well; else tune `WIDTH` / `LIST_WIDTH` |

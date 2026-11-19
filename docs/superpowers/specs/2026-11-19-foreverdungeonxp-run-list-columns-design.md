@@ -80,7 +80,8 @@ directions *(my call: a turned order then doesn't also flip the runs inside a du
 `ns.Format.Rate` is kill experience minus the rested bonus, over the time from first to last
 kill. It is the number in the list, the number the list is ordered by, and the big "XP per hour"
 on the right. A rested run shows its rate with the bonus as the small line under that
-("27,085 rested"; the step's review found "with rested" too wide for its place), unless the two
+("27,085 w/ rested": "with rested" was too wide for its place, and plain "rested" read like the
+rested amount under "Kill XP"), unless the two
 round to the same number. A run recorded before the rested bonus was kept has no figure to leave
 out, so its whole rate counts as unrested; nothing saved can correct that.
 
@@ -102,5 +103,5 @@ the look:
 
 - each heading's label stands over its column, and rows look the same in all four orders;
 - the XP/h order matches the "XP per hour" shown for each run on the right;
-- a rested run shows a lower rate in the list than its "with rested" line on the right;
+- a rested run shows a lower rate in the list than its "w/ rested" line on the right;
 - with all characters listed, the name starts the grey line in its class colour.

@@ -37,9 +37,11 @@ function ns.Format.Share(fraction)
 	return L.PERCENT:format(math.floor(fraction * 100 + 0.5))
 end
 
--- The seconds between a run's first and last kill; 0 before its second kill.
+-- The seconds between a run's first and last kill; 0 before its second kill, and for saved
+-- times that aren't numbers (the run list works this out for every run, so one damaged run must
+-- not stop the list).
 function ns.Format.RunSeconds(run)
-	if not run.firstKill or not run.lastKill then
+	if type(run.firstKill) ~= "number" or type(run.lastKill) ~= "number" then
 		return 0
 	end
 	return math.max(0, run.lastKill - run.firstKill)

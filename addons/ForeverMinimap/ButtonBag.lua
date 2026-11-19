@@ -99,8 +99,7 @@ local function Reject(frame, name)
 end
 
 -- For the log (dev only): what a collected frame looks like, so a button another addon hid, faded,
--- resized, took or dressed up is told from one its own addon hides. `wanted` is what EllesmereUI's
--- minimap recorded as the shown state the button's addon asked for (nil when it has no record).
+-- resized, took or dressed up (a child frame added) is told from one its own addon hides.
 local function LogState(frame, saved)
 	local function Text(value, format)
 		if IsSecret(value) then
@@ -117,16 +116,13 @@ local function LogState(frame, saved)
 	elseif parent then
 		parentName = H.Name(parent) or "unnamed"
 	end
-	local wanted = rawget(_G, "_EBS_AddonVisible")
-	wanted = type(wanted) == "table" and wanted[frame]
 	local state = string.format(
-		"shown %s alpha %s width %s parent %s children %d wanted %s",
+		"shown %s alpha %s width %s parent %s children %d",
 		Text(frame:IsShown()),
 		Text(frame:GetAlpha(), "%.2f"),
 		Text(frame:GetWidth(), "%.1f"),
 		parentName,
-		select("#", frame:GetChildren()),
-		Text(wanted)
+		select("#", frame:GetChildren())
 	)
 	ns.dev:LogChanged("state:" .. saved.key, state, "BAG", "state", saved.key, state)
 end

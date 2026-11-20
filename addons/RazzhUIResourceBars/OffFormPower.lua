@@ -21,6 +21,8 @@ ns.OffFormPower.available = class == "DRUID"
 
 if not ns.OffFormPower.available then
 	function ns.OffFormPower.SetLayout() end
+	function ns.OffFormPower.Row() end
+	function ns.OffFormPower.OnRowChanged() end
 	return
 end
 
@@ -160,6 +162,28 @@ slideFade:SetSmoothing("IN")
 -- Whether the row is in, or on its way in.
 local rowShown = false
 
+-- Run when the row comes or goes, for what sits on top of it (ComboPoints.lua).
+local rowListeners = {}
+
+function ns.OffFormPower.OnRowChanged(func)
+	table.insert(rowListeners, func)
+end
+
+-- The row while it is in, or on its way in; nil otherwise.
+function ns.OffFormPower.Row()
+	return rowShown and row or nil
+end
+
+local function SetRowState(shown)
+	if shown == rowShown then
+		return
+	end
+	rowShown = shown
+	for _, func in ipairs(rowListeners) do
+		func()
+	end
+end
+
 slide:SetScript("OnFinished", function()
 	if not rowShown then
 		row:Hide()
@@ -186,7 +210,7 @@ end)
 -- other way, still under way, turns around where it is.
 local function SetRowShown(shown, animate)
 	if not animate or not inWorld or not clip:IsVisible() then
-		rowShown = shown
+		SetRowState(shown)
 		SnapRow()
 		return
 	end
@@ -203,7 +227,7 @@ local function SetRowShown(shown, animate)
 			ns.log("OFFFORM", "turn", "progress", progress, "reverse", slide:IsReverse())
 		end
 	end
-	rowShown = shown
+	SetRowState(shown)
 	if offset >= SLIDE_DURATION then
 		SnapRow()
 		return

@@ -56,8 +56,11 @@ The player adds one line at the top of their powershift macro:
 ```
 
 - `RazzhUIPowershiftHold` is a `SecureHandlerClickTemplate` button, never shown, with a frame
-  reference to `EABBar_MainBar`. Its click snippet: if `GetShapeshiftForm() > 0` and no hold is
-  set, store the bar's current `state-page` on the bar as the attribute `razzhuipowershift-hold`.
+  reference to `EABBar_MainBar`. Its click snippet: if `GetShapeshiftForm() > 0`, no hold is set and
+  the bar's current `state-page` is a bonus page (above 6), store that page on the bar as the
+  attribute `razzhuipowershift-hold`. A form on a manual page (Travel Form, page 1) gets no hold:
+  leaving it changes no page, so nothing would end the hold and it would swallow a later page
+  change. A form the player has put on pages 1 to 6 in EllesmereUI's options isn't held either.
   A press from caster form, or a second press inside the three seconds, changes nothing.
 - The module wraps the bar's `OnAttributeChanged` (`SecureHandlerWrapScript`). The pre-body, for
   `state-page` with a hold set:
@@ -95,14 +98,22 @@ in its own PR first.
 
 All with `scripts/devlog.sh --tag FORM` (fields `eab`, `blizz`) and a `HOLD` tag from the module:
 
-1. Powershift in Bear Form, out of combat and in combat: `eab` and `blizz` stay 9 through the gap,
-   `HOLD` logs set and cleared 3 seconds apart, and a bear ability key fires the bear ability.
+1. Powershift in Bear Form, out of combat and in combat: through the gap `eab` reads `1/9 hold 9`
+   (the driver's page, the page the buttons are on, the hold) and `blizz` stays 9; `HOLD` logs set
+   and cleared 3 seconds apart; and a bear ability key pressed in the gap fires the bear ability
+   (Blizzard may write `blizz` again on a later bar event, which only the key press shows).
 2. Two presses within 3 seconds: still 9, one hold.
 3. Leaving Bear Form without the macro: the bar goes to page 1 at once.
 4. A failed recast out of combat (press during the global cooldown): the bar returns to page 1
    as the power bar turns to mana.
 5. EllesmereUI's own page sync (`MainBarPageSync`) doesn't move the bar during a hold.
 6. `scripts/devlog.sh --errors`: no blocked actions or taint from the wrap.
+
+## Known limits
+
+- A hold is released out of combat when the power type is mana, so a form that keeps mana
+  (Moonkin) can drop to the caster page if combat ends inside the three seconds.
+- The macro line on the options page is plain text and can't be copied from there.
 
 ## Left to the builder
 

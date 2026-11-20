@@ -9,12 +9,13 @@ _G["BINDING_NAME_CLICK RazzhUIPowershiftBear:LeftButton"] = "Powershift: Bear Fo
 _G["BINDING_NAME_CLICK RazzhUIPowershiftCat:LeftButton"] = "Powershift: Cat Form"
 
 local LINES = {
-	"Pressing a powershift key leaves the form. Letting go takes the form again. A quick tap does both.",
-	"On an action bar: make a macro with the two lines below and put it on a bar.",
+	"Pressing a powershift key leaves the form. Letting go takes it again. A quick tap does both.",
+	"On an action bar: put a macro with these two lines on a bar slot.",
 	"#showtooltip Bear Form",
 	"/click RazzhUIPowershiftBear",
-	"The key of that bar slot is then the powershift key. For Cat Form: RazzhUIPowershiftCat.",
-	"Without a bar slot: bind a key under Options > Keybindings > AddOns > RazzhUI Powershift.",
+	"That slot's key then powershifts. For Cat Form: RazzhUIPowershiftCat.",
+	"Clicking the slot with the mouse only casts the form, as its own button does.",
+	"Or bind a key under Options > Keybindings > AddOns > RazzhUI Powershift.",
 }
 
 EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()

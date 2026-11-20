@@ -23,9 +23,12 @@ local FORMS = {
 }
 ns.Forms = FORMS
 
--- Runs before the button's own OnClick, as self, button, down.
+-- Runs before the button's own OnClick, as self, button, down. Without a spell (the character
+-- doesn't have the form) the click does nothing.
 local PRE_CLICK = [[
-	if down then
+	if not self:GetAttribute("spell") then
+		self:SetAttribute("type", nil)
+	elseif down then
 		self:SetAttribute("useOnKeyDown", true)
 		self:SetAttribute("type", "cancelaura")
 	else

@@ -43,7 +43,9 @@ function ns.XPBonus.Update()
 	end
 	table.sort(names)
 	current = { percent = percent, names = names }
-	ns.log("BONUS", "percent", percent, "buffs", table.concat(names, ","))
+	if ns.dev.enabled then
+		ns.log("BONUS", "percent", percent, "buffs", table.concat(names, ","))
+	end
 	return true
 end
 

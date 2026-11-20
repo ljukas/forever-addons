@@ -64,7 +64,7 @@ bound to no Blizzard frame, placed in Edit Mode.
   wait, Well-Rested (429959) at +1% per stack read out of combat, each reward rounded down.
 - **The box** is a frame on `UIParent` holding one font string (`GameFontNormal`'s face at the
   layout's size), sized to the text and anchored at the saved point, so the text grows from where
-  the player put it. It takes the mouse for the tooltip. Default: centre of the screen, 250 below;
+  the player put it. It takes mouse motion only, for the tooltip: clicks pass through to what is behind it. Default: centre of the screen, 250 below;
   font size 14, slider 8 to 32.
 - **SavedVariables:** `RazzhUIQuestXPDB = { version = 1, text = { [layout key] = { point, x, y,
   fontSize } } }`, the same keying as `ForeverCombatTextDB.text`.
@@ -73,7 +73,7 @@ bound to no Blizzard frame, placed in Edit Mode.
 
 `GetQuestLogRewardXP`, `UnitXP` and `UnitXPMax` were confirmed not secret in or out of combat
 (9 November). They are still checked with `issecretvalue`; if any is secret the line hides and the
-`XP` log says so. Own auras can't be read in combat, so the last XP-buff reading is kept.
+`LINE` log reads `secret` (the `XP` log flags a secret reward). Own auras can't be read in combat, so the last XP-buff reading is kept.
 
 ## In-game checks
 

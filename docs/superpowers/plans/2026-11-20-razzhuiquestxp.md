@@ -87,7 +87,7 @@ addons/RazzhUIQuestXP/
   - `ns.Quests.Collect() -> { count, xp, pending, secret }`, `ns.Quests.Invalidate()`; calls `ns.OnQuestsChanged()` (set in Task 3) on the next frame after any relevant event
   - `ns.Summary.Build(count, xp, cur, max, level, bonusPercent, bonusNames) -> { text, levelsUp, lines } | nil`, where `lines` is a list of `{ text, color }`. Returns nil when `count == 0`, `xp <= 0` or `max <= 0`. Pure: its only client calls are `BreakUpLargeNumbers` and the colour constants.
 
-- [ ] **Step 1:** Restore `XPBonus.lua` and `Quests.lua` from `060566a^` unchanged apart from header comments (ExpBar.lua is gone: "set by Text.lua"). Re-verify every API they call in `.cache/wow-ui-source`.
+- [ ] **Step 1:** Restore `XPBonus.lua` and `Quests.lua` from `060566a^` unchanged apart from header comments (ExpBar.lua is gone: "set by Text.lua"). *(As built: `Quests.lua` also counts a nil reward as 0 instead of erroring, and its `XP` log dropped the player-XP secret flags, which `LINE` now reports.)* Re-verify every API they call in `.cache/wow-ui-source`.
 - [ ] **Step 2:** `Summary.Build`. Line percent is `floor(xp * 100 / max)`. `levelsUp` is `cur + xp >= max`. Tooltip lines, in order: `Completed quests: %d (+%s XP)`; `That is %d%% of level %d (%s XP).` (highlight colour; `%s` is `max`); grey `Includes +%d%% from %s` when `bonusPercent > 0`; then `Ends at %d%% of level %d` (`floor((cur + xp) * 100 / max)`, highlight) or green `Level up!` and, when the overflow is positive, green `+%s XP past level %d` (`level + 1`).
 - [ ] **Step 3:** Check `Build` by reading against: (2, 4250, 1000, 13700, 23, 0, {}) -> `Quests: +4,250 XP (31%)`, not levelling, `Ends at 38% of level 23`; (1, 500, 13500, 13700, 23, 3, {"Well-Rested"}) -> `(3%)`, levels, `+300 XP past level 24`; (0, ...) -> nil.
 - [ ] **Step 4:** `scripts/lint.sh` clean; commit `feat(razzhuiquestxp): collect completed quests' XP`.
@@ -102,7 +102,7 @@ addons/RazzhUIQuestXP/
 - Produces: `ns.Text.holder` (Frame), `ns.Text.DEFAULTS = { point = "CENTER", x = 0, y = -250, fontSize = 14 }`, `ns.Text.SetLayout({ point, x, y, fontSize })`, `ns.Text.SetSample(boolean)`, `ns.Text.Refresh()`; sets `ns.OnQuestsChanged = ns.Text.Refresh`.
 
 - [ ] **Step 1:** `holder` on `UIParent` with one `GameFontNormal` font string anchored `CENTER`; `SetLayout` re-anchors the holder and sets the font size (face and flags from `GameFontNormal:GetFont()`), then resizes the holder to the string.
-- [ ] **Step 2:** `Refresh`: no summary when `IsXPUserDisabled()`, `IsPlayerAtEffectiveMaxLevel()`, `pending`, `secret`, or `UnitXP`/`UnitXPMax` secret. With a summary: text, gold or green, shown. Without: the sample (gold, no tooltip lines but one explaining line `Shown here while Edit Mode is open.`) when sampling, else hidden. `ns.dev:LogChanged("line", ..., "LINE", ...)`.
+- [ ] **Step 2:** `Refresh`: no summary when `IsXPUserDisabled()`, `IsPlayerAtEffectiveMaxLevel()`, `pending`, `secret`, or `UnitXP`/`UnitXPMax` secret. With a summary: text, gold or green, shown. Without: the sample (gold, no tooltip: LibEditMode's selection overlay covers the box in Edit Mode, so it could never be hovered) when sampling, else hidden. `ns.dev:LogChanged("line", ..., "LINE", ...)`.
 - [ ] **Step 3:** `OnEnter` shows `GameTooltip` (`SetOwner(holder, "ANCHOR_TOP")`, title `Quest turn-ins`, the summary's lines); `OnLeave` hides it. A hidden holder takes no mouse.
 - [ ] **Step 4:** `scripts/lint.sh` clean; commit `feat(razzhuiquestxp): show the turn-in XP line and its tooltip`.
 

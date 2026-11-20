@@ -12,14 +12,16 @@
   with class and group role in the line's tooltip. Recorded for runs from this version on.
 - The journal shows the runs of all your characters: pick one from the dropdown above the run
   list, without logging over to it, or "All characters" to see everyone's runs together.
-- A run shows how much of its kill experience was rested bonus, and its experience per hour
-  with and without it. Recorded for runs from this version on.
+- A run shows how much of its kill experience was rested bonus. Its experience per hour leaves
+  the bonus out, in the run list and in the run's totals, so rested and unrested runs compare; a
+  rested run shows its rate with the bonus under it. Recorded for runs from this version on.
 - A run has a timeline: its first and last kill, each boss defeated with how long the fight took,
   wipes, deaths, level-ups and who got each rare or better item someone rolled Need on, by the
   time into the run.
   Switch between Creatures and Timeline with the tabs under the journal. Recorded for runs from
   this version on.
-- The run list is grouped by dungeon or by the level you were when the run started: click the
-  Dungeon or Level heading above it, and click again to turn the order.
+- The run list is a table with Dungeon, Date, Level and XP/h columns, newest run first. Click a
+  heading to order every run by that column, such as XP/h to see your best runs across all
+  dungeons; click again to turn the order.
 - ForeverDungeonXP now needs RazzhUI installed, and is switched on or off with its checkbox on the
   RazzhUI page (Options → AddOns → RazzhUI).

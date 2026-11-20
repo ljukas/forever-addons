@@ -37,12 +37,30 @@ function ns.Format.Share(fraction)
 	return L.PERCENT:format(math.floor(fraction * 100 + 0.5))
 end
 
--- The seconds between a run's first and last kill; 0 before its second kill.
+-- The seconds between a run's first and last kill; 0 before its second kill, and for saved
+-- times that aren't numbers (the run list works this out for every run, so one damaged run must
+-- not stop the list).
 function ns.Format.RunSeconds(run)
-	if not run.firstKill or not run.lastKill then
+	if type(run.firstKill) ~= "number" or type(run.lastKill) ~= "number" then
 		return 0
 	end
 	return math.max(0, run.lastKill - run.firstKill)
+end
+
+-- A run's experience per hour, from its first kill to its last, without its rested bonus, so
+-- that rested and unrested runs compare; nil for a run shorter than a minute (PerHour). A run
+-- recorded before the rested bonus was kept has none to leave out.
+--   13994 XP, 8994 of it rested, in 31 minutes -> 9677        9418 XP in 44 minutes -> 12843
+function ns.Format.Rate(run)
+	-- Kept between none and all of the experience: a damaged figure must not raise the rate.
+	local rested = type(run.rested) == "number" and math.min(math.max(0, run.rested), run.xp) or 0
+	return ns.Format.PerHour(run.xp - rested, ns.Format.RunSeconds(run))
+end
+
+-- The same with the rested bonus in it: what the run paid.
+--   13994 XP, 8994 of it rested, in 31 minutes -> 27085
+function ns.Format.RateWithRested(run)
+	return ns.Format.PerHour(run.xp, ns.Format.RunSeconds(run))
 end
 
 -- A run's party members { name, class, level, role } by name, for display; empty for a run

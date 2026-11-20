@@ -4,8 +4,14 @@ local _, ns = ...
 
 ns.RunList = {}
 
+-- When a run started; 0 for one without a first kill or with a damaged time.
+local function Started(entry)
+	local time = entry.run.firstKill
+	return type(time) == "number" and time or 0
+end
+
 local function Newer(a, b)
-	local aTime, bTime = a.run.firstKill or 0, b.run.firstKill or 0
+	local aTime, bTime = Started(a), Started(b)
 	if aTime ~= bTime then
 		return aTime > bTime
 	end
@@ -15,62 +21,61 @@ local function Newer(a, b)
 	return a.key < b.key
 end
 
--- The run list's rows: the runs in groups, each a header row followed by its runs, newest
--- first. A run without kills (a visit in progress) is left out.
+-- What each column orders the runs by; nil for a run without it (or with a damaged field).
+local VALUE = {
+	date = function(entry)
+		local time = entry.run.firstKill
+		return type(time) == "number" and time or nil
+	end,
+	dungeon = function(entry)
+		local name = entry.run.name
+		return type(name) == "string" and name or nil
+	end,
+	level = function(entry)
+		local level = entry.run.level
+		return type(level) == "number" and level or nil
+	end,
+	rate = function(entry)
+		return entry.rate
+	end,
+}
+
+-- The run list's rows: every run in one list, ordered by one of its columns. A run without
+-- kills (a visit in progress) is left out.
 --   entries: { run, key, class } per run, key and class its character's (several characters'
 --     runs may be mixed)
---   sortKey: "dungeon" groups by dungeon, ordered by name; "level" by the character's level
---     when the run started
---   ascending: A to Z or lowest level first; else the reverse
--- Returns header rows { header = true, count, dungeon = name } or { header = true, count,
--- level = number }, and the entries themselves as run rows.
---   Deadmines (level 18), Wailing Caverns (19), Deadmines (19), by "level" descending
---   -> header level 19 (2 runs), Deadmines, Wailing Caverns, header level 18 (1 run), Deadmines
+--   sortKey: "date" (when the run started), "dungeon" (its name), "level" (the character's
+--     when it started) or "rate" (its experience per hour, ns.Format.Rate)
+--   ascending: oldest, A to Z or lowest first; else the reverse
+-- Runs alike in the column go newest first whichever way the order goes, and a run without the
+-- column's value (a rate for a run shorter than a minute, a date for a run with a damaged time)
+-- stands last whichever way it goes.
+-- Returns the entries themselves, each with rate (nil for a run without one) added.
+--   rates 12843, none, 27085, by "rate" descending -> 27085, 12843, none (and ascending:
+--   12843, 27085, none)
+--   Deadmines 12 Nov, Wailing Caverns 16 Nov, Deadmines 17 Nov, by "dungeon" ascending
+--   -> Deadmines 17 Nov, Deadmines 12 Nov, Wailing Caverns 16 Nov
 function ns.RunList.Rows(entries, sortKey, ascending)
-	local byLevel = sortKey == "level"
-	local groups, order = {}, {}
-	for _, entry in ipairs(entries) do
-		local run = entry.run
-		if run.kills > 0 then
-			local value = byLevel and (run.level or 0) or run.instanceID
-			local group = groups[value]
-			if not group then
-				group = { value = value, entries = {} }
-				groups[value] = group
-				table.insert(order, group)
-			end
-			table.insert(group.entries, entry)
-		end
-	end
-	for _, group in ipairs(order) do
-		table.sort(group.entries, Newer)
-		-- A dungeon goes by the name its newest run saw.
-		group.name = byLevel and "" or group.entries[1].run.name
-	end
-	table.sort(order, function(a, b)
-		if a.name ~= b.name then
-			if ascending then
-				return a.name < b.name
-			end
-			return a.name > b.name
-		end
-		if ascending then
-			return a.value < b.value
-		end
-		return a.value > b.value
-	end)
 	local rows = {}
-	for _, group in ipairs(order) do
-		local header = { header = true, count = #group.entries }
-		if byLevel then
-			header.level = group.value
-		else
-			header.dungeon = group.name
-		end
-		table.insert(rows, header)
-		for _, entry in ipairs(group.entries) do
+	for _, entry in ipairs(entries) do
+		if entry.run.kills > 0 then
+			entry.rate = ns.Format.Rate(entry.run)
 			table.insert(rows, entry)
 		end
 	end
+	local value = VALUE[sortKey] or VALUE.date
+	table.sort(rows, function(a, b)
+		local aValue, bValue = value(a), value(b)
+		if aValue == bValue then
+			return Newer(a, b)
+		end
+		if aValue == nil or bValue == nil then
+			return aValue ~= nil
+		end
+		if ascending then
+			return aValue < bValue
+		end
+		return aValue > bValue
+	end)
 	return rows
 end

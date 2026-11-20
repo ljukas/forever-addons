@@ -36,3 +36,5 @@ Core four, plus `savedvariables-guard` (settings keys) and a UI reviewer (frames
 | Red matches the target portrait's gems | by eye, side by side |
 | Druid: row sits on the Other Powers row; rogue: on the power bar | by eye; `COMBO anchor offform/bar` |
 | Moving points to a new target updates | `COMBO_TARGET_CHANGED`, by eye |
+| Separators cut from the border art, one line wide, sharp at odd widths | `COMBO separator art true`, by eye at Width 271 |
+| A point gained without an energy change shows at once | by eye (`UNIT_POWER_UPDATE`) |

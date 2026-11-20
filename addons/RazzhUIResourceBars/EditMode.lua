@@ -3,7 +3,8 @@ local ADDON_NAME, ns = ...
 -- Makes the power bar's holder an Edit Mode box through LibEditMode (fetched into Libs/ by
 -- scripts/libs.sh, loaded namespaced as ns.LibEditMode): drag to place it (snapping like
 -- Blizzard's boxes, Snap.lua), Width and Height sliders, a smooth-fill checkbox and the numbers'
--- dropdown in its dialog, and for druids the other-powers row's checkbox and height. These, with
+-- dropdown in its dialog, for druids the other-powers row's checkbox and height, and for rogues and
+-- druids the combo points row's. These, with
 -- the position, are kept per Edit Mode layout in RazzhUIResourceBarsDB.powerBar (Database.lua),
 -- like Blizzard's own systems.
 local LEM = ns.LibEditMode
@@ -160,6 +161,7 @@ local function Apply(layoutName)
 	})
 	ns.PowerText.SetMode(Get(layoutName, "text"))
 	ns.OffFormPower.SetLayout(Get(layoutName, "offForm"), Get(layoutName, "offFormHeight"))
+	ns.ComboPoints.SetLayout(Get(layoutName, "comboPoints"), Get(layoutName, "comboPointsHeight"))
 end
 
 local function Checkbox(key, label, desc)
@@ -285,6 +287,14 @@ ns.OnInitialize(function()
 	if ns.OffFormPower.available then
 		table.insert(settings, Checkbox("offForm", L.OFF_FORM, L.OFF_FORM_DESC))
 		table.insert(settings, SizeSlider("offFormHeight", L.OFF_FORM_HEIGHT, OFF_FORM_HEIGHT_MIN, OFF_FORM_HEIGHT_MAX))
+	end
+	-- Only rogues and druids build combo points.
+	if ns.ComboPoints.available then
+		table.insert(settings, Checkbox("comboPoints", L.COMBO_POINTS, L.COMBO_POINTS_DESC))
+		table.insert(
+			settings,
+			SizeSlider("comboPointsHeight", L.COMBO_POINTS_HEIGHT, COMBO_HEIGHT_MIN, COMBO_HEIGHT_MAX)
+		)
 	end
 	LEM:AddFrameSettings(holder, settings)
 	local selection = LEM.frameSelections[holder]

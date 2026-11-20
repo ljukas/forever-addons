@@ -7,6 +7,7 @@ local ADDON_NAME, ns = ...
 --   POWER           PowerBar.lua, PowerText.lua
 --   COST            CostPrediction.lua
 --   OFFFORM         OffFormPower.lua
+--   COMBO           ComboPoints.lua
 --   SAVE EDITMODE   EditMode.lua
 --   OPTIONS         Options.lua
 local function Nop() end
@@ -43,6 +44,9 @@ ns.L = {
 	OFF_FORM = "Other Powers",
 	OFF_FORM_DESC = "Show your mana while in a form, and your energy outside Cat Form once you know it, in a row above the bar.",
 	OFF_FORM_HEIGHT = "Other Powers Height",
+	COMBO_POINTS = "Combo Points",
+	COMBO_POINTS_DESC = "Show your combo points on your target as five slots on top of the bar, as a rogue or in Cat Form.",
+	COMBO_POINTS_HEIGHT = "Combo Points Height",
 	EDIT_MODE = "Edit Mode",
 	EDIT_MODE_TOOLTIP = "Move the power bar and change its size and other settings in Edit Mode.",
 }

@@ -162,27 +162,26 @@ slideFade:SetSmoothing("IN")
 -- Whether the row is in, or on its way in.
 local rowShown = false
 
--- Run when the row comes or goes, for what sits on top of it (ComboPoints.lua).
+-- Run when the row shows or hides, for what sits on top of it (ComboPoints.lua): a row sliding out
+-- still counts until it is gone, so what sits on it drops only then.
 local rowListeners = {}
 
 function ns.OffFormPower.OnRowChanged(func)
 	table.insert(rowListeners, func)
 end
 
--- The row while it is in, or on its way in; nil otherwise.
+-- The row while it shows (sliding included); nil otherwise.
 function ns.OffFormPower.Row()
-	return rowShown and row or nil
+	return row:IsShown() and row or nil
 end
 
-local function SetRowState(shown)
-	if shown == rowShown then
-		return
-	end
-	rowShown = shown
+local function NotifyRow()
 	for _, func in ipairs(rowListeners) do
 		func()
 	end
 end
+row:SetScript("OnShow", NotifyRow)
+row:SetScript("OnHide", NotifyRow)
 
 slide:SetScript("OnFinished", function()
 	if not rowShown then
@@ -210,7 +209,7 @@ end)
 -- other way, still under way, turns around where it is.
 local function SetRowShown(shown, animate)
 	if not animate or not inWorld or not clip:IsVisible() then
-		SetRowState(shown)
+		rowShown = shown
 		SnapRow()
 		return
 	end
@@ -227,7 +226,7 @@ local function SetRowShown(shown, animate)
 			ns.log("OFFFORM", "turn", "progress", progress, "reverse", slide:IsReverse())
 		end
 	end
-	SetRowState(shown)
+	rowShown = shown
 	if offset >= SLIDE_DURATION then
 		SnapRow()
 		return

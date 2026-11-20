@@ -18,13 +18,16 @@ local ADDON_NAME = ...
 --                else the tainting addon). Also whether issecurevariable exists at all, and
 --                LibDBIcon's button list
 --   FORM         what the client reports about the player's form and what pages action bar 1:
---                on every form, bonus bar and page event and for ten seconds after it, whenever
---                the answer changed, and at each of the player's casts. For the
---                powershift bug: casting the form you are in leaves bar 1 on the caster page.
---                form/formID/forms are the stance bar's view (* active, a aura held), offset/index/has the bonus bar's,
---                cond what a secure state driver's [bonusbar:N] and [form:N] conditions resolve
---                to, blizz the page on Blizzard's MainActionBar, eab the page EllesmereUI's
---                bar 1 is on (state/actionpage), b1 the slot ActionButton1 holds
+--                on entering the world and every form, bonus bar, page and display power event,
+--                and for ten seconds after it, whenever the answer changed; and at each cast of
+--                a form's spell. For the powershift bug: leaving a form and taking it again in
+--                one press (/cancelform, /cast Bear Form) leaves bar 1 on the caster page for
+--                three seconds. form/formID/forms are the stance bar's view (* active, a aura
+--                held), offset/index/has/temp the bonus bar's, page the manual page, cond what a
+--                secure state driver's [bonusbar:N] and [form:N] conditions resolve to, power
+--                the power type, blizz the page on Blizzard's MainActionBar, eab EllesmereUI's
+--                bar 1 (state-page/actionpage, then RazzhUIPowershift's hold), b1 the slot
+--                ActionButton1 holds
 -- Addon-specific probes live in that addon's Dev/ folder.
 
 local dev = ForeverDev.For(ADDON_NAME)
@@ -238,7 +241,7 @@ local function FormState()
 	local _, powerToken = UnitPowerType("player")
 	return string.format(
 		"form %s formID %s forms %s | offset %s index %s has %s temp %s page %s | cond bonusbar %s form %s | "
-			.. "power %s | blizz %s eab %s/%s b1 %s",
+			.. "power %s | blizz %s eab %s/%s hold %s b1 %s",
 		Show(GetShapeshiftForm()),
 		Show(GetShapeshiftFormID()),
 		Forms(),
@@ -253,6 +256,7 @@ local function FormState()
 		blizz and Show(blizz:GetAttribute("actionpage")) or "none",
 		eab and Show(eab:GetAttribute("state-page")) or "none",
 		eab and Show(eab:GetAttribute("actionpage")) or "none",
+		eab and Show(eab:GetAttribute("razzhuipowershift-hold")) or "none",
 		button1 and Show(button1.action) or "none"
 	)
 end
@@ -297,9 +301,20 @@ function handlers.ACTIONBAR_PAGE_CHANGED()
 	ProbeFormEvent("ACTIONBAR_PAGE_CHANGED")
 end
 
+-- A form's cast is the powershift's one sure moment, so it is logged whatever the state says;
+-- any other cast only when the state changed with it.
 function handlers.UNIT_SPELLCAST_SUCCEEDED(_, _, spellID)
-	-- Always logged: the cast is the powershift's one sure moment, whatever the state says.
-	dev:Log("FORM", "cast", Show(spellID), ForeverDev.Situation(), FormState())
+	local state = FormState()
+	if not issecretvalue(spellID) then
+		for i = 1, GetNumShapeshiftForms() do
+			local _, _, _, formSpellID = GetShapeshiftFormInfo(i)
+			if not issecretvalue(formSpellID) and formSpellID == spellID then
+				dev:Log("FORM", "cast", spellID, ForeverDev.Situation(), state)
+				return
+			end
+		end
+	end
+	dev:LogChanged("form state", state, "FORM", "cast", Show(spellID), ForeverDev.Situation(), state)
 end
 
 function handlers.PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)

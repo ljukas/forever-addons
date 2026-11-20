@@ -5,9 +5,9 @@ local ADDON_NAME, ns = ...
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
 --   LOADED          Core.lua
 --   BONUS           XPBonus.lua
---   XP TURNIN       Quests.lua
+--   XP, TURNIN      Quests.lua
 --   LINE            Text.lua
---   SAVE EDITMODE   EditMode.lua
+--   SAVE, EDITMODE  EditMode.lua
 --   OPTIONS         Options.lua
 local function Nop() end
 

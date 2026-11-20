@@ -30,7 +30,8 @@ function ns.Summary.Build(count, xp, cur, max, level, bonusPercent, bonusNames)
 		{ L.COMPLETED_XP:format(count, BreakUpLargeNumbers(xp)), NORMAL_FONT_COLOR },
 		{ L.SHARE:format(share, level, BreakUpLargeNumbers(max)), HIGHLIGHT_FONT_COLOR },
 	}
-	if bonusPercent > 0 then
+	-- The buff's name can be unreadable while its stacks are not; then the line would end in "from".
+	if bonusPercent > 0 and #bonusNames > 0 then
 		lines[#lines + 1] = { L.BONUS:format(bonusPercent, table.concat(bonusNames, ", ")), GRAY_FONT_COLOR }
 	end
 	if levelsUp then

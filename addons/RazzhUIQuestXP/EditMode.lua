@@ -113,6 +113,9 @@ local function Apply(layoutName)
 	end
 end
 
+-- The layout last applied: what a new layout is copied from when Edit Mode names no source.
+local appliedLayoutName
+
 -- The layouts seen so far, by type and name, to tell which one a "create" is about.
 local knownLayouts = {}
 
@@ -149,9 +152,18 @@ ns.OnInitialize(function()
 
 	local defaultPosition = { point = DEFAULTS.point, x = DEFAULTS.x, y = DEFAULTS.y }
 	LEM:AddFrame(holder, OnMoved, defaultPosition, L.QUEST_XP)
+	-- The selection LibEditMode lays over the box prints "Click to Edit" or the box's name in its
+	-- middle (EditModeSystemSelectionMixin:UpdateLabelVisibility), which is where the line is, in a
+	-- box no bigger than the line. The line is the label here; the hover tooltip and the dialog
+	-- still name the box. The selection is LibEditMode's frame for our box, not one of Blizzard's.
+	local selection = LEM.frameSelections and LEM.frameSelections[holder]
+	if selection and selection.Label then
+		selection.Label:SetAlpha(0)
+	end
 	LEM:AddFrameSettings(holder, {
 		{
-			name = L.FONT_SIZE,
+			-- Blizzard's own string (the chat window's Font Size menu), so it is translated.
+			name = _G["FONT_SIZE"] or L.FONT_SIZE,
 			kind = LEM.SettingType.Slider,
 			default = DEFAULTS.fontSize,
 			minValue = FONT_SIZE_MIN,
@@ -182,6 +194,7 @@ ns.OnInitialize(function()
 	LEM:RegisterCallback("layout", function(layoutName)
 		ns.log("EDITMODE", "layout", layoutName, "key", Key(layoutName))
 		RememberLayouts()
+		appliedLayoutName = layoutName
 		Apply(layoutName)
 	end)
 
@@ -189,8 +202,11 @@ ns.OnInitialize(function()
 	-- LibEditMode names the last layout in the list as the new one, but Blizzard inserts a new
 	-- account layout before the character layouts (EditModeManagerFrameMixin:MakeNewLayout), so
 	-- the new one is found here: the layout not seen before. An entry that exists is never
-	-- replaced.
+	-- replaced. Only a row's Copy button names a source; "New Layout" and saving a preset as a new
+	-- layout copy the active one without saying so (EditModeManagerFrame:ShowNewLayoutDialog with
+	-- no argument), so then the source is the layout last applied.
 	LEM:RegisterCallback("create", function(_, _, sourceLayoutName)
+		sourceLayoutName = sourceLayoutName or appliedLayoutName
 		local store = Store()
 		local sourceKey = Key(sourceLayoutName)
 		local source = store and sourceKey and store[sourceKey]
@@ -234,7 +250,8 @@ ns.OnInitialize(function()
 		RememberLayouts()
 	end)
 
-	Apply(LEM:GetActiveLayoutName())
+	appliedLayoutName = LEM:GetActiveLayoutName()
+	Apply(appliedLayoutName)
 	if LEM:IsInEditMode() then
 		ns.Text.SetSample(true)
 	end

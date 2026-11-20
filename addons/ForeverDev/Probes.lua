@@ -26,8 +26,7 @@ local ADDON_NAME = ...
 --                held), offset/index/has/temp the bonus bar's, page the manual page, cond what a
 --                secure state driver's [bonusbar:N] and [form:N] conditions resolve to, power
 --                the power type, blizz the page on Blizzard's MainActionBar, eab EllesmereUI's
---                bar 1 (state-page/actionpage, then RazzhUIPowershift's hold), b1 the slot
---                ActionButton1 holds
+--                bar 1 (state-page/actionpage), b1 the slot ActionButton1 holds
 -- Addon-specific probes live in that addon's Dev/ folder.
 
 local dev = ForeverDev.For(ADDON_NAME)
@@ -241,7 +240,7 @@ local function FormState()
 	local _, powerToken = UnitPowerType("player")
 	return string.format(
 		"form %s formID %s forms %s | offset %s index %s has %s temp %s page %s | cond bonusbar %s form %s | "
-			.. "power %s | blizz %s eab %s/%s hold %s b1 %s",
+			.. "power %s | blizz %s eab %s/%s b1 %s",
 		Show(GetShapeshiftForm()),
 		Show(GetShapeshiftFormID()),
 		Forms(),
@@ -256,7 +255,6 @@ local function FormState()
 		blizz and Show(blizz:GetAttribute("actionpage")) or "none",
 		eab and Show(eab:GetAttribute("state-page")) or "none",
 		eab and Show(eab:GetAttribute("actionpage")) or "none",
-		eab and Show(eab:GetAttribute("razzhuipowershift-hold")) or "none",
 		button1 and Show(button1.action) or "none"
 	)
 end

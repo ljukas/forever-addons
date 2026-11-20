@@ -1,5 +1,7 @@
 # RazzhUIPowershift Implementation Plan
 
+> **Superseded on 20 November 2026.** The page hold below was built and tested in game: the bar held, but the client still refused the form abilities. The module now does the powershift itself in two steps from one key (the spec has the design; `Shift.lua` and `Bindings.xml` replace `Hold.lua`). Kept for the record.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Keep EllesmereUI's action bar 1 on the form's page for the three seconds after a powershift in which the client reports no form.

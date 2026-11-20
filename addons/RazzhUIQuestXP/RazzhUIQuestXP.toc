@@ -1,0 +1,26 @@
+## Interface: 16001
+## Title: |cffd6b380RazzhUI|r Quest XP
+## Notes: Shows how much experience turning in all your completed quests gives, as a line of text you place in Edit Mode.
+## Author: ljukas
+## X-License: MIT
+## Version: @project-version@
+## IconTexture: Interface\Icons\INV_Misc_Book_08
+## X-Category: Quests
+## SavedVariables: RazzhUIQuestXPDB
+## Dependencies: RazzhUI
+## Group: RazzhUI
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Libs\LibEditMode\namespaced.lua
+Libs\LibEditMode\embed.xml
+
+Core.lua
+Database.lua
+XPBonus.lua
+Quests.lua
+Summary.lua
+Text.lua
+EditMode.lua
+Options.lua

@@ -17,11 +17,11 @@ local ADDON_NAME = ...
 --                minimap's center, and what issecurevariable says created it (secure = Blizzard,
 --                else the tainting addon). Also whether issecurevariable exists at all, and
 --                LibDBIcon's button list
---   FORM         what the client reports about the player's form and what pages action bar 1,
---                on every form, bonus bar and page event, at 0, 0.5 and 2 seconds after it, and
---                (only when the answer changed) after each of the player's casts. For the
+--   FORM         what the client reports about the player's form and what pages action bar 1:
+--                on every form, bonus bar and page event and for ten seconds after it, whenever
+--                the answer changed, and at each of the player's casts. For the
 --                powershift bug: casting the form you are in leaves bar 1 on the caster page.
---                form/formID/forms are the stance bar's view, offset/index/has the bonus bar's,
+--                form/formID/forms are the stance bar's view (* active, a aura held), offset/index/has the bonus bar's,
 --                cond what a secure state driver's [bonusbar:N] and [form:N] conditions resolve
 --                to, blizz the page on Blizzard's MainActionBar, eab the page EllesmereUI's
 --                bar 1 is on (state/actionpage), b1 the slot ActionButton1 holds
@@ -217,13 +217,16 @@ end
 local BONUSBAR_CONDITIONS = "[bonusbar:1] 1; [bonusbar:2] 2; [bonusbar:3] 3; [bonusbar:4] 4; [bonusbar:5] 5; 0"
 local FORM_CONDITIONS = "[form:1] 1; [form:2] 2; [form:3] 3; [form:4] 4; [form:5] 5; [form:6] 6; 0"
 
--- The stance bar's forms as "index:spellID" with a "*" on the active ones.
+-- The stance bar's forms as "index:spellID", with a "*" on the active ones and an "a" on those
+-- whose aura the player has.
 local function Forms()
 	local forms = {}
 	for i = 1, GetNumShapeshiftForms() do
 		local _, isActive, _, spellID = GetShapeshiftFormInfo(i)
 		local active = issecretvalue(isActive) and "?" or (isActive and "*" or "")
-		table.insert(forms, i .. ":" .. Show(spellID) .. active)
+		local aura = not issecretvalue(spellID) and spellID and C_UnitAuras.GetPlayerAuraBySpellID(spellID)
+		local hasAura = issecretvalue(aura) and "a?" or (aura and "a" or "")
+		table.insert(forms, i .. ":" .. Show(spellID) .. active .. hasAura)
 	end
 	return #forms > 0 and table.concat(forms, ",") or "none"
 end
@@ -254,18 +257,26 @@ local function FormState()
 	)
 end
 
+-- Logs the form state when it differs from the last one logged.
 local function ProbeForm(reason)
-	dev:Log("FORM", reason, ForeverDev.Situation(), FormState())
+	local state = FormState()
+	dev:LogChanged("form state", state, "FORM", reason, ForeverDev.Situation(), state)
 end
 
--- The event's own moment, then two later ones: the bug is state that should have followed and didn't.
-local function ProbeFormEvent(event)
-	ProbeForm(event)
-	for _, delay in ipairs({ 0, 0.5, 2 }) do
-		C_Timer.After(delay, function()
-			ProbeForm(event .. " +" .. delay .. "s")
-		end)
+local WATCH_SECONDS, WATCH_INTERVAL = 10, 0.1
+local watchStart, watchTicker
+
+-- The event's own moment, then every change in the ten seconds after it: after a powershift the
+-- state comes right seconds later, and no event says so.
+local function ProbeFormEvent(reason)
+	ProbeForm(reason)
+	watchStart = GetTime()
+	if watchTicker then
+		watchTicker:Cancel()
 	end
+	watchTicker = C_Timer.NewTicker(WATCH_INTERVAL, function()
+		ProbeForm(string.format("poll +%.1fs", GetTime() - watchStart))
+	end, WATCH_SECONDS / WATCH_INTERVAL)
 end
 
 local handlers = {}
@@ -286,10 +297,9 @@ function handlers.ACTIONBAR_PAGE_CHANGED()
 	ProbeFormEvent("ACTIONBAR_PAGE_CHANGED")
 end
 
--- A cast that changed nothing logs nothing; the spell is named so a form cast can be told apart.
 function handlers.UNIT_SPELLCAST_SUCCEEDED(_, _, spellID)
-	local state = FormState()
-	dev:LogChanged("form state", state, "FORM", "cast", Show(spellID), ForeverDev.Situation(), state)
+	-- Always logged: the cast is the powershift's one sure moment, whatever the state says.
+	dev:Log("FORM", "cast", Show(spellID), ForeverDev.Situation(), FormState())
 end
 
 function handlers.PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
@@ -304,7 +314,7 @@ function handlers.PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
 	end
 	Probe("entering world")
 	ProbeUnit("player")
-	ProbeForm("entering world")
+	ProbeFormEvent("entering world")
 end
 
 function handlers.ZONE_CHANGED_NEW_AREA()

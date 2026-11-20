@@ -17,6 +17,8 @@ local WIDTH_MIN, WIDTH_MAX = 60, 600
 local HEIGHT_MIN, HEIGHT_MAX = 8, 40
 -- The row of a druid's other powers (OffFormPower.lua): thin, with no text to fit.
 local OFF_FORM_HEIGHT_MIN, OFF_FORM_HEIGHT_MAX = 3, 20
+-- The combo points row (ComboPoints.lua): as thin, and as bare.
+local COMBO_HEIGHT_MIN, COMBO_HEIGHT_MAX = 3, 20
 
 local POINTS = {
 	CENTER = true,
@@ -64,6 +66,12 @@ local VALID = {
 	end,
 	offFormHeight = function(value)
 		return type(value) == "number" and value >= OFF_FORM_HEIGHT_MIN and value <= OFF_FORM_HEIGHT_MAX
+	end,
+	comboPoints = function(value)
+		return type(value) == "boolean"
+	end,
+	comboPointsHeight = function(value)
+		return type(value) == "number" and value >= COMBO_HEIGHT_MIN and value <= COMBO_HEIGHT_MAX
 	end,
 }
 
@@ -135,7 +143,9 @@ local function Save(layoutName, values)
 		saved.smooth,
 		saved.text,
 		saved.offForm,
-		saved.offFormHeight
+		saved.offFormHeight,
+		saved.comboPoints,
+		saved.comboPointsHeight
 	)
 end
 

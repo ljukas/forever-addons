@@ -23,6 +23,9 @@ ns.PowerBar.DEFAULTS = {
 	-- A druid's other powers, in a row above the bar (OffFormPower.lua).
 	offForm = true,
 	offFormHeight = 10,
+	-- A rogue's or Cat Form druid's combo points, in a row on top (ComboPoints.lua).
+	comboPoints = true,
+	comboPointsHeight = 10,
 }
 
 local DEFAULTS = ns.PowerBar.DEFAULTS

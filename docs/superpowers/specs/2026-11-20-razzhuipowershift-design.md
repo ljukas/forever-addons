@@ -56,6 +56,16 @@ form". Nothing can be cast until the three seconds are over.
   `UPDATE_SHAPESHIFT_FORMS`; a change in combat waits for `PLAYER_REGEN_ENABLED`.
 - From caster form the key just takes the form: the cancel finds nothing to cancel.
 - Holding the key keeps the character in caster form until it is let go.
+- **Action bar slots** (`Keys.lua`). A slot whose macro contains `/click RazzhUIPowershiftBear`
+  (or `...Cat`) gives its key to that button: out of combat, the module scans the action slots
+  (`C_ActionBar.GetActionText` is a macro's name, `GetMacroBody` its text), maps each slot to its
+  binding command (`ACTIONBUTTONn`, `MULTIACTIONBARxBUTTONn`), and sets a priority override
+  binding from that command's keys to the button (`SetOverrideBindingClick`). It runs again,
+  debounced, on `ACTIONBAR_SLOT_CHANGED`, `UPDATE_MACROS`, `UPDATE_BINDINGS` and when combat
+  ends, and does nothing when the keys it wants haven't changed. The slot shows the macro's icon
+  and tooltip; a mouse click runs the macro, whose `/click` is the button's "up" step and casts
+  the form. A key is one binding on every page of its bar, so on action bar 1 the key powershifts
+  on every page. Identifying the macro by what it clicks needs no naming convention.
 - No SavedVariables, no slash command. The options page (`RazzhUI.RegisterOptions`) says where to
   bind the keys and how they behave.
 
@@ -79,11 +89,16 @@ With `scripts/devlog.sh --tag FORM` and the module's `SHIFT` tag:
 3. The same from caster form, and from Cat Form.
 4. Holding the key for a second, then letting go: caster form while held, the form on release.
 5. With "cast on key down" both on and off in the game's options.
-6. `scripts/devlog.sh --errors`: no blocked actions.
+6. A macro with `/click RazzhUIPowershiftBear` on a bar slot: `KEYS` logs `<key>=RazzhUIPowershiftBear`
+   and the slot's key powershifts as in check 2, with EllesmereUI's bars on. Moving the macro to
+   another slot moves the key; removing it logs `none` and gives the key back to the slot.
+7. `scripts/devlog.sh --errors`: no blocked actions.
 
 ## Known limits
 
-- A tap powershifts; a macro on an action bar can't. The key has no action bar icon of its own.
+- A tap of the key powershifts; a mouse click on the bar slot only casts the form.
+- On action bar 1 the slot's key powershifts on every page, whatever that page holds there.
+- A macro moved or made in combat takes effect when the fight ends.
 - If the recast fails (global cooldown, no mana), the character is in caster form, as with any
   powershift. Nothing is left in a wrong state.
 

@@ -21,6 +21,7 @@ local FORMS = {
 	{ button = "RazzhUIPowershiftBear", spells = { [5487] = true, [9634] = true } }, -- Bear, Dire Bear
 	{ button = "RazzhUIPowershiftCat", spells = { [768] = true } },
 }
+ns.Forms = FORMS
 
 -- Runs before the button's own OnClick, as self, button, down.
 local PRE_CLICK = [[

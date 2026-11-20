@@ -55,10 +55,37 @@ local background = ns.PowerBar.CreateBackground(row)
 background:SetPoint("TOPLEFT", -1, 1)
 background:SetPoint("BOTTOMRIGHT", 1, -LINE)
 
--- The cells' borders sit level with the power bar's.
+-- The border sits level with the power bar's. The cast bar's border isn't sliced (in game,
+-- 2026-11-12): squeezed into a fifth of the row its side lines would draw thin, so the row wears one
+-- copy across its width, overlapping the border below by a line, and the slots are split by
+-- separators cut from that border's own left side.
 local cells = CreateFrame("Frame", nil, row)
 cells:SetAllPoints()
 cells:SetFrameLevel(border:GetFrameLevel())
+
+local frame = cells:CreateTexture(nil, "OVERLAY")
+frame:SetAtlas("ui-castingbar-frame")
+frame:SetPoint("TOPLEFT", row, "TOPLEFT", -LINE, LINE)
+frame:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", LINE, -LINE)
+
+-- A strip LINE pixels wide off the border art's left side, from its middle third (clear of the
+-- corners), to stretch down the row as a separator. Plain dark if the art can't be read.
+local function CreateSeparator()
+	local separator = cells:CreateTexture(nil, "OVERLAY")
+	local info = C_Texture.GetAtlasInfo("ui-castingbar-frame")
+	ns.dev:LogOnce("combo-separator", "COMBO", "separator art", info ~= nil and info.file ~= nil)
+	if info and info.file and info.width > 0 then
+		local u = info.leftTexCoord
+		local du = (info.rightTexCoord - info.leftTexCoord) * LINE / info.width
+		local dv = (info.bottomTexCoord - info.topTexCoord) / 3
+		separator:SetTexture(info.file)
+		separator:SetTexCoord(u, u + du, info.topTexCoord + dv, info.bottomTexCoord - dv)
+	else
+		separator:SetColorTexture(0, 0, 0, 0.9)
+	end
+	separator:SetWidth(LINE)
+	return separator
+end
 
 local slots = {}
 for index = 1, SLOTS do
@@ -69,30 +96,38 @@ for index = 1, SLOTS do
 	slot:SetStatusBarColor(RED_R, RED_G, RED_B)
 	slot:SetMinMaxValues(index - 1, index)
 	slot:SetValue(0)
-	slot.cell = cells:CreateTexture(nil, "OVERLAY")
-	slot.cell:SetAtlas("ui-castingbar-frame")
+	-- On the slot's left edge, from the second slot on.
+	if index > 1 then
+		slot.separator = CreateSeparator()
+	end
 	slots[index] = slot
 end
 
--- Places the slots and their cells across the row's width. Two slots meet under the line their
--- cells share; the end slots reach past the row under the border's ends, as far as the main bar's
--- fill does (their art starts and stops short), and the end cells line up with the border below.
+-- Where slot index ends, in whole pixels from the row's left, so the separators and fill edges
+-- stay sharp at any width. Pure.
+function ns.ComboPoints.SlotEdge(width, index)
+	return math.floor(index * width / SLOTS + 0.5)
+end
+
+-- Places the slots and separators across the row's width. Two slots meet under the separator
+-- between them; the end slots reach past the row under the border's ends, as far as the main bar's
+-- fill does (its art starts and stops short).
 local function LayoutSlots()
 	local width = row:GetWidth()
 	if width <= 0 then
 		return
 	end
-	local step = width / SLOTS
 	local outLeft, outRight = ns.PowerBar.fillOutset.left, ns.PowerBar.fillOutset.right
 	for index, slot in ipairs(slots) do
-		local left, right = (index - 1) * step, index * step
-		local first, last = index == 1, index == SLOTS
+		local left, right = ns.ComboPoints.SlotEdge(width, index - 1), ns.ComboPoints.SlotEdge(width, index)
 		slot:ClearAllPoints()
-		slot:SetPoint("TOPLEFT", row, "TOPLEFT", left - (first and outLeft or 0), 0)
-		slot:SetPoint("BOTTOMRIGHT", row, "BOTTOMLEFT", right + (last and outRight or 0), 0)
-		slot.cell:ClearAllPoints()
-		slot.cell:SetPoint("TOPLEFT", row, "TOPLEFT", left - (first and LINE or LINE / 2), LINE)
-		slot.cell:SetPoint("BOTTOMRIGHT", row, "BOTTOMLEFT", right + (last and LINE or LINE / 2), -LINE)
+		slot:SetPoint("TOPLEFT", row, "TOPLEFT", left - (index == 1 and outLeft or 0), 0)
+		slot:SetPoint("BOTTOMRIGHT", row, "BOTTOMLEFT", right + (index == SLOTS and outRight or 0), 0)
+		if slot.separator then
+			slot.separator:ClearAllPoints()
+			slot.separator:SetPoint("TOPLEFT", row, "TOPLEFT", left - LINE / 2, 0)
+			slot.separator:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", left - LINE / 2, 0)
+		end
 	end
 end
 row:SetScript("OnSizeChanged", LayoutSlots)

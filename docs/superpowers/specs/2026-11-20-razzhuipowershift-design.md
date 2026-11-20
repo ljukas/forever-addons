@@ -70,9 +70,11 @@ The player adds one line at the top of their powershift macro:
   - anything else (another form, a vehicle): clear the hold, let the change through.
 - **Releasing a hold that will never be confirmed** (the recast failed: global cooldown, no mana,
   stunned). Secure code has no clock, so:
-  - out of combat, insecure code releases any hold older than 4 seconds, and every hold on
-    `PLAYER_REGEN_ENABLED`: clear the attribute and set `state-page` to its own value again, which
-    runs EllesmereUI's handler with the page its driver last chose;
+  - out of combat, insecure code releases a hold once the player's power type is mana (on
+    `UNIT_DISPLAYPOWER` and `PLAYER_REGEN_ENABLED`): clear the attribute and set `state-page` to
+    its own value again, which runs EllesmereUI's handler with the page its driver last chose.
+    A powershift that worked never shows mana (the probe saw rage throughout); one that failed
+    switches to it at once. No timer: a second press restarts the client's three seconds;
   - in combat it can't. The bar shows the form's page in caster form until the player presses the
     powershift key again (which takes the form) or any real form change happens. This is the
     module's known limit.
@@ -84,8 +86,8 @@ The player adds one line at the top of their powershift macro:
 
 ## Layout
 
-`addons/RazzhUIPowershift/`: the TOC (a RazzhUI module, `## OptionalDeps: EllesmereUIActionBars`
-so the bar exists first), `Core.lua` (dev shim), `Hold.lua` (the button, the wrap, the release),
+`addons/RazzhUIPowershift/`: the TOC (a RazzhUI module; the bar is looked up by name on entering
+the world, so no dependency on EllesmereUI is declared), `Core.lua` (dev shim), `Hold.lua` (the button, the wrap, the release),
 `Options.lua`, `CHANGELOG.md`. The `FORM` probe stays in `addons/ForeverDev/Probes.lua` and ships
 in its own PR first.
 
@@ -98,7 +100,7 @@ All with `scripts/devlog.sh --tag FORM` (fields `eab`, `blizz`) and a `HOLD` tag
 2. Two presses within 3 seconds: still 9, one hold.
 3. Leaving Bear Form without the macro: the bar goes to page 1 at once.
 4. A failed recast out of combat (press during the global cooldown): the bar returns to page 1
-   within about 4 seconds.
+   as the power bar turns to mana.
 5. EllesmereUI's own page sync (`MainBarPageSync`) doesn't move the bar during a hold.
 6. `scripts/devlog.sh --errors`: no blocked actions or taint from the wrap.
 

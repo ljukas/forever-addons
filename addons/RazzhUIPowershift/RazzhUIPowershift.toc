@@ -1,0 +1,17 @@
+## Interface: 16001
+## Title: |cffd6b380RazzhUI|r Powershift
+## Notes: Keeps action bar 1 on your form's bar when you powershift, instead of dropping to the caster bar for three seconds. For EllesmereUI's action bars.
+## IconTexture: Interface\Icons\Ability_Racial_BearForm
+## X-Category: Action Bars
+## Author: ljukas
+## X-License: MIT
+## Version: @project-version@
+## Dependencies: RazzhUI
+## Group: RazzhUI
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua
+Hold.lua
+Options.lua

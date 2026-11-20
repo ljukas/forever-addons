@@ -10,7 +10,9 @@ local _, ns = ...
 -- Only secure code can page the bar in combat, and only the player's own press tells a powershift
 -- from leaving the form on purpose. So the player's macro starts with
 -- "/click RazzhUIPowershiftHold":
---   * the click notes the bar's page on the bar itself (the HOLD_ATTRIBUTE), when in a form;
+--   * the click notes the bar's page on the bar itself (the HOLD_ATTRIBUTE), when in a form whose
+--     page is a bonus page (7 and up). A form on one of the six manual pages (Travel Form on page
+--     1) gets no hold: nothing would ever end it, and it would swallow a later page change;
 --   * a wrap on the bar's OnAttributeChanged cancels the bar's own page handler for as long as
 --     that hold is set and the client reports no form;
 --   * the hold ends when the bar's driver asks for the held page again (the form reads right), or
@@ -27,16 +29,19 @@ local Hold = { status = "waiting" }
 ns.Hold = Hold
 
 local button = CreateFrame("Button", "RazzhUIPowershiftHold", UIParent, "SecureHandlerClickTemplate")
--- /click passes a release unless the macro says otherwise, a key bound to the button a press.
+-- For a key bound straight to the button; a macro's /click calls Click() whatever is registered.
 button:RegisterForClicks("AnyUp", "AnyDown")
 button:SetAttribute(
 	"_onclick",
 	([[
 		local bar = self:GetFrameRef("bar")
 		if bar and GetShapeshiftForm() > 0 and not bar:GetAttribute("%s") then
-			bar:SetAttribute("%s", bar:GetAttribute("state-page"))
+			local page = tonumber(bar:GetAttribute("state-page"))
+			if page and page > %d then
+				bar:SetAttribute("%s", page)
+			end
 		end
-	]]):format(HOLD_ATTRIBUTE, HOLD_ATTRIBUTE)
+	]]):format(HOLD_ATTRIBUTE, NUM_ACTIONBAR_PAGES, HOLD_ATTRIBUTE)
 )
 
 -- Runs before the bar's own OnAttributeChanged, as self, name, value. Returning false cancels the
@@ -83,7 +88,10 @@ local function Release(reason)
 end
 
 local function Setup()
-	if Hold.status ~= "waiting" or InCombatLockdown() then
+	if Hold.status ~= "waiting" then
+		return
+	elseif InCombatLockdown() then
+		ns.dev:LogOnce("setup waiting", "HOLD", "setup", Hold.status)
 		return
 	end
 	local frame = _G[BAR_NAME]
@@ -93,18 +101,28 @@ local function Setup()
 		bar = frame
 		SecureHandlerSetFrameRef(button, "bar", bar)
 		SecureHandlerWrapScript(bar, "OnAttributeChanged", button, WRAP_PRE_BODY)
-		bar:HookScript("OnAttributeChanged", function(_, name, value)
-			if name == HOLD_ATTRIBUTE then
-				if value ~= nil then
-					ns.log("HOLD", "set", value)
-				else
-					ns.log("HOLD", "cleared")
+		if ns.dev.enabled then
+			bar:HookScript("OnAttributeChanged", function(_, name, value)
+				if name == HOLD_ATTRIBUTE then
+					if value ~= nil then
+						ns.log("HOLD", "set", value)
+					else
+						ns.log("HOLD", "cleared")
+					end
 				end
-			end
-		end)
+			end)
+		end
 		Hold.status = "ready"
 	end
 	ns.log("HOLD", "setup", Hold.status)
+end
+
+-- The options page says how the setup went, so it is built once that is known.
+local function SetupAndOptions()
+	Setup()
+	if Hold.status ~= "waiting" then
+		ns.Options.Build()
+	end
 end
 
 local events = CreateFrame("Frame")
@@ -114,14 +132,13 @@ events:RegisterUnitEvent("UNIT_DISPLAYPOWER", "player")
 events:SetScript("OnEvent", function(_, event)
 	if event == "UNIT_DISPLAYPOWER" then
 		Release("power")
-		return
-	end
-	-- Every addon has loaded by the first PLAYER_ENTERING_WORLD, EllesmereUI's bars included. After
-	-- a reload in combat the setup waits for the combat to end.
-	Setup()
-	if event == "PLAYER_ENTERING_WORLD" then
-		ns.Options.Build()
+	elseif event == "PLAYER_ENTERING_WORLD" then
+		-- A frame later: on its first session EllesmereUI builds its bars in its own handler for
+		-- this event, which may run after ours. After a reload in combat the setup waits for the
+		-- fight to end.
+		C_Timer.After(0, SetupAndOptions)
 	else
+		SetupAndOptions()
 		Release("combat end")
 	end
 end)

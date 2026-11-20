@@ -8,7 +8,6 @@ local MACRO_LINE = "/click RazzhUIPowershiftHold"
 local STATUS = {
 	ready = "EllesmereUI's action bar 1 was found. The hold is active.",
 	nobar = "EllesmereUI's action bar 1 was not found. This module does nothing without it.",
-	waiting = "You reloaded in combat. The hold starts when the fight ends.",
 }
 
 local Options = {}
@@ -16,7 +15,7 @@ ns.Options = Options
 
 local built = false
 
--- Called by Hold.lua after its first setup attempt, so the status line is known.
+-- Called by Hold.lua once its setup has found the bar or not, so the status line is known.
 function Options.Build()
 	if built then
 		return

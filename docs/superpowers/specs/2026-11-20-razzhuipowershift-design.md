@@ -1,121 +1,92 @@
-# RazzhUIPowershift: keep action bar 1 on the form's page through a powershift
+# RazzhUIPowershift: a one-key powershift the client keeps up with
 
 ## Why
 
-A druid powershift macro (`/cancelform`, then `/cast Bear Form`) leaves action bar 1 on the caster
-page for three seconds, although the character is in Bear Form the whole time. Pressing a key in
-that window casts a caster spell, which fails with "You are in shapeshift form".
+A druid powershift macro (`/cancelform`, then `/cast Bear Form`) leaves the client thinking the
+character has no form for three seconds. Action bar 1 drops to the caster page, the form's
+abilities fail with "Must be in Bear Form", and caster spells fail with "You are in shapeshift
+form". Nothing can be cast until the three seconds are over.
 
 ## What the client does (probed 20 November 2026, ForeverDev `FORM` tag, build 70959)
 
-- At the press, the Bear Form cast succeeds (`UNIT_SPELLCAST_SUCCEEDED` 5487) and the power type
-  stays rage, but `GetShapeshiftForm()`, the stance bar's active flag, the bonus bar offset and
-  the `[form:N]` and `[bonusbar:N]` conditions all read "no form".
+- At the macro's press, the Bear Form cast succeeds (`UNIT_SPELLCAST_SUCCEEDED` 5487) and the
+  power type stays rage, but `GetShapeshiftForm()`, the stance bar's active flag, the bonus bar
+  offset and the `[form:N]` and `[bonusbar:N]` conditions all read "no form".
 - Exactly 3.0 seconds later, in and out of combat, `GetShapeshiftForm()` and `[form:N]` read the
   form again. No event fires. The bonus bar offset stays 0 until the next real form change.
 - `/cancelaura Bear Form` in place of `/cancelform` behaves the same. A plain `/cast Bear Form` in
   Bear Form only leaves the form.
+- The client refuses the form's abilities during the gap: Enrage went through only once the form
+  read right again.
+- **Leaving the form and taking it again as two steps, about a second apart, has no gap**: the
+  power type turns to mana, then the form, the bonus bar and the bar's page are right at once.
 - The cast's spell ID and the power type are readable in combat; the form's aura only out of it.
-
-EllesmereUI's action bars (9.9.1) page bar 1 with a secure state driver on `EABBar_MainBar`. Its
-`[form:N]` clauses bring the page back once the form reads right, so the bar is wrong for those
-three seconds only.
 
 ## Goals and non-goals
 
-- Bar 1 (icons and keys) stays on the form's page through a powershift, in combat.
-- Works for any form with a page of its own (Bear, Dire Bear, Cat), without naming spells.
-- Not a goal: Blizzard's own action bar. Its page is written by insecure code that can't be held
-  back; the module does nothing when EllesmereUI's bar isn't there.
-- Not a goal: the "You are in shapeshift form" error itself. Leaving a form to cast is the
-  client's doing, and for three seconds it doesn't know about the form.
-- Anti-goal: a bar that shows the form's page when the character is in caster form and can't be
-  put right.
+- One key press powershifts, in combat, and the form's bar and abilities work straight after.
+- Bear Form (or Dire Bear Form) and Cat Form, each with its own key.
+- Works with any action bars: nothing depends on EllesmereUI.
+- Not a goal: making powershift macros work. A macro runs once per press, so it can't take two
+  steps.
 
 ## Approaches
 
 1. **Another macro** (`/cancelaura`). Tested, same gap. Rejected.
-2. **Hold the page from a secure click (chosen).** Only secure code can repage a bar in combat,
-   and only the player's key press can tell a powershift from leaving the form on purpose.
-3. **Leave it to EllesmereUI.** They can do the same inside their own bar. Worth reporting, but
-   not in our hands.
-
-Within 2, the module could give the player a whole powershift button (its own macro text per form)
-or one line to add to their own macro. The line is chosen: no spell names, no macro text of ours,
-and the player's macro keeps its tooltip and stays theirs.
+2. **Hold the bar's page through the gap** (a secure click from the macro, and a wrap on
+   EllesmereUI's bar). Built and tested: the bar stayed on the form's page, but the client still
+   refused the form's abilities, so it only looked right. Removed.
+3. **Two steps from one key (chosen).** A key bound straight to a button clicks it on the way down
+   and on the way up. Down leaves the form, up takes it again, and the client never has to guess.
+4. **Leave it to Blizzard.** The gap is the client's. Worth reporting; not in our hands.
 
 ## Design
 
-The player adds one line at the top of their powershift macro:
-
-```
-#showtooltip
-/click RazzhUIPowershiftHold
-/cancelform
-/cast Bear Form
-```
-
-- `RazzhUIPowershiftHold` is a `SecureHandlerClickTemplate` button, never shown, with a frame
-  reference to `EABBar_MainBar`. Its click snippet: if `GetShapeshiftForm() > 0`, no hold is set and
-  the bar's current `state-page` is a bonus page (above 6), store that page on the bar as the
-  attribute `razzhuipowershift-hold`. A form on a manual page (Travel Form, page 1) gets no hold:
-  leaving it changes no page, so nothing would end the hold and it would swallow a later page
-  change. A form the player has put on pages 1 to 6 in EllesmereUI's options isn't held either.
-  A press from caster form, or a second press inside the three seconds, changes nothing.
-- The module wraps the bar's `OnAttributeChanged` (`SecureHandlerWrapScript`). The pre-body, for
-  `state-page` with a hold set:
-  - the new page equals the held one: the client reports the form again. Clear the hold, let the
-    change through.
-  - `GetShapeshiftForm() == 0` and no override, vehicle, possess or temporary shapeshift bar:
-    return `false`, which stops EllesmereUI's `_onstate-page` handler, so the buttons, the keys
-    and the mirror on `MainActionBar` stay on the held page. It also writes the held page to
-    `MainActionBar`'s `actionpage` again, since Blizzard's controller has just set it to 1.
-  - anything else (another form, a vehicle): clear the hold, let the change through.
-- **Releasing a hold that will never be confirmed** (the recast failed: global cooldown, no mana,
-  stunned). Secure code has no clock, so:
-  - out of combat, insecure code releases a hold once the player's power type is mana (on
-    `UNIT_DISPLAYPOWER` and `PLAYER_REGEN_ENABLED`): clear the attribute and set `state-page` to
-    its own value again, which runs EllesmereUI's handler with the page its driver last chose.
-    A powershift that worked never shows mana (the probe saw rage throughout); one that failed
-    switches to it at once. No timer: a second press restarts the client's three seconds;
-  - in combat it can't. The bar shows the form's page in caster form until the player presses the
-    powershift key again (which takes the form) or any real form change happens. This is the
-    module's known limit.
-- Setup runs out of combat once `EABBar_MainBar` exists (after `PLAYER_ENTERING_WORLD`; on
-  `PLAYER_REGEN_ENABLED` when a reload happened in combat). Without that frame the module logs it
-  and does nothing.
-- No SavedVariables, no slash command. The options page (`RazzhUI.RegisterOptions`) holds only the
-  macro line to copy and whether EllesmereUI's bar was found.
+- Two secure action buttons, never shown: `RazzhUIPowershiftBear` and `RazzhUIPowershiftCat`,
+  registered for `AnyDown` and `AnyUp`.
+- `Bindings.xml` lists `CLICK RazzhUIPowershiftBear:LeftButton` and
+  `CLICK RazzhUIPowershiftCat:LeftButton` under the header "RazzhUI Powershift" in the game's
+  Keybindings (category AddOns), named "Powershift: Bear Form" and "Powershift: Cat Form".
+- Each button's `OnClick` is wrapped (`SecureHandlerWrapScript`). The pre-body sets, on the way
+  down, `type = "cancelaura"` and `useOnKeyDown = true`; on the way up, `type = "spell"` and
+  `useOnKeyDown = false`. A secure action button acts on one of the two clicks only, the one
+  `useOnKeyDown` names, so both now act.
+- The `spell` attribute is the form's spell name, which both actions read. It is taken from the
+  stance bar (5487 or 9634 for bear, 768 for cat), out of combat, on entering the world and on
+  `UPDATE_SHAPESHIFT_FORMS`; a change in combat waits for `PLAYER_REGEN_ENABLED`.
+- From caster form the key just takes the form: the cancel finds nothing to cancel.
+- Holding the key keeps the character in caster form until it is let go.
+- No SavedVariables, no slash command. The options page (`RazzhUI.RegisterOptions`) says where to
+  bind the keys and how they behave.
 
 ## Layout
 
-`addons/RazzhUIPowershift/`: the TOC (a RazzhUI module; the bar is looked up by name on entering
-the world, so no dependency on EllesmereUI is declared), `Core.lua` (dev shim), `Hold.lua` (the button, the wrap, the release),
-`Options.lua`, `CHANGELOG.md`. The `FORM` probe stays in `addons/ForeverDev/Probes.lua` and ships
-in its own PR first.
+`addons/RazzhUIPowershift/`: the TOC (a RazzhUI module), `Core.lua` (dev shim), `Shift.lua` (the
+buttons, the wrap, the spell names), `Bindings.xml`, `Options.lua` (the page and the binding
+names), `CHANGELOG.md`. The `FORM` probe stays in `addons/ForeverDev/Probes.lua` and ships in its
+own PR first.
 
 ## In-game checks
 
-All with `scripts/devlog.sh --tag FORM` (fields `eab`, `blizz`) and a `HOLD` tag from the module:
+With `scripts/devlog.sh --tag FORM` and the module's `SHIFT` tag:
 
-1. Powershift in Bear Form, out of combat and in combat: through the gap `eab` reads `1/9 hold 9`
-   (the driver's page, the page the buttons are on, the hold) and `blizz` stays 9; `HOLD` logs set
-   and cleared 3 seconds apart; and a bear ability key pressed in the gap fires the bear ability
-   (Blizzard may write `blizz` again on a later bar event, which only the key press shows).
-2. Two presses within 3 seconds: still 9, one hold.
-3. Leaving Bear Form without the macro: the bar goes to page 1 at once.
-4. A failed recast out of combat (press during the global cooldown): the bar returns to page 1
-   as the power bar turns to mana.
-5. EllesmereUI's own page sync (`MainBarPageSync`) doesn't move the bar during a hold.
-6. `scripts/devlog.sh --errors`: no blocked actions or taint from the wrap.
+1. `SHIFT spells` names Bear Form (or Dire Bear Form) and Cat Form, or `none` for a form the
+   character doesn't have.
+2. A quick tap of the bear key in Bear Form, out of combat and in combat: `SHIFT` logs down then
+   up, `FORM` shows form 0 then form 1 with offset 3 and no 3-second gap, and Enrage fires
+   straight after. If a tap is too quick for the server to see two steps, the gap comes back:
+   that is the design's one unproven assumption.
+3. The same from caster form, and from Cat Form.
+4. Holding the key for a second, then letting go: caster form while held, the form on release.
+5. With "cast on key down" both on and off in the game's options.
+6. `scripts/devlog.sh --errors`: no blocked actions.
 
 ## Known limits
 
-- A hold is released out of combat when the power type is mana, so a form that keeps mana
-  (Moonkin) can drop to the caster page if combat ends inside the three seconds.
-- The macro line on the options page is plain text and can't be copied from there.
+- A tap powershifts; a macro on an action bar can't. The key has no action bar icon of its own.
+- If the recast fails (global cooldown, no mana), the character is in caster form, as with any
+  powershift. Nothing is left in a wrong state.
 
 ## Left to the builder
 
-Whether `/click` needs the mouse button and down arguments under the key-down CVar (register the
-button for both); the exact wording on the options page.
+The wording on the options page.

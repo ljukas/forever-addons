@@ -1,28 +1,22 @@
-local ADDON_NAME, ns = ...
+local ADDON_NAME = ...
 
--- The module's page at Options > AddOns > RazzhUI > Powershift. It has nothing to set: it shows
--- the line to put in a powershift macro, and whether EllesmereUI's action bar was found.
+-- The module's page at Options > AddOns > RazzhUI > Powershift. It has nothing to set: it says
+-- where the powershift keys are bound and how they behave. The key names are the client's:
+-- BINDING_NAME_<binding> for each binding in Bindings.xml.
 
-local MACRO_LINE = "/click RazzhUIPowershiftHold"
+BINDING_HEADER_RAZZHUIPOWERSHIFT = "RazzhUI Powershift"
+_G["BINDING_NAME_CLICK RazzhUIPowershiftBear:LeftButton"] = "Powershift: Bear Form"
+_G["BINDING_NAME_CLICK RazzhUIPowershiftCat:LeftButton"] = "Powershift: Cat Form"
 
-local STATUS = {
-	ready = "EllesmereUI's action bar 1 was found. The hold is active.",
-	nobar = "EllesmereUI's action bar 1 was not found. This module does nothing without it.",
+local LINES = {
+	"Bind a key under Options > Keybindings > AddOns > RazzhUI Powershift.",
+	"Pressing the key leaves the form. Letting go takes the form again.",
+	"A quick tap does both. Use the key in place of a powershift macro.",
 }
 
-local Options = {}
-ns.Options = Options
-
-local built = false
-
--- Called by Hold.lua once its setup has found the bar or not, so the status line is known.
-function Options.Build()
-	if built then
-		return
-	end
-	built = true
+EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
 	local _, layout = RazzhUI.RegisterOptions(ADDON_NAME)
-	layout:AddInitializer(CreateSettingsListSectionHeaderInitializer("Put this line first in your powershift macro:"))
-	layout:AddInitializer(CreateSettingsListSectionHeaderInitializer(MACRO_LINE))
-	layout:AddInitializer(CreateSettingsListSectionHeaderInitializer(STATUS[ns.Hold.status]))
-end
+	for _, line in ipairs(LINES) do
+		layout:AddInitializer(CreateSettingsListSectionHeaderInitializer(line))
+	end
+end)

@@ -2,4 +2,4 @@
 
 ## Unreleased
 
-- New module for druids who powershift with EllesmereUI's action bars. Leaving a form and taking it again in one press no longer drops action bar 1 to the caster bar for three seconds. Put `/click RazzhUIPowershiftHold` as the first line of your powershift macro; the module's page in the game's options shows the line.
+- New module for druids who powershift. A powershift macro (`/cancelform`, then `/cast Bear Form`) leaves the game thinking you have no form for three seconds: the action bar drops to the caster bar and your form's abilities say "Must be in Bear Form". Bind a key under Options > Keybindings > AddOns > RazzhUI Powershift instead: pressing it leaves the form and letting go takes it again, and everything works at once. There is a key for Bear Form (or Dire Bear Form) and one for Cat Form.

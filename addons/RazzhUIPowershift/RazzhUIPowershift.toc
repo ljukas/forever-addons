@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: |cffd6b380RazzhUI|r Powershift
-## Notes: Keeps action bar 1 on your form's bar when you powershift, instead of dropping to the caster bar for three seconds. For EllesmereUI's action bars.
+## Notes: One-key powershift for druids: the key going down leaves your form, letting go takes it again, so the game keeps track of the form and your bar and abilities work at once.
 ## IconTexture: Interface\Icons\Ability_Racial_BearForm
 ## X-Category: Action Bars
 ## Author: ljukas
@@ -13,5 +13,5 @@
 #@end-do-not-package@
 
 Core.lua
-Hold.lua
+Shift.lua
 Options.lua

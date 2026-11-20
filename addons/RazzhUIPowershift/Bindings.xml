@@ -1,0 +1,6 @@
+<Bindings>
+	<Binding name="CLICK RazzhUIPowershiftBear:LeftButton" header="RAZZHUIPOWERSHIFT" category="ADDONS">
+	</Binding>
+	<Binding name="CLICK RazzhUIPowershiftCat:LeftButton" category="ADDONS">
+	</Binding>
+</Bindings>

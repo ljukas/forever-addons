@@ -147,8 +147,16 @@ ns.OffFormPower.OnRowChanged(Place)
 
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function(_, event)
-	if event == "UNIT_POWER_FREQUENT" or event == "UNIT_MAXPOWER" or event == "COMBO_TARGET_CHANGED" then
-		UpdateValues(ns.PowerBar.Interpolation())
+	if
+		event == "UNIT_POWER_FREQUENT"
+		or event == "UNIT_POWER_UPDATE"
+		or event == "UNIT_MAXPOWER"
+		or event == "COMBO_TARGET_CHANGED"
+	then
+		-- Every energy and mana tick lands here too; a hidden row is filled when it shows (Refresh).
+		if row:IsShown() then
+			UpdateValues(ns.PowerBar.Interpolation())
+		end
 	else
 		-- A new target, a form change, or the world loaded.
 		Refresh()
@@ -166,6 +174,8 @@ function ns.ComboPoints.SetLayout(shown, height)
 		events:RegisterEvent("COMBO_TARGET_CHANGED")
 		events:RegisterUnitEvent("UNIT_DISPLAYPOWER", "player")
 		events:RegisterUnitEvent("UNIT_POWER_FREQUENT", "player")
+		-- Blizzard's ComboFrame listens for both (Camelot/ComboFrame.lua).
+		events:RegisterUnitEvent("UNIT_POWER_UPDATE", "player")
 		events:RegisterUnitEvent("UNIT_MAXPOWER", "player")
 	else
 		events:UnregisterAllEvents()

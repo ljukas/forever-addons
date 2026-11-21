@@ -8,8 +8,7 @@ local ADDON_NAME, ns = ...
 -- (docs/superpowers/specs/2026-11-20-razzhuiresourcebars-combo-points-design.md).
 --
 -- Display only. The count can be secret (GetComboPoints is SecretWhenUnitPowerRestricted): it goes
--- straight into the slots and is never compared, logged or calculated with. Slot i's range is i-1 to
--- i, so the status bar's own clamping fills it or leaves it empty.
+-- straight into one status bar running 0 to 5 and is never compared, logged or calculated with.
 ns.ComboPoints = {}
 
 local _, class = UnitClass("player")
@@ -87,52 +86,49 @@ local function CreateSeparator()
 	return separator
 end
 
-local slots = {}
-for index = 1, SLOTS do
-	local slot = CreateFrame("StatusBar", nil, row)
-	-- Under the border, level with the main bar's fill.
-	slot:SetFrameLevel(holder:GetFrameLevel() + 1)
-	slot:SetStatusBarTexture(FILL_ATLAS)
-	slot:SetStatusBarColor(RED_R, RED_G, RED_B)
-	slot:SetMinMaxValues(index - 1, index)
-	slot:SetValue(0)
-	-- On the slot's left edge, from the second slot on.
-	if index > 1 then
-		slot.separator = CreateSeparator()
-	end
-	slots[index] = slot
+-- One bar across the row, from 0 to SLOTS points, so the fill's art runs on unbroken and simply
+-- stops at the last point. It reaches past the row under the border's ends, as far as the main bar's
+-- fill does: its art starts and stops short.
+local fill = CreateFrame("StatusBar", nil, row)
+-- Under the border, level with the main bar's fill.
+fill:SetFrameLevel(holder:GetFrameLevel() + 1)
+fill:SetPoint("TOPLEFT", row, "TOPLEFT", -ns.PowerBar.fillOutset.left, 0)
+fill:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", ns.PowerBar.fillOutset.right, 0)
+fill:SetStatusBarTexture(FILL_ATLAS)
+fill:SetStatusBarColor(RED_R, RED_G, RED_B)
+fill:SetMinMaxValues(0, SLOTS)
+fill:SetValue(0)
+
+-- Between each two slots.
+local separators = {}
+for index = 1, SLOTS - 1 do
+	separators[index] = CreateSeparator()
 end
 
--- Where slot index ends, in whole pixels from the row's left, so the separators and fill edges
--- stay sharp at any width. Pure.
-function ns.ComboPoints.SlotEdge(width, index)
-	return math.floor(index * width / SLOTS + 0.5)
+-- Where the fill ends at this many points, in whole pixels from the row's left: the fill runs
+-- from -outLeft over width + outLeft + outRight. The separators sit there, so a full slot ends under
+-- one. Pure.
+function ns.ComboPoints.SlotEdge(width, points, outLeft, outRight)
+	return math.floor(-outLeft + points * (width + outLeft + outRight) / SLOTS + 0.5)
 end
 
--- Places the slots and separators across the row's width. Two slots meet under the separator
--- between them; the end slots reach past the row under the border's ends, as far as the main bar's
--- fill does (its art starts and stops short).
+-- Places the separators across the row's width.
 local function LayoutSlots()
 	local width = row:GetWidth()
 	if width <= 0 then
 		return
 	end
 	local outLeft, outRight = ns.PowerBar.fillOutset.left, ns.PowerBar.fillOutset.right
-	for index, slot in ipairs(slots) do
-		local left, right = ns.ComboPoints.SlotEdge(width, index - 1), ns.ComboPoints.SlotEdge(width, index)
-		slot:ClearAllPoints()
-		slot:SetPoint("TOPLEFT", row, "TOPLEFT", left - (index == 1 and outLeft or 0), 0)
-		slot:SetPoint("BOTTOMRIGHT", row, "BOTTOMLEFT", right + (index == SLOTS and outRight or 0), 0)
-		if slot.separator then
-			slot.separator:ClearAllPoints()
-			slot.separator:SetPoint("TOPLEFT", row, "TOPLEFT", left - LINE / 2, 0)
-			slot.separator:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", left - LINE / 2, 0)
-		end
+	for index, separator in ipairs(separators) do
+		local x = ns.ComboPoints.SlotEdge(width, index, outLeft, outRight) - LINE / 2
+		separator:ClearAllPoints()
+		separator:SetPoint("TOPLEFT", row, "TOPLEFT", x, 0)
+		separator:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", x, 0)
 	end
 end
 row:SetScript("OnSizeChanged", LayoutSlots)
 
--- Fills the slots from the points on the target. The count is secret at times and only passes
+-- Fills the row from the points on the target. The count is secret at times and only passes
 -- through.
 local function UpdateValues(interpolation)
 	local points = GetComboPoints("player", "target")
@@ -148,9 +144,7 @@ local function UpdateValues(interpolation)
 			combat
 		)
 	end
-	for _, slot in ipairs(slots) do
-		slot:SetValue(points, interpolation)
-	end
+	fill:SetValue(points, interpolation)
 end
 
 -- Sits the row on the Other Powers row when that is in, else on the power bar.
@@ -173,9 +167,7 @@ local function Refresh()
 	row:SetShown(shown)
 	ns.dev:LogChanged("combo-shown", shown, "COMBO", "shown", shown)
 	UpdateValues(Enum.StatusBarInterpolation.Immediate)
-	for _, slot in ipairs(slots) do
-		slot:SetToTargetValue()
-	end
+	fill:SetToTargetValue()
 end
 
 ns.OffFormPower.OnRowChanged(Place)

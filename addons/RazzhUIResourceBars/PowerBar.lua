@@ -68,17 +68,21 @@ borderTexture:SetPoint("BOTTOMRIGHT", 2, -2)
 -- What else belongs to the frame (OffFormPower.lua's row) is parented to it.
 ns.PowerBar.border = border
 
--- How much of the dark inner rim the cast bar border shows between its line and the fill (in game,
--- 2026-11-22: two pixels at either end of the bar), and its colour there.
-local RIM = 2
-local RIM_R, RIM_G, RIM_B = 0.04, 0.02, 0
+-- The dark inner rim the cast bar border shows between its line and the fill at the bar's ends: one
+-- screen pixel of dark brown (read off screenshots, 2026-11-22), whatever the UI scale.
+local RIM_R, RIM_G, RIM_B = 0.12, 0.06, 0
 
 local function CreateRim(separator, side, far)
 	local rim = separator:CreateTexture(nil, "ARTWORK")
 	rim:SetColorTexture(RIM_R, RIM_G, RIM_B, 1)
-	rim:SetWidth(RIM)
 	rim:SetPoint("TOP" .. far, separator, "TOP" .. side)
 	rim:SetPoint("BOTTOM" .. far, separator, "BOTTOM" .. side)
+	return rim
+end
+
+-- One screen pixel in the separator's UI units, as PixelUtil counts them.
+local function OnePixel(region)
+	return PixelUtil.GetPixelToUIUnitFactor() / region:GetEffectiveScale()
 end
 
 -- A line to split a row of the frame (OffFormPower.lua, ComboPoints.lua), this many pixels wide: a
@@ -104,8 +108,14 @@ function ns.PowerBar.CreateSeparator(parent, width)
 	else
 		line:SetColorTexture(0, 0, 0, 0.9)
 	end
-	CreateRim(separator, "LEFT", "RIGHT")
-	CreateRim(separator, "RIGHT", "LEFT")
+	local leftRim = CreateRim(separator, "LEFT", "RIGHT")
+	local rightRim = CreateRim(separator, "RIGHT", "LEFT")
+	-- Sized once the separator is placed, when its scale is known.
+	separator:SetScript("OnSizeChanged", function()
+		local pixel = OnePixel(separator)
+		leftRim:SetWidth(pixel)
+		rightRim:SetWidth(pixel)
+	end)
 	return separator
 end
 

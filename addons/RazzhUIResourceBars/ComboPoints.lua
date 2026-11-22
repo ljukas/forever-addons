@@ -54,10 +54,8 @@ local background = ns.PowerBar.CreateBackground(row)
 background:SetPoint("TOPLEFT", -1, 1)
 background:SetPoint("BOTTOMRIGHT", 1, -LINE)
 
--- The border sits level with the power bar's. The cast bar's border isn't sliced (in game,
--- 2026-11-12): squeezed into a fifth of the row its side lines would draw thin, so the row wears one
--- copy across its width, overlapping the border below by a line, and the slots are split by
--- separators cut from that border's own left side.
+-- The border sits level with the power bar's: one copy across the row, overlapping the border below
+-- by a line, with separators between the slots (ns.PowerBar.CreateSeparator).
 local cells = CreateFrame("Frame", nil, row)
 cells:SetAllPoints()
 cells:SetFrameLevel(border:GetFrameLevel())
@@ -66,25 +64,6 @@ local frame = cells:CreateTexture(nil, "OVERLAY")
 frame:SetAtlas("ui-castingbar-frame")
 frame:SetPoint("TOPLEFT", row, "TOPLEFT", -LINE, LINE)
 frame:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", LINE, -LINE)
-
--- A strip LINE pixels wide off the border art's left side, from its middle third (clear of the
--- corners), to stretch down the row as a separator. Plain dark if the art can't be read.
-local function CreateSeparator()
-	local separator = cells:CreateTexture(nil, "OVERLAY")
-	local info = C_Texture.GetAtlasInfo("ui-castingbar-frame")
-	ns.dev:LogOnce("combo-separator", "COMBO", "separator art", info ~= nil and info.file ~= nil)
-	if info and info.file and info.width > 0 then
-		local u = info.leftTexCoord
-		local du = (info.rightTexCoord - info.leftTexCoord) * LINE / info.width
-		local dv = (info.bottomTexCoord - info.topTexCoord) / 3
-		separator:SetTexture(info.file)
-		separator:SetTexCoord(u, u + du, info.topTexCoord + dv, info.bottomTexCoord - dv)
-	else
-		separator:SetColorTexture(0, 0, 0, 0.9)
-	end
-	separator:SetWidth(LINE)
-	return separator
-end
 
 -- One bar across the row, from 0 to SLOTS points, so the fill's art runs on unbroken and simply
 -- stops at the last point. It reaches past the row under the border's ends, as far as the main bar's
@@ -102,7 +81,7 @@ fill:SetValue(0)
 -- Between each two slots.
 local separators = {}
 for index = 1, SLOTS - 1 do
-	separators[index] = CreateSeparator()
+	separators[index] = ns.PowerBar.CreateSeparator(cells, LINE)
 end
 
 -- Where the fill ends at this many points, in whole pixels from the row's left: the fill runs

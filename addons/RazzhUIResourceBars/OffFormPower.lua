@@ -4,9 +4,9 @@ local ADDON_NAME, ns = ...
 -- energy when the current form doesn't use them. Energy gets its bar once the druid knows Cat
 -- Form (it builds up outside cat form, see the Furor talent). Rage gets none: it is gone by the time
 -- the druid is back in bear form (in game, 2026-11-12). So: no row in caster form before Cat Form,
--- one bar across the row otherwise, and two side by side in bear form with Cat Form known. Each
--- wears the cast bar's border, overlapping the power bar's by a line, over a background like the
--- power bar's, so they read as one frame
+-- one bar across the row otherwise, and two side by side in bear form with Cat Form known. The
+-- row wears one cast bar border, overlapping the power bar's by a line, with a divider between two
+-- bars, over a background like the power bar's, so they read as one frame
 -- (docs/superpowers/specs/2026-11-12-foreverunitframes-off-form-power-design.md). On a form change
 -- the row slides up from behind the power bar and fades in, and leaves the same way
 -- (docs/superpowers/specs/2026-11-13-foreverunitframes-off-form-row-animation-design.md).
@@ -21,6 +21,8 @@ ns.OffFormPower.available = class == "DRUID"
 
 if not ns.OffFormPower.available then
 	function ns.OffFormPower.SetLayout() end
+	function ns.OffFormPower.Row() end
+	function ns.OffFormPower.OnRowChanged() end
 	return
 end
 
@@ -122,27 +124,24 @@ local function CreateBar()
 end
 
 -- The left bar takes the whole row when it is the only one. Two bars meet at the row's centre,
--- under the line their borders share. The other ends are placed by SetBars.
+-- under the divider. The ends are placed by SetBars.
 local leftBar, rightBar = CreateBar(), CreateBar()
-rightBar:SetPoint("TOPLEFT", row, "TOP")
 
--- Each bar wears the cast bar's border, like the main bar, drawn level with it. The borders overlap
--- the main bar's and each other's by a line, so the lot reads as one frame with thin lines between
--- its bars, and no border is stretched far from the height it was drawn for.
+-- The row wears the cast bar's border, like the main bar and level with it, overlapping the main
+-- bar's by a line; two bars are split by a line cut from the same art (ns.PowerBar.CreateSeparator),
+-- as the combo points row's slots are, so the lot reads as one frame.
 local cells = CreateFrame("Frame", nil, row)
 cells:SetAllPoints()
 cells:SetFrameLevel(border:GetFrameLevel())
 
-local function CreateCell()
-	local cell = cells:CreateTexture(nil, "OVERLAY")
-	cell:SetAtlas("ui-castingbar-frame")
-	return cell
-end
+local frame = cells:CreateTexture(nil, "OVERLAY")
+frame:SetAtlas("ui-castingbar-frame")
+frame:SetPoint("TOPLEFT", row, "TOPLEFT", -LINE, LINE)
+frame:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", LINE, -LINE)
 
-local leftCell, rightCell = CreateCell(), CreateCell()
-leftCell:SetPoint("TOPLEFT", row, "TOPLEFT", -LINE, LINE)
-rightCell:SetPoint("TOPLEFT", row, "TOP", -LINE / 2, LINE)
-rightCell:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", LINE, -LINE)
+local divider = ns.PowerBar.CreateSeparator(cells, LINE)
+divider:SetPoint("TOPLEFT", row, "TOP", -LINE / 2, 0)
+divider:SetPoint("BOTTOMLEFT", row, "BOTTOM", -LINE / 2, 0)
 
 -- The row leaving: down behind the power bar, fading out. Entering plays it backwards, as
 -- Blizzard's help buttons do (Blizzard_HelpPlate.lua), so the row at rest is simply the row. The
@@ -159,6 +158,27 @@ slideFade:SetSmoothing("IN")
 
 -- Whether the row is in, or on its way in.
 local rowShown = false
+
+-- Run when the row shows or hides, for what sits on top of it (ComboPoints.lua): a row sliding out
+-- still counts until it is gone, so what sits on it drops only then.
+local rowListeners = {}
+
+function ns.OffFormPower.OnRowChanged(func)
+	table.insert(rowListeners, func)
+end
+
+-- The row while it shows (sliding included); nil otherwise.
+function ns.OffFormPower.Row()
+	return row:IsShown() and row or nil
+end
+
+local function NotifyRow()
+	for _, func in ipairs(rowListeners) do
+		func()
+	end
+end
+row:SetScript("OnShow", NotifyRow)
+row:SetScript("OnHide", NotifyRow)
 
 slide:SetScript("OnFinished", function()
 	if not rowShown then
@@ -222,22 +242,21 @@ local function SetBars(count, height, animate)
 		return
 	end
 	rightBar:SetShown(count > 1)
-	rightCell:SetShown(count > 1)
+	divider:SetShown(count > 1)
 	row:SetHeight(height)
 	-- Up to the top of the row's border, and a pixel to spare.
 	clip:SetHeight(height + 2 * LINE + 1)
 	slideMove:SetOffset(0, -(height + LINE))
-	-- The fills reach past the row under the border's ends, as far as the main bar's fill does:
-	-- their art starts and stops short.
+	-- Each fill reaches past its ends, under the border or the divider, as far as the main bar's fill
+	-- does: its art starts and stops short.
 	local left, right = ns.PowerBar.fillOutset.left, ns.PowerBar.fillOutset.right
 	leftBar:SetPoint("TOPLEFT", row, "TOPLEFT", -left, 0)
+	rightBar:SetPoint("TOPLEFT", row, "TOP", -left, 0)
 	rightBar:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", right, 0)
 	if count > 1 then
-		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOM")
-		leftCell:SetPoint("BOTTOMRIGHT", row, "BOTTOM", LINE / 2, -LINE)
+		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOM", right, 0)
 	else
 		leftBar:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", right, 0)
-		leftCell:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", LINE, -LINE)
 	end
 	SetRowShown(true, animate)
 end

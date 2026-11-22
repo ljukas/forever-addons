@@ -23,6 +23,9 @@ ns.PowerBar.DEFAULTS = {
 	-- A druid's other powers, in a row above the bar (OffFormPower.lua).
 	offForm = true,
 	offFormHeight = 10,
+	-- A rogue's or Cat Form druid's combo points, in a row on top (ComboPoints.lua).
+	comboPoints = true,
+	comboPointsHeight = 10,
 }
 
 local DEFAULTS = ns.PowerBar.DEFAULTS
@@ -64,6 +67,57 @@ borderTexture:SetPoint("TOPLEFT", -2, 2)
 borderTexture:SetPoint("BOTTOMRIGHT", 2, -2)
 -- What else belongs to the frame (OffFormPower.lua's row) is parented to it.
 ns.PowerBar.border = border
+
+-- The dark inner rim the cast bar border shows between its line and the fill at the bar's ends: one
+-- screen pixel of dark brown (read off screenshots, 2026-11-22), whatever the UI scale.
+local RIM_R, RIM_G, RIM_B = 0.12, 0.06, 0
+
+local function CreateRim(separator, side, far)
+	local rim = separator:CreateTexture(nil, "ARTWORK")
+	rim:SetColorTexture(RIM_R, RIM_G, RIM_B, 1)
+	rim:SetPoint("TOP" .. far, separator, "TOP" .. side)
+	rim:SetPoint("BOTTOM" .. far, separator, "BOTTOM" .. side)
+	return rim
+end
+
+-- One screen pixel in the separator's UI units, as PixelUtil counts them.
+local function OnePixel(region)
+	return PixelUtil.GetPixelToUIUnitFactor() / region:GetEffectiveScale()
+end
+
+-- A line to split a row of the frame (OffFormPower.lua, ComboPoints.lua), this many pixels wide: a
+-- strip off the cast bar border's left side, from its middle third (clear of the corners), with the
+-- border's dark rim on either side, so each part of the row ends and starts as the row's ends do.
+-- The border isn't sliced (in game, 2026-11-12), so a row wears one copy of it across its width and
+-- these between its parts, rather than a squeezed copy per part. The line is plain dark if the art
+-- can't be read. A frame above the fills, as wide as the line (the rims draw past it); the caller
+-- anchors it.
+function ns.PowerBar.CreateSeparator(parent, width)
+	local separator = CreateFrame("Frame", nil, parent)
+	separator:SetWidth(width)
+	local line = separator:CreateTexture(nil, "OVERLAY")
+	line:SetAllPoints()
+	local info = C_Texture.GetAtlasInfo("ui-castingbar-frame")
+	ns.dev:LogOnce("separator-art", "POWER", "separator art", info ~= nil and info.file ~= nil)
+	if info and info.file and info.width > 0 then
+		local u = info.leftTexCoord
+		local du = (info.rightTexCoord - info.leftTexCoord) * width / info.width
+		local dv = (info.bottomTexCoord - info.topTexCoord) / 3
+		line:SetTexture(info.file)
+		line:SetTexCoord(u, u + du, info.topTexCoord + dv, info.bottomTexCoord - dv)
+	else
+		line:SetColorTexture(0, 0, 0, 0.9)
+	end
+	local leftRim = CreateRim(separator, "LEFT", "RIGHT")
+	local rightRim = CreateRim(separator, "RIGHT", "LEFT")
+	-- Sized once the separator is placed, when its scale is known.
+	separator:SetScript("OnSizeChanged", function()
+		local pixel = OnePixel(separator)
+		leftRim:SetWidth(pixel)
+		rightRim:SetWidth(pixel)
+	end)
+	return separator
+end
 
 -- The fill. It eases toward each new value when the layout asks for smooth fills.
 local fill = CreateFrame("StatusBar", nil, holder)

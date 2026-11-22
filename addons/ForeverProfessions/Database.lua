@@ -8,7 +8,9 @@ local ADDON_NAME, ns = ...
 -- map, rounded to 4 decimals. count is how many times the node has been gathered.
 --   crafts   = { [characterKey] = { [recipeID] = { made, gray, levels = { [skillRank] = row } } } },
 --              written by Sources/CraftRecorder.lua
--- characterKey is "Name-Realm". made counts the items the recipe produced; gray is the recipe's
+--   legacyCrafts = { [oldKey] = the same per-character table }, crafts recorded before version 3
+--              under "Name-Realm" keys, until their character adopts them (AdoptLegacyCrafts)
+-- characterKey is "Name-Surname" (Core.lua). made counts the items the recipe produced; gray is the recipe's
 -- maxTrivialLevel, the rank it turns gray at. skillRank is the profession's base skill when the
 -- craft finished, before its own skill-up (not counting racial or item bonuses), and row is
 -- { attempts, skillUps, difficulty, capped }: completed casts at that rank, the skill points
@@ -17,7 +19,7 @@ local ADDON_NAME, ns = ...
 
 ns.DB = {}
 
-local DB_VERSION = 2
+local DB_VERSION = 3
 local STRIDE = 3
 
 -- Indexes into a crafts row.
@@ -36,7 +38,41 @@ local migrations = {
 	[2] = function(db)
 		db.crafts = db.crafts or {}
 	end,
+	-- Keys were "Name-Realm" until Blizzard blanked the realm name. The old key can't be rebuilt,
+	-- so each character claims its crafts by first name when it next logs in.
+	[3] = function(db)
+		-- Never over an existing legacy table, should the version ever be reset.
+		db.legacyCrafts = db.legacyCrafts or db.crafts
+		db.crafts = {}
+	end,
 }
+
+-- Moves the legacy crafts of the character with this key under it: the one legacy key with
+-- the same first name. With none, or several (namesakes on other realms), nothing is moved,
+-- and nothing either once the character has crafts under its new key; GetCraftRows still
+-- counts what stays behind.
+function ns.DB.AdoptLegacyCrafts(characterKey)
+	local legacy = ns.db.legacyCrafts
+	if not legacy or ns.db.crafts[characterKey] then
+		return
+	end
+	local prefix = characterKey:match("^[^-]+") .. "-"
+	local found
+	for key in pairs(legacy) do
+		if key:sub(1, #prefix) == prefix then
+			if found then
+				ns.log("KEY", "several legacy keys for", characterKey, "none adopted")
+				return
+			end
+			found = key
+		end
+	end
+	if found then
+		ns.db.crafts[characterKey] = legacy[found]
+		legacy[found] = nil
+		ns.log("KEY", "adopted legacy crafts of", found, "as", characterKey)
+	end
+end
 
 function ns.DB.Migrate(db)
 	-- Data from a newer version of the addon is left alone rather than downgraded.
@@ -175,20 +211,25 @@ end
 -- Returns every character's rows of the recipe as a list of
 -- { rank, attempts, skillUps, difficulty }, for the skill-up odds (Odds.lua). Capped crafts
 -- aren't attempts and so aren't included.
+-- Legacy crafts not yet adopted count too.
 function ns.DB.GetCraftRows(recipeID)
 	local rows = {}
-	for _, character in pairs(ns.db.crafts) do
-		local recipe = character[recipeID]
-		if recipe then
-			for rank, row in pairs(recipe.levels) do
-				table.insert(rows, {
-					rank = rank,
-					attempts = row[ATTEMPTS],
-					skillUps = row[SKILL_UPS],
-					difficulty = row[DIFFICULTY],
-				})
+	local function AddRows(characters)
+		for _, character in pairs(characters) do
+			local recipe = character[recipeID]
+			if recipe then
+				for rank, row in pairs(recipe.levels) do
+					table.insert(rows, {
+						rank = rank,
+						attempts = row[ATTEMPTS],
+						skillUps = row[SKILL_UPS],
+						difficulty = row[DIFFICULTY],
+					})
+				end
 			end
 		end
 	end
+	AddRows(ns.db.crafts)
+	AddRows(ns.db.legacyCrafts or {})
 	return rows
 end

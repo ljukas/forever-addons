@@ -27,3 +27,6 @@
   on its way.
 - ForeverProfessions now needs RazzhUI installed, and is switched on or off with its checkbox on
   the RazzhUI page (Options → AddOns → RazzhUI).
+- Crafts and skill-ups are recorded again. Since Forever's 1.60.1 hotfix hid realm names, no
+  craft was saved; characters are now told apart by first name and surname, and each one gets
+  back the crafts it recorded before when it next logs in.

@@ -1,0 +1,18 @@
+## Interface: 16001
+## Title: |cffd6b380RazzhUI|r Powershift
+## Notes: One-key powershift for druids: the key going down leaves your form, letting go takes it again, so the game keeps track of the form and your bar and abilities work at once.
+## IconTexture: Interface\Icons\Ability_Racial_BearForm
+## X-Category: Action Bars
+## Author: ljukas
+## X-License: MIT
+## Version: @project-version@
+## Dependencies: RazzhUI
+## Group: RazzhUI
+#@do-not-package@
+## OptionalDeps: ForeverDev
+#@end-do-not-package@
+
+Core.lua
+Shift.lua
+Keys.lua
+Options.lua

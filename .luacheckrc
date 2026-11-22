@@ -75,6 +75,10 @@ files["addons/ForeverTooltip/**"].globals = {
 	"ForeverTooltipDB",
 }
 
+files["addons/RazzhUIPowershift/**"].globals = {
+	"BINDING_HEADER_RAZZHUIPOWERSHIFT",
+}
+
 files["addons/RazzhUIResourceBars/**"].globals = {
 	"RazzhUIResourceBarsDB",
 }

@@ -68,7 +68,10 @@ local migrations = {
 				local name = key:match("^([^-]+)%-")
 				local surname = character.surname
 				if name and type(surname) == "string" and surname ~= "" then
-					moves[key] = name .. "-" .. surname
+					-- A key already "Name-Surname" (the step run again) stays as it is.
+					if key ~= name .. "-" .. surname then
+						moves[key] = name .. "-" .. surname
+					end
 				else
 					character.legacy = true
 				end
@@ -87,9 +90,10 @@ local migrations = {
 }
 
 -- Moves the legacy section of the character with this key under it: the one legacy section
--- with the same first name. With none, or several, or a section already under the new key,
--- nothing is moved.
-function ns.DB.AdoptLegacy(characterKey)
+-- with the same first name and, where the section saved one, the same class. With none, or
+-- several, or a section already under the new key, nothing is moved. A legacy section has no
+-- surname, so a namesake of the same class on the account could still take it.
+function ns.DB.AdoptLegacy(characterKey, class)
 	if ns.db.characters[characterKey] ~= nil then
 		return
 	end
@@ -97,7 +101,7 @@ function ns.DB.AdoptLegacy(characterKey)
 	local found
 	for key, character in pairs(ns.db.characters) do
 		if type(key) == "string" and type(character) == "table" and character.legacy then
-			if key:sub(1, #prefix) == prefix then
+			if key:sub(1, #prefix) == prefix and (character.class == nil or character.class == class) then
 				if found then
 					ns.log("KEY", "several legacy sections for", characterKey, "none adopted")
 					return

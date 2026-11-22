@@ -50,7 +50,8 @@ function ns.CharacterKey()
 	-- The character's runs from before the hotfix, if still under its old key, become its own.
 	if characterKey and not adopted and ns.db then
 		adopted = true
-		ns.DB.AdoptLegacy(characterKey)
+		local _, class = UnitClass("player")
+		ns.DB.AdoptLegacy(characterKey, not issecretvalue(class) and class or nil)
 	end
 	return characterKey
 end

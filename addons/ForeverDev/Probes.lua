@@ -20,7 +20,7 @@ local ADDON_NAME = ...
 --   FORM         what the client reports about the player's form and what pages action bar 1:
 --                on entering the world and every form, bonus bar, page and display power event,
 --                and for ten seconds after it, whenever the answer changed; and at each cast of
---                a form's spell. For the powershift bug: leaving a form and taking it again in
+--                a form's spell (other casts aren't logged). For the powershift bug: leaving a form and taking it again in
 --                one press (/cancelform, /cast Bear Form) leaves bar 1 on the caster page for
 --                three seconds. form/formID/forms are the stance bar's view (* active, a aura
 --                held), offset/index/has/temp the bonus bar's, page the manual page, cond what a
@@ -299,20 +299,19 @@ function handlers.ACTIONBAR_PAGE_CHANGED()
 	ProbeFormEvent("ACTIONBAR_PAGE_CHANGED")
 end
 
--- A form's cast is the powershift's one sure moment, so it is logged whatever the state says;
--- any other cast only when the state changed with it.
+-- A form's cast is the powershift's one sure moment, so it is logged whatever the state says.
+-- Other casts aren't: every class has them, and the state's aura marks change with combat.
 function handlers.UNIT_SPELLCAST_SUCCEEDED(_, _, spellID)
-	local state = FormState()
-	if not issecretvalue(spellID) then
-		for i = 1, GetNumShapeshiftForms() do
-			local _, _, _, formSpellID = GetShapeshiftFormInfo(i)
-			if not issecretvalue(formSpellID) and formSpellID == spellID then
-				dev:Log("FORM", "cast", spellID, ForeverDev.Situation(), state)
-				return
-			end
+	if issecretvalue(spellID) then
+		return
+	end
+	for i = 1, GetNumShapeshiftForms() do
+		local _, _, _, formSpellID = GetShapeshiftFormInfo(i)
+		if not issecretvalue(formSpellID) and formSpellID == spellID then
+			dev:Log("FORM", "cast", spellID, ForeverDev.Situation(), FormState())
+			return
 		end
 	end
-	dev:LogChanged("form state", state, "FORM", "cast", Show(spellID), ForeverDev.Situation(), state)
 end
 
 function handlers.PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)

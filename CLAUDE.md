@@ -59,6 +59,14 @@ Confirmed in game (16 November 2026), rested, solo in the open world, in combat:
 - `GetXPExhaustion()` and `GetRestState()` (1, "Rested", factor 2) are not secret. The pool
   drops by the kill's whole gain (7246 to 6994 for 252), and not at all for gains without a kill
   message.
+Confirmed in game (22 November 2026), after the Forever 1.60.1 hotfix against layer-swap addons:
+
+- `GetNormalizedRealmName()` and `GetRealmName()` return `""`, and `GetRealmID()` returns `0`, for
+  good. Never key data by realm. Key a character as `Name-Surname`: `UnitName("player")`'s second
+  value is the Forever surname (not secret), and Blizzard keeps the pair unique.
+- The player's own GUID (`Player-6942-…`) is still readable. Midnight 12.1.7 obfuscates the realm,
+  server and spawn IDs in creature, vehicle, pet and game object GUIDs, and the hotfix brings that
+  to Forever.
 
 Confirmed in game (22 November 2026), druid in Cat Form, solo in the open world:
 

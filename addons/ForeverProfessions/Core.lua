@@ -3,7 +3,7 @@ local ADDON_NAME, ns = ...
 -- Dev-only logging, probing and evidence through ForeverDev (addons/ForeverDev/ForeverDev.lua,
 -- scripts/devlog.sh). Without ForeverDev, ns.dev is inert: ns.dev.enabled is false and every
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG, by file:
---   LOADED            Core.lua
+--   LOADED KEY        Core.lua
 --   GATHER NEW AGAIN  Sources/GatherRecorder.lua
 --   CRAFTED SKILLUP UNCREDITED SECRET LATE  Sources/CraftRecorder.lua
 --   SKILL UNLISTED    Knowledge.lua, which keeps the evidence
@@ -75,16 +75,40 @@ ns.callbacks:OnLoad()
 ns.callbacks:GenerateCallbackEvents({ "NodesChanged", "OptionChanged", "SkillsChanged", "CraftsChanged" })
 
 local characterKey
+local adopted
 
--- "Name-Realm", or nil while the client keeps the name secret.
+local function Describe(value)
+	if issecretvalue(value) then
+		return "secret"
+	end
+	return value == nil and "nil" or value == "" and "empty" or "ok"
+end
+
+-- "Name-Surname", or nil while the client doesn't give both (or keeps them secret). On Forever
+-- UnitName's second value is the surname, and Blizzard keeps first name and surname unique
+-- together. Not the realm: since Forever's 1.60.1 hotfix the realm APIs return "" or 0.
 function ns.GetCharacterKey()
 	if not characterKey then
-		local name = UnitName("player")
-		local realm = GetNormalizedRealmName()
-		-- The realm can still be empty early in a session; the key would then be wrong for good.
-		if name and realm and not issecretvalue(name) and not issecretvalue(realm) and name ~= "" and realm ~= "" then
-			characterKey = name .. "-" .. realm
+		local name, surname = UnitName("player")
+		if
+			not issecretvalue(name)
+			and not issecretvalue(surname)
+			and type(name) == "string"
+			and name ~= ""
+			and type(surname) == "string"
+			and surname ~= ""
+		then
+			characterKey = name .. "-" .. surname
+			ns.dev:LogOnce("character key", "KEY", "character key", characterKey)
+		elseif ns.dev.enabled then
+			local state = string.format("name %s surname %s", Describe(name), Describe(surname))
+			ns.dev:LogChanged("character key", state, "KEY", "no character key:", state)
 		end
+	end
+	-- The character's crafts from before the hotfix, under its old "Name-Realm" key, become its own.
+	if characterKey and not adopted and ns.db then
+		adopted = true
+		ns.DB.AdoptLegacyCrafts(characterKey)
 	end
 	return characterKey
 end
@@ -120,6 +144,8 @@ EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
 	ForeverProfessionsDB = ForeverProfessionsDB or {}
 	ns.db = ForeverProfessionsDB
 	ns.DB.Migrate(ns.db)
+	-- A key read before the SavedVariables loaded hasn't adopted its legacy crafts yet.
+	ns.GetCharacterKey()
 
 	for _, func in ipairs(initializers) do
 		func()

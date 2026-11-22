@@ -10,9 +10,11 @@ local _, ns = ...
 --     nextID = the next run's id,
 --     open   = { [instanceID] = runID }, the run each dungeon's next visit may continue,
 --     closed = { [instanceID] = "reset" }, why a dungeon has no open run, until its next run starts,
---     runs   = { run, ... } in the order they started } }
--- characterKey is "Name-Realm". instanceID is GetInstanceInfo()'s, the same for every run of a
--- dungeon. A run is:
+--     runs   = { run, ... } in the order they started,
+--     legacy = true on a section still under its "Name-Realm" key from before version 2, until its
+--              character adopts it (AdoptLegacy) } }
+-- characterKey is "Name-Surname" (Core.lua). instanceID is GetInstanceInfo()'s, the same for every
+-- run of a dungeon. A run is:
 --   id, instanceID, name (the dungeon's), number (1, 2, ... per dungeon),
 --   copy       = the instance copy number from a creature's GUID, nil while unknown,
 --   openedBy   = why it started: "first", "copy", "alive" or "gap" (Logic/RunRules.lua), "reset"
@@ -45,7 +47,7 @@ local _, ns = ...
 
 ns.DB = {}
 
-local DB_VERSION = 1
+local DB_VERSION = 2
 
 local migrations = {
 	[1] = function(db)
@@ -56,7 +58,66 @@ local migrations = {
 			db.characters = {}
 		end
 	end,
+	-- Keys were "Name-Realm" until Forever blanked the realm name. A character with its surname
+	-- saved moves to "Name-Surname"; one without stays under its old key, still listed, marked
+	-- legacy for its character to adopt when it next logs in.
+	[2] = function(db)
+		local moves = {}
+		for key, character in pairs(db.characters) do
+			if type(key) == "string" and type(character) == "table" then
+				local name = key:match("^([^-]+)%-")
+				local surname = character.surname
+				if name and type(surname) == "string" and surname ~= "" then
+					-- A key already "Name-Surname" (the step run again) stays as it is.
+					if key ~= name .. "-" .. surname then
+						moves[key] = name .. "-" .. surname
+					end
+				else
+					character.legacy = true
+				end
+			end
+		end
+		for key, newKey in pairs(moves) do
+			-- Two old keys can't share a new one (the full name is unique), but never overwrite.
+			if db.characters[newKey] == nil then
+				db.characters[newKey] = db.characters[key]
+				db.characters[key] = nil
+			else
+				db.characters[key].legacy = true
+			end
+		end
+	end,
 }
+
+-- Moves the legacy section of the character with this key under it: the one legacy section
+-- with the same first name and, where the section saved one, the same class. With none, or
+-- several, or a section already under the new key, nothing is moved. A legacy section has no
+-- surname, so a namesake of the same class on the account could still take it.
+function ns.DB.AdoptLegacy(characterKey, class)
+	if ns.db.characters[characterKey] ~= nil then
+		return
+	end
+	local prefix = characterKey:match("^[^-]+") .. "-"
+	local found
+	for key, character in pairs(ns.db.characters) do
+		if type(key) == "string" and type(character) == "table" and character.legacy then
+			if key:sub(1, #prefix) == prefix and (character.class == nil or character.class == class) then
+				if found then
+					ns.log("KEY", "several legacy sections for", characterKey, "none adopted")
+					return
+				end
+				found = key
+			end
+		end
+	end
+	if found then
+		local character = ns.db.characters[found]
+		character.legacy = nil
+		ns.db.characters[characterKey] = character
+		ns.db.characters[found] = nil
+		ns.log("KEY", "adopted legacy section", found, "as", characterKey)
+	end
+end
 
 function ns.DB.Migrate(db)
 	-- Data from a newer version of the addon is left alone rather than downgraded.

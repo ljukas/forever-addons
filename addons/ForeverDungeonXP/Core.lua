@@ -3,7 +3,7 @@ local ADDON_NAME, ns = ...
 -- Dev-only logging, probing and evidence through ForeverDev (addons/ForeverDev/ForeverDev.lua,
 -- scripts/devlog.sh). Without ForeverDev, ns.dev is inert: ns.dev.enabled is false and every
 -- call on it does nothing. ns.log(TAG, ...) logs a line tagged TAG. Tags by file:
---   Core.lua       LOADED
+--   Core.lua       LOADED, KEY (the character key, and legacy sections adopted in Database.lua)
 --   Tracker.lua    RUN (entering, leaving, run decisions, copy numbers, resets), KILL (each kill
 --                  message: parsed, unparsed or secret)
 --   Ranks.lua      RANK (each creature's rank from deaths, or why none; encounters won)
@@ -30,20 +30,28 @@ function ns.log(tag, ...)
 end
 
 local characterKey
+local adopted
 
--- "Name-Realm", or nil while the client doesn't give the name or realm yet (or keeps them secret).
+-- "Name-Surname", or nil while the client doesn't give both (or keeps them secret). On Forever
+-- UnitName's second value is the surname, and Blizzard keeps first name and surname unique
+-- together. Not the realm: since Forever's 1.60.1 hotfix the realm APIs return "" or 0.
 function ns.CharacterKey()
 	if not characterKey then
-		local name = UnitName("player")
-		local realm = GetNormalizedRealmName()
-		-- The realm can still be empty early in a session; the key would then be wrong for good.
+		local name, surname = UnitName("player")
 		-- Secrecy first: a secret value can't even be tested for nil.
-		if issecretvalue(name) or issecretvalue(realm) then
+		if issecretvalue(name) or issecretvalue(surname) then
 			return nil
 		end
-		if name and realm and name ~= "" and realm ~= "" then
-			characterKey = name .. "-" .. realm
+		if type(name) == "string" and name ~= "" and type(surname) == "string" and surname ~= "" then
+			characterKey = name .. "-" .. surname
+			ns.dev:LogOnce("character key", "KEY", "character key", characterKey)
 		end
+	end
+	-- The character's runs from before the hotfix, if still under its old key, become its own.
+	if characterKey and not adopted and ns.db then
+		adopted = true
+		local _, class = UnitClass("player")
+		ns.DB.AdoptLegacy(characterKey, not issecretvalue(class) and class or nil)
 	end
 	return characterKey
 end
@@ -60,6 +68,8 @@ EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, function()
 	ForeverDungeonXPDB = ForeverDungeonXPDB or {}
 	ns.db = ForeverDungeonXPDB
 	ns.DB.Migrate(ns.db)
+	-- A key read before the SavedVariables loaded hasn't adopted its legacy section yet.
+	ns.CharacterKey()
 
 	for _, func in ipairs(initializers) do
 		func()

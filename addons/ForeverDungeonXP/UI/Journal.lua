@@ -64,7 +64,8 @@ local function ClassColored(class, text)
 	return color and color:WrapTextInColorCode(text) or text
 end
 
--- A character's name without its realm: "Thrall-Some Realm" -> "Thrall".
+-- A character's first name from its key: "Thrall-Doomhammer" -> "Thrall" (or from a legacy
+-- "Thrall-Some Realm" key).
 local function ShortName(key)
 	return key:match("^[^-]+") or key
 end
@@ -355,8 +356,8 @@ local function CreateJournal()
 		local current = ns.CharacterKey()
 		local characters = ns.DB.Characters()
 		-- First name and surname ("Thrall Doomhammer"; the first name alone until the character
-		-- has logged in and its surname was saved), with the realm only where two would read
-		-- the same.
+		-- has logged in and its surname was saved), with the whole key only where two would read
+		-- the same (a legacy section beside its character's new one).
 		local names, sameName = {}, {}
 		for index, character in ipairs(characters) do
 			local name = ShortName(character.key)

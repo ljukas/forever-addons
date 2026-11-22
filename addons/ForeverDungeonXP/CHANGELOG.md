@@ -25,3 +25,5 @@
   dungeons; click again to turn the order.
 - ForeverDungeonXP now needs RazzhUI installed, and is switched on or off with its checkbox on the
   RazzhUI page (Options → AddOns → RazzhUI).
+- Dungeon runs are recorded again. Since Forever's 1.60.1 hotfix hid realm names, no run was
+  saved; characters are now told apart by first name and surname, and keep their earlier runs.

@@ -50,7 +50,9 @@ local migrations = {
 -- Moves the legacy crafts of the character with this key under it: the one legacy key with
 -- the same first name. With none, or several (namesakes on other realms), nothing is moved,
 -- and nothing either once the character has crafts under its new key; GetCraftRows still
--- counts what stays behind.
+-- counts what stays behind. A legacy key holds no surname, so a namesake on the account whose
+-- crafts are the only ones under that first name would take them; only the "Crafted" count
+-- shows it, since the odds pool every character's crafts anyway.
 function ns.DB.AdoptLegacyCrafts(characterKey)
 	local legacy = ns.db.legacyCrafts
 	if not legacy or ns.db.crafts[characterKey] then

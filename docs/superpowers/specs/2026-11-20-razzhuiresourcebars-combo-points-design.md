@@ -37,8 +37,8 @@ OffFormPower.lua would be a refactor of its own), more than five points.
 ## Secret values
 
 `GetComboPoints` is `SecretWhenUnitPowerRestricted`. The count is never compared or logged: it goes
-straight into the status bar's `SetValue`, which takes secret values. Readable out of combat (in
-game 21 Nov); in combat unchecked. Visibility depends only on class, `UnitPowerType` and
+straight into the status bar's `SetValue`, which takes secret values. Readable in and out of combat
+(in game 22 Nov, Cat Form, open world), but the design doesn't rely on it. Visibility depends only on class, `UnitPowerType` and
 `UnitExists("target")`, none of them secret.
 
 ## Events

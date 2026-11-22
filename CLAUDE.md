@@ -60,6 +60,11 @@ Confirmed in game (16 November 2026), rested, solo in the open world, in combat:
   drops by the kill's whole gain (7246 to 6994 for 252), and not at all for gains without a kill
   message.
 
+Confirmed in game (22 November 2026), druid in Cat Form, solo in the open world:
+
+- `GetComboPoints("player", "target")` is not secret, in or out of combat, despite its
+  `SecretWhenUnitPowerRestricted` flag. Points sit on the target, as in Vanilla.
+
 ## Looking up the API (do this before using any API you haven't verified)
 
 `scripts/setup.sh` fetches reference material into `.cache/` (gitignored; lint runs it if missing):

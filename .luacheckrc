@@ -29,6 +29,8 @@ files["template/Addon/**"].globals = { "__ADDON__DB" }
 
 files["addons/ForeverCombatText/**"].globals = { "ForeverCombatTextDB" }
 
+files["addons/RazzhUIQuestXP/**"].globals = { "RazzhUIQuestXPDB" }
+
 files["addons/ForeverDev/**"].globals = {
 	"ForeverDev",
 	"ForeverDevDB",

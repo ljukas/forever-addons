@@ -68,25 +68,44 @@ borderTexture:SetPoint("BOTTOMRIGHT", 2, -2)
 -- What else belongs to the frame (OffFormPower.lua's row) is parented to it.
 ns.PowerBar.border = border
 
--- A line to split a row of the frame (OffFormPower.lua, ComboPoints.lua): a strip this many pixels
--- wide off the cast bar border's left side, from its middle third (clear of the corners), to
--- stretch down the row. The border isn't sliced (in game, 2026-11-12), so a row wears one copy of
--- it across its width and these between its parts, rather than a squeezed copy per part. Plain dark
--- if the art can't be read. The caller anchors it.
-function ns.PowerBar.CreateSeparator(frame, width)
-	local separator = frame:CreateTexture(nil, "OVERLAY")
+-- How much of the dark inner rim the cast bar border shows between its line and the fill (in game,
+-- 2026-11-22: two pixels at either end of the bar), and its colour there.
+local RIM = 2
+local RIM_R, RIM_G, RIM_B = 0.04, 0.02, 0
+
+local function CreateRim(separator, side, far)
+	local rim = separator:CreateTexture(nil, "ARTWORK")
+	rim:SetColorTexture(RIM_R, RIM_G, RIM_B, 1)
+	rim:SetWidth(RIM)
+	rim:SetPoint("TOP" .. far, separator, "TOP" .. side)
+	rim:SetPoint("BOTTOM" .. far, separator, "BOTTOM" .. side)
+end
+
+-- A line to split a row of the frame (OffFormPower.lua, ComboPoints.lua), this many pixels wide: a
+-- strip off the cast bar border's left side, from its middle third (clear of the corners), with the
+-- border's dark rim on either side, so each part of the row ends and starts as the row's ends do.
+-- The border isn't sliced (in game, 2026-11-12), so a row wears one copy of it across its width and
+-- these between its parts, rather than a squeezed copy per part. The line is plain dark if the art
+-- can't be read. A frame above the fills, as wide as the line (the rims draw past it); the caller
+-- anchors it.
+function ns.PowerBar.CreateSeparator(parent, width)
+	local separator = CreateFrame("Frame", nil, parent)
+	separator:SetWidth(width)
+	local line = separator:CreateTexture(nil, "OVERLAY")
+	line:SetAllPoints()
 	local info = C_Texture.GetAtlasInfo("ui-castingbar-frame")
 	ns.dev:LogOnce("separator-art", "POWER", "separator art", info ~= nil and info.file ~= nil)
 	if info and info.file and info.width > 0 then
 		local u = info.leftTexCoord
 		local du = (info.rightTexCoord - info.leftTexCoord) * width / info.width
 		local dv = (info.bottomTexCoord - info.topTexCoord) / 3
-		separator:SetTexture(info.file)
-		separator:SetTexCoord(u, u + du, info.topTexCoord + dv, info.bottomTexCoord - dv)
+		line:SetTexture(info.file)
+		line:SetTexCoord(u, u + du, info.topTexCoord + dv, info.bottomTexCoord - dv)
 	else
-		separator:SetColorTexture(0, 0, 0, 0.9)
+		line:SetColorTexture(0, 0, 0, 0.9)
 	end
-	separator:SetWidth(width)
+	CreateRim(separator, "LEFT", "RIGHT")
+	CreateRim(separator, "RIGHT", "LEFT")
 	return separator
 end
 

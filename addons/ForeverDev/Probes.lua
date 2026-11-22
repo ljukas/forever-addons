@@ -17,6 +17,16 @@ local ADDON_NAME = ...
 --                minimap's center, and what issecurevariable says created it (secure = Blizzard,
 --                else the tainting addon). Also whether issecurevariable exists at all, and
 --                LibDBIcon's button list
+--   FORM         what the client reports about the player's form and what pages action bar 1:
+--                on entering the world and every form, bonus bar, page and display power event,
+--                and for ten seconds after it, whenever the answer changed; and at each cast of
+--                a form's spell (other casts aren't logged). For the powershift bug: leaving a form and taking it again in
+--                one press (/cancelform, /cast Bear Form) leaves bar 1 on the caster page for
+--                three seconds. form/formID/forms are the stance bar's view (* active, a aura
+--                held), offset/index/has/temp the bonus bar's, page the manual page, cond what a
+--                secure state driver's [bonusbar:N] and [form:N] conditions resolve to, power
+--                the power type, blizz the page on Blizzard's MainActionBar, eab EllesmereUI's
+--                bar 1 (state-page/actionpage), b1 the slot ActionButton1 holds
 -- Addon-specific probes live in that addon's Dev/ folder.
 
 local dev = ForeverDev.For(ADDON_NAME)
@@ -201,7 +211,108 @@ local function ProbeMinimap()
 	end
 end
 
+-- tostring for a value that may be secret.
+local function Show(value)
+	return issecretvalue(value) and "secret" or tostring(value)
+end
+
+local BONUSBAR_CONDITIONS = "[bonusbar:1] 1; [bonusbar:2] 2; [bonusbar:3] 3; [bonusbar:4] 4; [bonusbar:5] 5; 0"
+local FORM_CONDITIONS = "[form:1] 1; [form:2] 2; [form:3] 3; [form:4] 4; [form:5] 5; [form:6] 6; 0"
+
+-- The stance bar's forms as "index:spellID", with a "*" on the active ones and an "a" on those
+-- whose aura the player has.
+local function Forms()
+	local forms = {}
+	for i = 1, GetNumShapeshiftForms() do
+		local _, isActive, _, spellID = GetShapeshiftFormInfo(i)
+		local active = issecretvalue(isActive) and "?" or (isActive and "*" or "")
+		local aura = not issecretvalue(spellID) and spellID and C_UnitAuras.GetPlayerAuraBySpellID(spellID)
+		local hasAura = issecretvalue(aura) and "a?" or (aura and "a" or "")
+		table.insert(forms, i .. ":" .. Show(spellID) .. active .. hasAura)
+	end
+	return #forms > 0 and table.concat(forms, ",") or "none"
+end
+
+local function FormState()
+	-- Looked up by name: EllesmereUI's action bar 1 is only there with that addon, and LuaLS
+	-- doesn't know Blizzard's XML-made frames.
+	local eab, blizz, button1 = _G["EABBar_MainBar"], _G["MainActionBar"], _G["ActionButton1"]
+	local _, powerToken = UnitPowerType("player")
+	return string.format(
+		"form %s formID %s forms %s | offset %s index %s has %s temp %s page %s | cond bonusbar %s form %s | "
+			.. "power %s | blizz %s eab %s/%s b1 %s",
+		Show(GetShapeshiftForm()),
+		Show(GetShapeshiftFormID()),
+		Forms(),
+		Show(C_ActionBar.GetBonusBarOffset()),
+		Show(C_ActionBar.GetBonusBarIndex()),
+		Show(C_ActionBar.HasBonusActionBar()),
+		Show(C_ActionBar.HasTempShapeshiftActionBar()),
+		Show(C_ActionBar.GetActionBarPage()),
+		Show(SecureCmdOptionParse(BONUSBAR_CONDITIONS)),
+		Show(SecureCmdOptionParse(FORM_CONDITIONS)),
+		Show(powerToken),
+		blizz and Show(blizz:GetAttribute("actionpage")) or "none",
+		eab and Show(eab:GetAttribute("state-page")) or "none",
+		eab and Show(eab:GetAttribute("actionpage")) or "none",
+		button1 and Show(button1.action) or "none"
+	)
+end
+
+-- Logs the form state when it differs from the last one logged.
+local function ProbeForm(reason)
+	local state = FormState()
+	dev:LogChanged("form state", state, "FORM", reason, ForeverDev.Situation(), state)
+end
+
+local WATCH_SECONDS, WATCH_INTERVAL = 10, 0.1
+local watchStart, watchTicker
+
+-- The event's own moment, then every change in the ten seconds after it: after a powershift the
+-- state comes right seconds later, and no event says so.
+local function ProbeFormEvent(reason)
+	ProbeForm(reason)
+	watchStart = GetTime()
+	if watchTicker then
+		watchTicker:Cancel()
+	end
+	watchTicker = C_Timer.NewTicker(WATCH_INTERVAL, function()
+		ProbeForm(string.format("poll +%.1fs", GetTime() - watchStart))
+	end, WATCH_SECONDS / WATCH_INTERVAL)
+end
+
 local handlers = {}
+
+function handlers.UPDATE_SHAPESHIFT_FORM()
+	ProbeFormEvent("UPDATE_SHAPESHIFT_FORM")
+end
+
+function handlers.UPDATE_SHAPESHIFT_FORMS()
+	ProbeFormEvent("UPDATE_SHAPESHIFT_FORMS")
+end
+
+function handlers.UPDATE_BONUS_ACTIONBAR()
+	ProbeFormEvent("UPDATE_BONUS_ACTIONBAR")
+end
+
+function handlers.ACTIONBAR_PAGE_CHANGED()
+	ProbeFormEvent("ACTIONBAR_PAGE_CHANGED")
+end
+
+-- A form's cast is the powershift's one sure moment, so it is logged whatever the state says.
+-- Other casts aren't: every class has them, and the state's aura marks change with combat.
+function handlers.UNIT_SPELLCAST_SUCCEEDED(_, _, spellID)
+	if issecretvalue(spellID) then
+		return
+	end
+	for i = 1, GetNumShapeshiftForms() do
+		local _, _, _, formSpellID = GetShapeshiftFormInfo(i)
+		if not issecretvalue(formSpellID) and formSpellID == spellID then
+			dev:Log("FORM", "cast", spellID, ForeverDev.Situation(), FormState())
+			return
+		end
+	end
+end
 
 function handlers.PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
 	if isInitialLogin or isReloadingUi then
@@ -215,6 +326,7 @@ function handlers.PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
 	end
 	Probe("entering world")
 	ProbeUnit("player")
+	ProbeFormEvent("entering world")
 end
 
 function handlers.ZONE_CHANGED_NEW_AREA()
@@ -237,6 +349,7 @@ end
 -- A form change switches the player's displayed power type.
 function handlers.UNIT_DISPLAYPOWER()
 	ProbeUnit("player")
+	ProbeFormEvent("UNIT_DISPLAYPOWER")
 end
 
 local frame = CreateFrame("Frame")

@@ -108,12 +108,12 @@ One line per scaled effect, in Blizzard's green "Use:" style colour:
 Swipe
 ...
 Swipe 3 nearby enemies, inflicting 27 damage.
-+3% AP: +4 → 31 damage
++3% AP: +4 = 31 damage
 ```
 ```
 Wrath
 ...
-+57.1% SP: +34 → 52–58 damage
++57.1% SP: +34 = 86-92 damage
 ```
 
 **Talents scale the bonus too** (our call): a +10% talent multiplies the whole hit, so the line
@@ -132,7 +132,12 @@ family). A fit from any rank fills the others, and the source note says which ra
 When `C_Secrets.ShouldUnitStatsBeSecret()` is true (or a stat comes back secret), the line shows
 only the coefficient (`+3% AP`), no arithmetic.
 
-### Options
+#Review amendments (23 November 2026): the line is plain ASCII (the tooltip font has no arrow; it drew
+a box in game), periodic effects read `+20% SP per tick, 4 ticks: +36 = 164 healing`, the client's
+own AP coefficients are never shown (measured values only), absorbs other than Holy use spell
+damage, and the line is added to GameTooltip only, for the tooltip's own spell.
+
+## Options
 
 One checkbox in the module's options page, "Show spell scaling in spell tooltips", on by
 default.

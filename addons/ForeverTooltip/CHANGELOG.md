@@ -2,8 +2,7 @@
 
 ## Unreleased
 
-- Your own damage, healing and shield spells now show how much of your spell power they get and how much it adds, e.g. Wrath: "+57.1% SP: +34 → 86–92 damage". Damage over time and heals over time show it per tick, with the number of ticks. In combat, if the game hides your stats, the line shows just the percentage. Turn it off with "Show spell scaling in spell tooltips" in Options → AddOns → RazzhUI → Tooltip.
-
+- Your own damage, healing and shield spells now show how much of your spell power they get and how much it adds, e.g. Wrath: "+57.1% SP: +34 = 86-92 damage". For damage and healing over time the percentage is per tick and the amount is for the whole spell ("+20% SP per tick, 4 ticks: +36 = 164 healing"). Spell damage for one school only (Nature, Arcane, ...) counts for spells of that school. If the game hides your stats, the line shows just the percentage. Turn it off with "Show spell scaling in spell tooltips" in Options → AddOns → RazzhUI → Tooltip.
 - When you hover a player, their name shows in their class colour.
 - Their level line is coloured by how their level compares to yours, like quest difficulty: gray (far below you), green, yellow (around your level), orange, red (well above you, or ?? level).
 - Creatures and NPCs you can attack get the same level colours, and a ?? level shows a skull instead of the question marks (red, unless the unit is friendly).

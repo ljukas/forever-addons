@@ -2,11 +2,16 @@ local _, ns = ...
 
 -- Adds the spell scaling line to tooltips of the player's own damage, healing and absorb spells: the
 -- spell power (or attack power) coefficient, what the player's stat adds and the resulting total,
--- e.g. "+57.1% SP: +34 → 86–92 damage". The maths is in Logic/SpellScaling.lua, the coefficients in
+-- e.g. "+57.1% SP: +34 = 86-92 damage". The maths is in Logic/SpellScaling.lua, the coefficients in
 -- Data/.
 --
 -- A tooltip post-call, like Colors.lua, so the line comes back on every rebuild
--- (TOOLTIP_DATA_UPDATE), e.g. once the spell's description has loaded.
+-- (TOOLTIP_DATA_UPDATE), e.g. once the spell's description has loaded. Blizzard shows (and so
+-- resizes) the tooltip itself right after the post-calls, so this never calls Show: from addon code
+-- that would run the tooltip's OnShow tainted.
+--
+-- Only GameTooltip (spellbook, action bars), and only the spell the tooltip is about: not chat links
+-- (ItemRefTooltip) and not spells appended to another tooltip, such as a talent's.
 --
 -- Secret values: when stats are secret (C_Secrets.ShouldUnitStatsBeSecret, or a stat reads secret),
 -- the line shows only the coefficient. Nothing here compares or calculates with a secret value.
@@ -18,10 +23,10 @@ local function IsReadableTable(t)
 	return type(t) == "table" and canaccesstable(t)
 end
 
--- The player's spell power for a spell of this school mask: bonus healing for heals and absorbs,
--- else the best bonus damage among the mask's schools. nil when it reads secret.
-local function GetSpellPower(school, kind)
-	if kind ~= "damage" then
+-- The player's spell power for effect: bonus healing, or the best bonus damage among the spell's
+-- schools. nil when it reads secret.
+local function GetSpellPower(spell, effect)
+	if SpellScaling.UsesHealing(spell, effect) then
 		local healing = GetSpellBonusHealing()
 		if issecretvalue(healing) then
 			return nil
@@ -29,10 +34,10 @@ local function GetSpellPower(school, kind)
 		return healing
 	end
 	local best = 0
-	-- GetSpellBonusDamage takes a school index: 1 physical, 2 holy, 3 fire, ... 7 arcane, the bits
-	-- of the school mask in order.
-	for index = 1, 7 do
-		if bit.band(school, bit.lshift(1, index - 1)) ~= 0 then
+	-- GetSpellBonusDamage takes a school index: 2 holy, 3 fire, ... 7 arcane, the bits of the school
+	-- mask in order. 1 is physical, which has no spell power (Blizzard's own loops start at 2).
+	for index = 2, 7 do
+		if bit.band(spell.school, bit.lshift(1, index - 1)) ~= 0 then
 			local power = GetSpellBonusDamage(index)
 			if issecretvalue(power) then
 				return nil
@@ -45,7 +50,7 @@ local function GetSpellPower(school, kind)
 	return best
 end
 
--- The player's attack power, or nil when it reads secret.
+-- The player's melee attack power, or nil when it reads secret.
 local function GetAttackPower()
 	local base, positive, negative = UnitAttackPower("player")
 	if issecretvalue(base) or issecretvalue(positive) or issecretvalue(negative) then
@@ -91,6 +96,19 @@ local function GetScaledEffects(spellID, spell)
 	return rows
 end
 
+-- What the description should hold for each effect, for FindTooltipNumbers. An effect with variance
+-- is written as a range. A secret level leaves nothing to match (value 0).
+local function GetExpected(spell, level)
+	local expected = {}
+	for effectNumber, effect in ipairs(spell.effects) do
+		expected[effectNumber] = {
+			value = level and SpellScaling.ExpectedBase(spell, effect, level) or 0,
+			range = effect.variance > 0 and not effect.periodic,
+		}
+	end
+	return expected
+end
+
 -- The line for one row. stat nil: coefficient only. number false: the bonus without talents, no total.
 local function FormatRow(spell, row, stat, expected, number)
 	local effect = row.effect
@@ -99,8 +117,8 @@ local function FormatRow(spell, row, stat, expected, number)
 		return SpellScaling.FormatLine(effect.kind, row.coefficient, ticks, nil, nil, nil, row.attackPower)
 	end
 	local talents = 1
-	if number and expected > 0 then
-		talents = (number.low + number.high) / 2 / expected
+	if number and expected.value > 0 then
+		talents = (number.low + number.high) / 2 / expected.value
 	end
 	local bonus = SpellScaling.Bonus(row.coefficient, stat, ticks, talents)
 	if not number then
@@ -117,29 +135,12 @@ local function FormatRow(spell, row, stat, expected, number)
 	)
 end
 
-local function LogSpell(spellID, level, expected, found)
-	if not ns.dev.enabled then
+local function AddScalingLines(tooltip, data)
+	if tooltip ~= GameTooltip or not ns.Options.Get("spellScaling") or not IsReadableTable(data) then
 		return
 	end
-	local foundText = {}
-	for index, number in ipairs(found) do
-		foundText[index] = number and (number.low .. "-" .. number.high) or "none"
-	end
-	ns.dev:LogOnce(
-		"spell" .. spellID,
-		"SPELLSCALE",
-		spellID,
-		"level",
-		level,
-		"expected",
-		table.concat(expected, ","),
-		"found",
-		table.concat(foundText, ",")
-	)
-end
-
-local function AddScalingLines(tooltip, data)
-	if not ns.Options.Get("spellScaling") or not IsReadableTable(data) then
+	local info = tooltip:GetProcessingTooltipInfo()
+	if IsReadableTable(info) and info.append then
 		return
 	end
 	local spellID = data.id
@@ -158,27 +159,36 @@ local function AddScalingLines(tooltip, data)
 	local statsSecret = C_Secrets.ShouldUnitStatsBeSecret()
 	ns.dev:LogChanged("stats", statsSecret, "SPELLSCALE", "stats secret", statsSecret)
 
-	local level = GetPlayerLevel()
-	local expected = {}
-	for effectNumber, effect in ipairs(spell.effects) do
-		expected[effectNumber] = level and SpellScaling.ExpectedBase(spell, effect, level) or 0
+	-- With secret stats only the coefficient shows, so there is nothing to match.
+	local expected, found = {}, {}
+	if not statsSecret then
+		expected = GetExpected(spell, GetPlayerLevel())
+		found = SpellScaling.FindTooltipNumbers(GetDescription(spellID), expected)
 	end
-	local found = SpellScaling.FindTooltipNumbers(GetDescription(spellID), expected)
-	LogSpell(spellID, level, expected, found)
 
+	local lines = {}
 	for _, row in ipairs(rows) do
 		local stat
 		if not statsSecret then
 			if row.attackPower then
 				stat = GetAttackPower()
 			else
-				stat = GetSpellPower(spell.school, row.effect.kind)
+				stat = GetSpellPower(spell, row.effect)
 			end
 		end
-		local line = FormatRow(spell, row, stat, expected[row.effectNumber], found[row.effectNumber])
+		local line = FormatRow(spell, row, stat, expected[row.effectNumber], found[row.effectNumber] or false)
 		GameTooltip_AddColoredLine(tooltip, line, GREEN_FONT_COLOR)
+		if ns.dev.enabled then
+			-- The stat is not secret here: FormatRow just did arithmetic with it, or it is nil.
+			table.insert(lines, ("[stat %s] %s"):format(tostring(stat), line))
+		end
 	end
-	tooltip:Show()
+
+	if ns.dev.enabled then
+		-- Logged again whenever the lines change: a description that loads late, new gear, a level.
+		local text = table.concat(lines, " | ")
+		ns.dev:LogChanged("spell" .. spellID, text, "SPELLSCALE", spellID, text)
+	end
 end
 
 TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, AddScalingLines)

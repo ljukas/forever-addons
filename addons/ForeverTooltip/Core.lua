@@ -37,13 +37,14 @@ ns.L = {
 	DIRECTION_UP_LEFT = "Up and left",
 	SPELL_SCALING = "Show spell scaling in spell tooltips",
 	SPELL_SCALING_TOOLTIP = "Adds a line to your own damage, healing and shield spells with how much of your spell power they get and what it adds.",
-	-- The spell scaling line (Logic/SpellScaling.lua): "+57.1% SP ×4 ticks: +34 → 86–92 damage".
+	-- The spell scaling line (Logic/SpellScaling.lua): "+20% SP per tick, 4 ticks: +34 = 86-92 damage".
+	-- Plain ASCII: the tooltip font has no arrow (it drew a box in game).
 	SCALING_SP = "+%s SP",
 	SCALING_AP = "+%s AP",
-	SCALING_TICKS = " ×%d ticks",
+	SCALING_TICKS = " per tick, %d ticks",
 	SCALING_BONUS = ": +%d",
-	SCALING_TOTAL = " → %s %s",
-	SCALING_RANGE = "%d–%d",
+	SCALING_TOTAL = " = %s %s",
+	SCALING_RANGE = "%d-%d",
 	SCALING_DAMAGE = "damage",
 	SCALING_HEAL = "healing",
 	SCALING_ABSORB = "absorbed",

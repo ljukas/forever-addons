@@ -14,6 +14,8 @@
 #@end-do-not-package@
 
 Core.lua
+Data/SpellCoefficients.lua
+Data/APCoefficients.lua
 Database.lua
 Logic/LevelLine.lua
 Logic/FactionLine.lua

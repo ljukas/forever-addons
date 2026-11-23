@@ -36,7 +36,7 @@ ns.L = {
 	DIRECTION_UP_RIGHT = "Up and right",
 	DIRECTION_UP_LEFT = "Up and left",
 	SPELL_SCALING = "Show spell scaling in spell tooltips",
-	SPELL_SCALING_TOOLTIP = "Adds a line to your own damage and healing spells with how much of your spell power they get and what it adds.",
+	SPELL_SCALING_TOOLTIP = "Adds a line to your own damage, healing and shield spells with how much of your spell power they get and what it adds.",
 	-- The spell scaling line (Logic/SpellScaling.lua): "+57.1% SP ×4 ticks: +34 → 86–92 damage".
 	SCALING_SP = "+%s SP",
 	SCALING_AP = "+%s AP",

@@ -25,3 +25,4 @@ Options.lua
 Colors.lua
 Anchor.lua
 HealthBar.lua
+SpellLine.lua

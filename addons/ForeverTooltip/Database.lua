@@ -2,7 +2,8 @@ local ADDON_NAME, ns = ...
 
 -- ForeverTooltipDB layout (account-wide):
 --   version  = schema version, see migrations below
---   settings = { cursorAnchor = boolean, cursorDirection = number (ns.Options.DIRECTION) },
+--   settings = { cursorAnchor = boolean, cursorDirection = number (ns.Options.DIRECTION),
+--                spellScaling = boolean },
 --              owned by Options.lua.
 -- Missing settings get their defaults when Options.lua registers them.
 

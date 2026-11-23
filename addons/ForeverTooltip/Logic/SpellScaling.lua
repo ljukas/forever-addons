@@ -32,6 +32,16 @@ function ns.SpellScaling.Coefficient(spell, effect)
 	return coefficient
 end
 
+-- The attack power coefficient of effect: measured (Data/APCoefficients.lua) when there is one, else
+-- the client's, which is 0 for nearly every spell: the server applies attack power scaling itself.
+function ns.SpellScaling.APCoefficient(spellID, effect)
+	local measured = ns.APCoefficients and ns.APCoefficients[spellID]
+	if measured and measured[effect.index] then
+		return measured[effect.index]
+	end
+	return effect.ap
+end
+
 -- How many times a periodic effect ticks over the spell's duration; 1 for everything else.
 function ns.SpellScaling.Ticks(spell, effect)
 	if not effect.periodic or effect.period <= 0 or spell.duration <= 0 then
@@ -125,9 +135,10 @@ local function FormatPercent(coefficient)
 end
 
 -- The line's text: the coefficient (and ticks), then what it adds when bonus is given, then the
--- resulting total (a range when totalHigh differs) when total is given.
-function ns.SpellScaling.FormatLine(kind, coefficient, ticks, bonus, total, totalHigh)
-	local text = L.SCALING_SP:format(FormatPercent(coefficient))
+-- resulting total (a range when totalHigh differs) when total is given. attackPower labels the
+-- coefficient AP instead of SP.
+function ns.SpellScaling.FormatLine(kind, coefficient, ticks, bonus, total, totalHigh, attackPower)
+	local text = (attackPower and L.SCALING_AP or L.SCALING_SP):format(FormatPercent(coefficient))
 	if ticks > 1 then
 		text = text .. L.SCALING_TICKS:format(ticks)
 	end

@@ -34,6 +34,15 @@ ns.L = {
 	DIRECTION_DOWN_LEFT = "Down and left",
 	DIRECTION_UP_RIGHT = "Up and right",
 	DIRECTION_UP_LEFT = "Up and left",
+	-- The spell scaling line (Logic/SpellScaling.lua): "+57.1% SP ×4 ticks: +34 → 86–92 damage".
+	SCALING_SP = "+%s SP",
+	SCALING_TICKS = " ×%d ticks",
+	SCALING_BONUS = ": +%d",
+	SCALING_TOTAL = " → %s %s",
+	SCALING_RANGE = "%d–%d",
+	SCALING_DAMAGE = "damage",
+	SCALING_HEAL = "healing",
+	SCALING_ABSORB = "absorbed",
 }
 
 -- Modules register setup that needs ForeverTooltipDB. It runs in TOC order once the

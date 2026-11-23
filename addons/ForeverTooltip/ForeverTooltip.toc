@@ -20,6 +20,7 @@ Database.lua
 Logic/LevelLine.lua
 Logic/FactionLine.lua
 Logic/CursorAnchor.lua
+Logic/SpellScaling.lua
 Options.lua
 Colors.lua
 Anchor.lua

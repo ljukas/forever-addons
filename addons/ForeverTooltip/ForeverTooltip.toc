@@ -26,3 +26,6 @@ Colors.lua
 Anchor.lua
 HealthBar.lua
 SpellLine.lua
+#@do-not-package@
+Dev/SpellNumbers.lua
+#@end-do-not-package@

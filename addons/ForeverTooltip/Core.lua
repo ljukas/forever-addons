@@ -8,6 +8,7 @@ local ADDON_NAME, ns = ...
 --   ANCHOR                Anchor.lua
 --   HEALTHBAR             HealthBar.lua
 --   SPELLSCALE            SpellLine.lua
+--   SPELLNUM              Dev/SpellNumbers.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.

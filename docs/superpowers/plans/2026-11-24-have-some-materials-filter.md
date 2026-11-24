@@ -48,6 +48,7 @@ clears the flag, `hooksecurefunc(dropdown, "ValidateResetState")` shows the rese
 
 1. Box appears under "Have Materials"; ticking it hides recipes with 0 of every reagent
    (`FILTER` line: kept/removed).
-2. Loot a reagent with the window open: does the list update by itself? (a new `FILTER` line).
-3. Red ✕ appears with only our box on, and clears it.
+2. Loot a reagent with the window open: does the list update by itself? (`FILTER` "bags
+   changed" followed by a "pruned" line and a "recipe … has some true" flip).
+3. The red ✕ (always shown on Forever) clears our box too; does reopening the window clear it?
 4. Create still crafts after toggling; `devlog.sh --errors` clean.

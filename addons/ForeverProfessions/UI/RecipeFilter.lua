@@ -1,10 +1,11 @@
-local _, ns = ...
+local ADDON_NAME, ns = ...
 
 -- "Have Some Materials" in the professions window's Filter menu
 -- (docs/superpowers/specs/2026-11-24-have-some-materials-filter-design.md): keeps the recipes where
 -- the player carries at least one of the required reagents. Blizzard builds the recipe list as
 -- usual; we hook the crafting page's Init and prune the tree it just set. Nothing of Blizzard's is
--- replaced. The filter is session state, cleared by the filter reset button like Blizzard's own.
+-- replaced. The filter is session state, cleared whenever Blizzard resets its filters. Forever's
+-- filter reset ✕ is shown whatever the filters are, so it needs no help from us.
 
 local L = ns.L
 local BASIC = Enum.CraftingReagentType.Basic
@@ -54,8 +55,12 @@ local function Prune(node, verdicts, counts)
 				keep = HasSomeMaterials(recipeID)
 				verdicts[recipeID] = keep
 			end
+			if ns.dev.enabled then
+				ns.dev:LogChanged("recipe" .. recipeID, keep, "FILTER", "recipe", recipeID, "has some", keep)
+			end
 			if keep then
 				hasRecipe, hasContent = true, true
+				counts.first = counts.first or data.recipeInfo
 				counts.kept = counts.kept + 1
 			else
 				node:Remove(child, skipInvalidation)
@@ -80,19 +85,40 @@ local function Prune(node, verdicts, counts)
 	return hasContent
 end
 
--- The divider above the unlearned recipes stays only while an unlearned category does.
+-- The divider above the unlearned recipes stays only while an unlearned category does, and is as
+-- short as Blizzard makes it when no learned recipe sits above it.
 local function PruneDivider(root)
-	local divider, unlearned
+	local divider, learned, unlearned
 	for _, child in ipairs(root:GetNodes()) do
 		local data = child:GetData()
 		if data.isDivider then
 			divider = child
 		elseif data.categoryInfo and data.categoryInfo.unlearned then
 			unlearned = true
+		elseif data.categoryInfo then
+			learned = true
 		end
 	end
 	if divider and not unlearned then
 		root:Remove(divider, true)
+	elseif divider and not learned then
+		divider:GetData().dividerHeight = 30
+	end
+end
+
+-- Blizzard selected a recipe from the whole list before we pruned it. If that one is gone, select
+-- the first that's left, or none.
+local function FixSelection(verdicts, firstKept)
+	local shown = page.SchematicForm:GetRecipeInfo()
+	shown = shown and Professions.GetFirstRecipe(shown)
+	if not (shown and verdicts[shown.recipeID] == false) then
+		return
+	end
+	if firstKept then
+		page.RecipeList:SelectRecipe(firstKept, true)
+	else
+		page.RecipeList:ClearSelectedRecipe()
+		page.SchematicForm:Init(nil)
 	end
 end
 
@@ -106,18 +132,23 @@ local function OnPageInit()
 		return
 	end
 	local counts = { kept = 0, removed = 0 }
+	local verdicts = {}
 	local root = provider:GetRootNode()
-	Prune(root, {}, counts)
+	Prune(root, verdicts, counts)
 	PruneDivider(root)
 	provider:Invalidate()
 	page.RecipeList.NoResultsText:SetShown(provider:IsEmpty())
+	FixSelection(verdicts, counts.first)
 	ns.log("FILTER", "pruned: kept", counts.kept, "removed", counts.removed)
 end
 
--- Has Blizzard rebuild the list (and so our hook prune it, or not).
+-- Has Blizzard rebuild the list (and so our hook prune it, or not). Without the recipe a link
+-- opened, which Blizzard would select and scroll to again.
 local function Rebuild()
 	if page:IsVisible() and page.professionInfo then
-		page:Init(page.professionInfo)
+		local professionInfo = CopyTable(page.professionInfo, true)
+		professionInfo.openRecipeID = nil
+		page:Init(professionInfo)
 	end
 end
 
@@ -159,25 +190,28 @@ local function OnDefaultFilters()
 	RunNextFrame(Rebuild)
 end
 
--- Blizzard's reset button only knows Blizzard's filters.
-local function OnValidateResetState(self)
-	if enabled then
-		self.ResetButton:Show()
+-- Whether the list follows bag changes (in-game check 2): a reagent looted or used logs here,
+-- and a FILTER "pruned" line after it means Blizzard rebuilt the list.
+local function OnBagUpdate()
+	if enabled and page:IsVisible() then
+		ns.log("FILTER", "bags changed with the filter on")
 	end
 end
 
 local function Setup()
 	local craftingPage = ProfessionsFrame and ProfessionsFrame.CraftingPage
 	local list = craftingPage and craftingPage.RecipeList
-	if not (craftingPage and list and list.FilterDropdown and list.FilterDropdown.ResetButton and list.ScrollBox) then
+	if not (craftingPage and craftingPage.SchematicForm and list and list.FilterDropdown and list.ScrollBox) then
 		ns.log("FILTER", "crafting page or filter dropdown not found, filter not added")
 		return
 	end
 	page, dropdown = craftingPage, list.FilterDropdown
 	hooksecurefunc(page, "Init", OnPageInit)
 	hooksecurefunc(Professions, "SetDefaultFilters", OnDefaultFilters)
-	hooksecurefunc(dropdown, "ValidateResetState", OnValidateResetState)
 	Menu.ModifyMenu("MENU_PROFESSIONS_FILTER", AddCheckbox)
+	if ns.dev.enabled then
+		EventRegistry:RegisterFrameEventAndCallback("BAG_UPDATE_DELAYED", OnBagUpdate)
+	end
 end
 
 ns.OnInitialize(function()

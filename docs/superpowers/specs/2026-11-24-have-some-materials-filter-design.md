@@ -37,10 +37,16 @@ carry at least some of the reagents.
   list and our hook prunes it.
 - When bags change, Blizzard rebuilds on `TRADE_SKILL_LIST_UPDATE` if the client sends one
   (unverified in game). Our hook runs after each rebuild.
-- The reset ✕ shows from Blizzard's `IsUsingDefaultFilters`, which doesn't know our filter; we
-  post-hook the dropdown's `ValidateResetState` to show it while ours is on.
+- The reset ✕ needs nothing from us: on Forever it is always shown, since Camelot's list build
+  forces `SetShowUnlearned(false)` and so `IsUsingDefaultFilters` is never true (seen in game,
+  24 Nov).
+- The rebuild passes a copy of `professionInfo` without `openRecipeID`, so a recipe opened by
+  link isn't selected and scrolled to again.
 
-## Left to the builder
+## Pruning (review, 24 Nov)
 
-The selected recipe may be pruned from the list; the schematic keeps showing it (Blizzard
-already chose it). Acceptable for the first slice.
+- Pruning also drops a category's top and bottom padding rows when none of its own recipes stay,
+  and the unlearned divider when no unlearned category stays (30 px high when no learned one does).
+- Blizzard selects a recipe from the unpruned list. If the shown recipe was pruned, we select the
+  first kept one, or clear the selection and the schematic when the list is empty.
+- Not handled: the minimized window's search results (Forever's frame has no minimize control).

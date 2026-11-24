@@ -9,6 +9,7 @@ local ADDON_NAME, ns = ...
 --   SKILL UNLISTED    Knowledge.lua, which keeps the evidence
 --   CLUSTER           UI/WorldMapProvider.lua
 --   ODDS              UI/RecipeOdds.lua
+--   FILTER            UI/RecipeFilter.lua
 --   CRAFT             Dev/CraftProbe.lua
 local function Nop() end
 
@@ -58,6 +59,8 @@ ns.L = {
 	ODDS_YOURS = "%d%% (yours, %s)",
 	ODDS_WIKI = "%s (wiki)",
 	ONE_CRAFT = "1 craft",
+	-- Filter menu entry (UI/RecipeFilter.lua).
+	HAVE_SOME_MATERIALS = "Have Some Materials",
 	CRAFTS = "%d crafts",
 	ODDS_PERCENT = "%d%%",
 	ODDS_RANGE = "%d–%d%%",

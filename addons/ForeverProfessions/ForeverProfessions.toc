@@ -31,6 +31,7 @@ UI/WorldMapProvider.lua
 UI/WorldMapToggle.xml
 UI/MinimapPins.lua
 UI/RecipeOdds.lua
+UI/RecipeFilter.lua
 #@do-not-package@
 Dev/CraftProbe.lua
 #@end-do-not-package@

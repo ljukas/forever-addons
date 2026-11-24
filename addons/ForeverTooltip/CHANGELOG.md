@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Melee abilities that deal weapon damage (Claw, Shred, Maul, Heroic Strike, Cleave, ...) now show the damage they do with your current weapon damage, e.g. Claw: "154% of 51-65 weapon damage + 41 = 119-141 damage". Abilities that use a normalized weapon speed (Sinister Strike, Backstab) and ranged shots are left out for now.
 - Your own damage, healing and shield spells now show how much of your spell power they get and how much it adds, e.g. Wrath: "+57.1% SP: +34 = 86-92 damage". For damage and healing over time the percentage is per tick and the amount is for the whole spell ("+20% SP per tick, 4 ticks: +36 = 164 healing"). Spell damage for one school only (Nature, Arcane, ...) counts for spells of that school. If the game hides your stats, the line shows just the percentage. Turn it off with "Show spell scaling in spell tooltips" in Options → AddOns → RazzhUI → Tooltip.
 - When you hover a player, their name shows in their class colour.
 - Their level line is coloured by how their level compares to yours, like quest difficulty: gray (far below you), green, yellow (around your level), orange, red (well above you, or ?? level).

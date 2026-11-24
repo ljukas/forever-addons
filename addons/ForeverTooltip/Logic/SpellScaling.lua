@@ -198,3 +198,44 @@ function ns.SpellScaling.FormatLine(kind, coefficient, ticks, bonus, total, tota
 	end
 	return text .. L.SCALING_TOTAL:format(amount, KIND[kind])
 end
+
+-- Weapon damage spells (Data/WeaponSpells.lua): "Claw the enemy for 154% normal damage plus 41".
+
+-- The percentage in a description that is percent after talents (140 written as "154%"), or nil.
+function ns.SpellScaling.FindTooltipPercent(description, percent)
+	local best, bestScore
+	for number in description:gmatch("(%d+)%s*%%") do
+		local ratio = percent > 0 and tonumber(number) / percent or 0
+		local score = math.abs(ratio - 1)
+		if ratio >= MIN_RATIO and ratio <= MAX_RATIO and (not best or score < bestScore) then
+			best, bestScore = tonumber(number), score
+		end
+	end
+	return best
+end
+
+-- What the description's amount on top should be near: the data's flat amount, which the tooltip
+-- shows multiplied by the spell's percentage (Claw: 27 at 154% reads "41").
+function ns.SpellScaling.ExpectedWeaponFlat(flat, percent)
+	return percent and flat * percent / 100 or flat
+end
+
+-- The damage range of a weapon damage spell: percent (nil: all) of the white damage range plus flat,
+-- rounded down like the game's tooltips.
+function ns.SpellScaling.WeaponDamage(minDamage, maxDamage, percent, flat)
+	local factor = percent and percent / 100 or 1
+	return math.floor(minDamage * factor + flat), math.floor(maxDamage * factor + flat)
+end
+
+-- "154% of 51-65 weapon damage + 41 = 119-141 damage". percent nil and flat 0 leave their part out.
+function ns.SpellScaling.FormatWeaponLine(minDamage, maxDamage, percent, flat, low, high)
+	local text = L.SCALING_WEAPON:format(math.floor(minDamage), math.ceil(maxDamage))
+	if percent then
+		text = L.SCALING_WEAPON_PERCENT:format(percent) .. text
+	end
+	if flat > 0 then
+		text = text .. L.SCALING_WEAPON_FLAT:format(flat)
+	end
+	local amount = low == high and tostring(low) or L.SCALING_RANGE:format(low, high)
+	return text .. L.SCALING_TOTAL:format(amount, L.SCALING_DAMAGE)
+end

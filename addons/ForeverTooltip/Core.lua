@@ -37,7 +37,7 @@ ns.L = {
 	DIRECTION_UP_RIGHT = "Up and right",
 	DIRECTION_UP_LEFT = "Up and left",
 	SPELL_SCALING = "Show spell scaling in spell tooltips",
-	SPELL_SCALING_TOOLTIP = "Adds a line to your own damage, healing and shield spells with how much of your spell power they get and what it adds.",
+	SPELL_SCALING_TOOLTIP = "Adds a line to your own damage, healing and shield spells with how much of your spell power they get and what it adds, and to melee abilities that deal weapon damage with what they hit for.",
 	-- The spell scaling line (Logic/SpellScaling.lua): "+20% SP per tick, 4 ticks: +34 = 86-92 damage".
 	-- Plain ASCII: the tooltip font has no arrow (it drew a box in game).
 	SCALING_SP = "+%s SP",
@@ -49,6 +49,10 @@ ns.L = {
 	SCALING_DAMAGE = "damage",
 	SCALING_HEAL = "healing",
 	SCALING_ABSORB = "absorbed",
+	-- The weapon damage line: "154% of 51-65 weapon damage + 41 = 119-141 damage".
+	SCALING_WEAPON = "%d-%d weapon damage",
+	SCALING_WEAPON_PERCENT = "%d%% of ",
+	SCALING_WEAPON_FLAT = " + %d",
 }
 
 -- Modules register setup that needs ForeverTooltipDB. It runs in TOC order once the

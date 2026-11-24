@@ -5,6 +5,10 @@ local _, ns = ...
 -- e.g. "+57.1% SP: +34 = 86-92 damage". The maths is in Logic/SpellScaling.lua, the coefficients in
 -- Data/.
 --
+-- Melee spells that deal weapon damage (Data/WeaponSpells.lua) get a line with the resulting range
+-- instead, worked out from the white damage the character sheet shows:
+-- "154% of 51-65 weapon damage + 41 = 119-141 damage".
+--
 -- A tooltip post-call, like Colors.lua, so the line comes back on every rebuild
 -- (TOOLTIP_DATA_UPDATE), e.g. once the spell's description has loaded. Blizzard shows (and so
 -- resizes) the tooltip itself right after the post-calls, so this never calls Show: from addon code
@@ -135,6 +139,38 @@ local function FormatRow(spell, row, stat, expected, number)
 	)
 end
 
+-- The weapon damage line for spellID, or nil: when the spell isn't one, the white damage reads secret,
+-- or the description's percentage or amount can't be found (no guessing).
+local function GetWeaponLine(spellID)
+	local weapon = ns.WeaponSpells[spellID]
+	if not weapon or C_Secrets.ShouldUnitStatsBeSecret() then
+		return nil
+	end
+	local minDamage, maxDamage = UnitDamage("player")
+	if issecretvalue(minDamage) or issecretvalue(maxDamage) then
+		return nil
+	end
+	local description = GetDescription(spellID)
+	local percent
+	if weapon.percent > 0 then
+		percent = SpellScaling.FindTooltipPercent(description, weapon.percent)
+		if not percent then
+			return nil
+		end
+	end
+	local flat = 0
+	if weapon.flat > 0 then
+		local expected = { { value = SpellScaling.ExpectedWeaponFlat(weapon.flat, percent), range = false } }
+		local number = SpellScaling.FindTooltipNumbers(description, expected)[1]
+		if not number then
+			return nil
+		end
+		flat = number.low
+	end
+	local low, high = SpellScaling.WeaponDamage(minDamage, maxDamage, percent, flat)
+	return SpellScaling.FormatWeaponLine(minDamage, maxDamage, percent, flat, low, high)
+end
+
 local function AddScalingLines(tooltip, data)
 	if tooltip ~= GameTooltip or not ns.Options.Get("spellScaling") or not IsReadableTable(data) then
 		return
@@ -147,8 +183,16 @@ local function AddScalingLines(tooltip, data)
 	if issecretvalue(spellID) or type(spellID) ~= "number" then
 		return
 	end
+	if not C_SpellBook.IsSpellKnown(spellID) then
+		return
+	end
+	local weaponLine = GetWeaponLine(spellID)
+	if weaponLine then
+		GameTooltip_AddColoredLine(tooltip, weaponLine, GREEN_FONT_COLOR)
+		ns.dev:LogChanged("weapon" .. spellID, weaponLine, "SPELLSCALE", spellID, weaponLine)
+	end
 	local spell = ns.SpellCoefficients[spellID]
-	if not spell or not C_SpellBook.IsSpellKnown(spellID) then
+	if not spell then
 		return
 	end
 	local rows = GetScaledEffects(spellID, spell)

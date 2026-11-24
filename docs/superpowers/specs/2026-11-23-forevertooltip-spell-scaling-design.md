@@ -137,6 +137,12 @@ a box in game), periodic effects read `+20% SP per tick, 4 ticks: +36 = 164 heal
 own AP coefficients are never shown (measured values only), absorbs other than Holy use spell
 damage, and the line is added to GameTooltip only, for the tooltip's own spell.
 
+Weapon damage abilities (24 November 2026, asked for by the player): no longer deferred. Melee class
+spells with a weapon damage effect get `154% of 51-65 weapon damage + 41 = 119-141 damage`, from
+`UnitDamage` and the description's own percentage and amount (`Data/WeaponSpells.lua`, generated).
+Spells with a normalized-speed effect and ranged shots stay out: the white damage range doesn't
+give their damage.
+
 ## Options
 
 One checkbox in the module's options page, "Show spell scaling in spell tooltips", on by

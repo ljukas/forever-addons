@@ -16,6 +16,7 @@
 Core.lua
 Data/SpellCoefficients.lua
 Data/APCoefficients.lua
+Data/WeaponSpells.lua
 Database.lua
 Logic/LevelLine.lua
 Logic/FactionLine.lua

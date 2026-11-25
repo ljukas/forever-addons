@@ -26,10 +26,11 @@ function ForeverBagsIgnoredRowMixin:Init(itemID)
 	self.itemID = itemID
 	self.Icon:SetTexture(C_Item.GetItemIconByID(itemID) or QUESTION_MARK_ICON)
 	-- Until the item's data has loaded, and for an item the client doesn't know, its ID.
-	self.Name:SetText(itemID)
+	self.Name:SetText(tostring(itemID))
 	self.Name:SetTextColor(GRAY_FONT_COLOR:GetRGB())
 	-- An item that doesn't exist can't be waited for: ContinueOnItemLoad raises an error.
-	if not C_Item.DoesItemExistByID(itemID) then
+	self.exists = C_Item.DoesItemExistByID(itemID)
+	if not self.exists then
 		return
 	end
 	local item = Item:CreateFromItemID(itemID)
@@ -38,7 +39,13 @@ function ForeverBagsIgnoredRowMixin:Init(itemID)
 		if self.itemID ~= itemID then
 			return
 		end
-		self.Name:SetText(item:GetItemName())
+		-- The callback also runs when the load failed. The row then keeps showing the ID.
+		local name = item:GetItemName()
+		if not name then
+			return
+		end
+		self.Name:SetText(name)
+		self.Icon:SetTexture(item:GetItemIcon() or QUESTION_MARK_ICON)
 		local colorData = item:GetItemQualityColor()
 		if colorData then
 			self.Name:SetTextColor(colorData.color:GetRGB())
@@ -49,12 +56,18 @@ function ForeverBagsIgnoredRowMixin:Init(itemID)
 end
 
 function ForeverBagsIgnoredRowMixin:OnEnter()
-	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+	if not self.exists then
+		return
+	end
+	-- At the cursor: the row is as wide as the page, and its right end is far from the name.
+	GameTooltip:SetOwner(self, "ANCHOR_CURSOR_RIGHT")
 	GameTooltip:SetItemByID(self.itemID)
 	GameTooltip:Show()
 end
 
 function ForeverBagsIgnoredRowMixin:OnRemoveClick()
+	-- The row is reused for the next item without the cursor leaving it.
+	GameTooltip:Hide()
 	ns.DB.Unignore(self.itemID)
 	ns.Window.Refresh()
 	ns.Options.RefreshIgnored()
@@ -92,6 +105,9 @@ function ForeverBagsIgnoredListMixin:Refresh()
 	local itemIDs = ns.DB.GetIgnored()
 	self.ScrollBox:SetDataProvider(CreateDataProvider(itemIDs), ScrollBoxConstants.RetainScrollPosition)
 	self.Empty:SetShown(#itemIDs == 0)
+	-- A scroll box takes every turn of the wheel, also with nothing to scroll. A short list
+	-- leaves the wheel to the page it sits on.
+	self.ScrollBox:EnableMouseWheel(self.ScrollBox:HasScrollableExtent())
 end
 
 ns.OnInitialize(function()

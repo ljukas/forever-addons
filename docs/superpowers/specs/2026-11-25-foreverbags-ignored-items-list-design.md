@@ -45,7 +45,9 @@ Page order: a section header "Ignored items", the list element, then the existin
   the character isn't known yet are listed and removable like saved ones.
 - **Options.xml** (new, loads Options.lua, as Window.xml loads Window.lua) defines two templates:
   - `ForeverBagsIgnoredListTemplate`: a fixed-height frame with a `WowScrollBoxList`, a
-    `MinimalScrollBar` that hides when there is nothing to scroll, and an "empty" font string.
+    `MinimalScrollBar` that hides when there is nothing to scroll, and an "empty" font string,
+    on a flat dark panel (a colour, no frame art: the Settings page is flat). While the list
+    has nothing to scroll, the mouse wheel is left to the page.
     Added to the page with `Settings.CreateElementInitializer`.
   - `ForeverBagsIgnoredRowTemplate`: icon, name, and a small `UIPanelButtonTemplate` button
     labelled with Blizzard's `REMOVE`.

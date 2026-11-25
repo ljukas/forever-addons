@@ -26,6 +26,9 @@ ns.PowerBar.DEFAULTS = {
 	-- A rogue's or Cat Form druid's combo points, in a row on top (ComboPoints.lua).
 	comboPoints = true,
 	comboPointsHeight = 10,
+	-- A spark that crosses the mana bar in the five seconds before mana regenerates again
+	-- (RegenSpark.lua).
+	regenSpark = true,
 }
 
 local DEFAULTS = ns.PowerBar.DEFAULTS

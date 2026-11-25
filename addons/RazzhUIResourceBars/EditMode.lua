@@ -74,6 +74,9 @@ local VALID = {
 	comboPointsHeight = function(value)
 		return type(value) == "number" and value >= COMBO_HEIGHT_MIN and value <= COMBO_HEIGHT_MAX
 	end,
+	regenSpark = function(value)
+		return type(value) == "boolean"
+	end,
 }
 
 -- This character, for keys of its character-specific layouts: another character may have a
@@ -146,7 +149,8 @@ local function Save(layoutName, values)
 		saved.offForm,
 		saved.offFormHeight,
 		saved.comboPoints,
-		saved.comboPointsHeight
+		saved.comboPointsHeight,
+		saved.regenSpark
 	)
 end
 

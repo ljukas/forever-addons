@@ -9,6 +9,7 @@ local ADDON_NAME, ns = ...
 --   DELETE         Delete.lua
 --   WINDOW         Window.lua
 --   FULL RELOOT    Loot.lua
+--   BUTTON         BagButton.lua
 local function Nop() end
 
 -- Returns t (or a new table) with every missing field a function that does nothing.

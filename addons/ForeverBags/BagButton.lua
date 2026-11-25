@@ -7,8 +7,17 @@ local ADDON_NAME, ns = ...
 -- There is one button. It sits on whichever frame holds Blizzard's bag search box and sort
 -- button: the backpack, or the combined bag frame. ContainerFrameMixin:UpdateSearchBox moves
 -- the sort button there with SetParent, so the button follows that call.
+--
+-- EllesmereUIBags hides Blizzard's bag frames and draws its own (the EUI_Bags global). There the
+-- button joins the row of icons in its header, left of the leftmost one.
 
 local Window = ns.Window
+
+-- The bag frame the button is on, which the window opens beside.
+local bagFrame
+-- EllesmereUIBags' bag frame (its EUI_Bags global), once that addon has loaded. Blizzard's bag
+-- frames are then no longer the ones shown.
+local ellesmereBags
 
 local SIZE = 20
 
@@ -40,7 +49,7 @@ button:SetScript("OnClick", function(self)
 		local byPlayer = true
 		Window.Close(byPlayer)
 	else
-		Window.Open("hand", self:GetParent())
+		Window.Open("hand", bagFrame or self:GetParent())
 	end
 end)
 
@@ -60,7 +69,11 @@ button:SetScript("OnHide", function()
 	end
 end)
 
-local function Attach(bagFrame)
+local function Attach(frame)
+	if ellesmereBags then
+		return
+	end
+	bagFrame = frame
 	if not bagFrame or not bagFrame.CloseButton then
 		button:Hide()
 		return
@@ -79,7 +92,55 @@ local function Attach(bagFrame)
 	button:Show()
 end
 
+-- The gap EllesmereUI leaves between its header icons (EUI_Bags:SyncHeaderIcons).
+local ELLESMERE_GAP = 6
+
+-- Runs after EUI_Bags:SyncHeaderIcons has laid out the header's icons, right to left. On the
+-- WoW Forever look the search box runs up to the leftmost icon; on EllesmereUI's own look the
+-- title does, and the leftmost icon is kept in _hdrEdge. Either way the button goes left of that
+-- icon and becomes the new edge.
+local function AttachEllesmere()
+	local header = ellesmereBags.Header
+	local search = ellesmereBags._searchBox
+	if not header or not search then
+		return
+	end
+	local edge = ellesmereBags._hdrEdge
+	local forever = edge == nil
+	if forever then
+		local _, relativeTo = search:GetPointByName("RIGHT")
+		edge = relativeTo
+	end
+	if not edge or edge == button then
+		return
+	end
+	bagFrame = ellesmereBags
+	button:SetParent(header)
+	button:ClearAllPoints()
+	button:SetPoint("RIGHT", edge, "LEFT", -ELLESMERE_GAP, 0)
+	button:SetFrameLevel(edge:GetFrameLevel() + 1)
+	button:Show()
+	ns.log("BUTTON", "ellesmere", forever and "forever look" or "own look", "level", button:GetFrameLevel())
+	if forever then
+		search:SetPoint("RIGHT", button, "LEFT", -ELLESMERE_GAP, 0)
+	else
+		ellesmereBags._hdrEdge = button
+		ellesmereBags:FitHeaderText()
+	end
+end
+
 ns.OnInitialize(function()
+	EventUtil.ContinueOnAddOnLoaded("EllesmereUIBags", function()
+		local bags = _G["EUI_Bags"]
+		if not bags or not bags.SyncHeaderIcons then
+			return
+		end
+		ellesmereBags = bags
+		button:Hide()
+		hooksecurefunc(bags, "SyncHeaderIcons", AttachEllesmere)
+		AttachEllesmere()
+	end)
+
 	if not BagItemAutoSortButton then
 		return
 	end

@@ -35,8 +35,8 @@ carry at least some of the reagents.
 
 - Toggling the box calls `CraftingPage:Init(CraftingPage.professionInfo)` so Blizzard rebuilds the
   list and our hook prunes it.
-- When bags change, Blizzard rebuilds on `TRADE_SKILL_LIST_UPDATE` if the client sends one
-  (unverified in game). Our hook runs after each rebuild.
+- When bags change, Blizzard rebuilds the list and our hook prunes it again (seen in game, 25 Nov:
+  each `BAG_UPDATE_DELAYED` with the window open came with a rebuild).
 - The reset ✕ needs nothing from us: on Forever it is always shown, since Camelot's list build
   forces `SetShowUnlearned(false)` and so `IsUsingDefaultFilters` is never true (seen in game,
   24 Nov).

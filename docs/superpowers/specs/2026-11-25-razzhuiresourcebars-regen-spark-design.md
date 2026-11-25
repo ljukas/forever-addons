@@ -19,7 +19,9 @@ player can see how long is left before regen resumes (user, 25 Nov 2026).
   a form change without restarting.
 - **Look:** the cast bar's spark (`ui-castingbar-pip`), in the cast bar's proportions: 1.8 times as
   tall as the bar it is on and 0.4 times as wide as it is tall (8×20 on the player cast bar,
-  CastingBarFrame.xml), above the border, as the cast bar has it. It travels the bar as its border
+  CastingBarFrame.xml), above the border, as the cast bar has it. On the Other Powers row, which is
+  cut off just past its border, the spark reaches at most 2 past the bar's top and bottom instead,
+  so it is cut nowhere and stays centred. It travels the bar as its border
   shows it, edge to edge, at a constant speed. At five seconds it disappears.
 - **Setting:** a Regen Spark checkbox (default on) in the power bar's Edit Mode dialog, for every
   class but warriors and rogues. Stored per layout as `regenSpark` next to the other fields in

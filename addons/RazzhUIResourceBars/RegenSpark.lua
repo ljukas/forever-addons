@@ -27,8 +27,13 @@ local DURATION = 5
 local HEIGHT_SHARE = 1.8
 local WIDTH_SHARE = 0.4
 
+-- How far the spark may reach past the top and the bottom of the Other Powers row's bar: the row
+-- is cut off a border's line below it and little more above (OffFormPower.lua's clip), so a spark
+-- in the cast bar's proportions would lose its ends there, more below than above.
+local ROW_OVERHANG = 2
+
 -- Parented to the bar the spark is on (Host), so it scales, slides and fades with it.
-local spark = CreateFrame("Frame")
+local spark = CreateFrame("Frame", nil, ns.PowerBar.fill)
 spark:Hide()
 local texture = spark:CreateTexture(nil, "OVERLAY")
 texture:SetAtlas("ui-castingbar-pip")
@@ -39,16 +44,30 @@ local clock = CreateFrame("Frame")
 
 -- When the mana was spent (GetTime); nil while no spark runs.
 local startedAt
--- The bar the spark is on; nil when no bar shows mana.
-local host
+-- The bar the spark is on; nil when no bar shows mana, false before a spark has looked for one.
+---@type table|false|nil
+local host = false
 
--- The bar that shows mana now: the power bar, or the mana bar of a druid's Other Powers row.
+-- The bar that shows mana now, its name for the devlog, and how far the spark may reach past its
+-- top and bottom (nil for as far as it likes): the power bar, or the mana bar of a druid's Other
+-- Powers row.
 local function Host()
 	if UnitPowerType("player") == Mana then
-		return ns.PowerBar.fill, "bar"
+		return ns.PowerBar.fill, "bar", nil
 	end
 	local bar = ns.OffFormPower.BarFor(Mana)
-	return bar, bar and "offform" or "none"
+	return bar, bar and "offform" or "none", ROW_OVERHANG
+end
+
+-- The spark's width and height on a bar this high, in whole units so its edges don't shimmer as it
+-- moves. Pure.
+local function Size(barHeight, overhang)
+	local height = barHeight * HEIGHT_SHARE
+	if overhang then
+		height = math.min(height, barHeight + 2 * overhang)
+	end
+	height = math.floor(height + 0.5)
+	return math.max(1, math.floor(height * WIDTH_SHARE + 0.5)), height
 end
 
 -- How far along a bar this wide the spark is after this long, from the bar's left edge: the fill
@@ -76,7 +95,7 @@ local function Stop(why)
 	if not startedAt then
 		return
 	end
-	startedAt, host = nil, nil
+	startedAt, host = nil, false
 	clock:SetScript("OnUpdate", nil)
 	spark:Hide()
 	ns.log("REGEN", "stop", why)
@@ -89,22 +108,22 @@ local function OnUpdate()
 		Stop("done")
 		return
 	end
-	local bar, name = Host()
+	local bar, name, overhang = Host()
 	if bar ~= host then
 		host = bar
-		ns.dev:LogChanged("regen-host", name, "REGEN", "host", name)
+		ns.log("REGEN", "host", name)
 		if bar then
 			spark:SetParent(bar)
 			spark:ClearAllPoints()
 			spark:SetAllPoints(bar)
-			-- Above the border, as the cast bar's spark is.
-			spark:SetFrameLevel(ns.PowerBar.border:GetFrameLevel() + 1)
+			-- Above the border, as the cast bar's spark is, and above the lines that split a row
+			-- (ns.PowerBar.CreateSeparator), which are a level above the border.
+			spark:SetFrameLevel(ns.PowerBar.border:GetFrameLevel() + 2)
 		end
 		spark:SetShown(bar ~= nil)
 	end
 	if bar then
-		local height = bar:GetHeight() * HEIGHT_SHARE
-		texture:SetSize(height * WIDTH_SHARE, height)
+		texture:SetSize(Size(bar:GetHeight(), overhang))
 		texture:SetPoint("CENTER", spark, "LEFT", Offset(elapsed, bar:GetWidth()), 0)
 	end
 end

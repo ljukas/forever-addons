@@ -3,10 +3,10 @@ local ADDON_NAME, ns = ...
 -- Makes the power bar's holder an Edit Mode box through LibEditMode (fetched into Libs/ by
 -- scripts/libs.sh, loaded namespaced as ns.LibEditMode): drag to place it (snapping like
 -- Blizzard's boxes, Snap.lua), Width and Height sliders, a smooth-fill checkbox and the numbers'
--- dropdown in its dialog, for classes with mana the regen spark's checkbox, for druids the other-powers row's checkbox and height, and for rogues and
--- druids the combo points row's. These, with
--- the position, are kept per Edit Mode layout in RazzhUIResourceBarsDB.powerBar (Database.lua),
--- like Blizzard's own systems.
+-- dropdown in its dialog, for classes with mana the regen spark's checkbox, for druids the
+-- other-powers row's checkbox and height, and for rogues and druids the combo points row's. These,
+-- with the position, are kept per Edit Mode layout in RazzhUIResourceBarsDB.powerBar
+-- (Database.lua), like Blizzard's own systems.
 local LEM = ns.LibEditMode
 local L = ns.L
 local DEFAULTS = ns.PowerBar.DEFAULTS

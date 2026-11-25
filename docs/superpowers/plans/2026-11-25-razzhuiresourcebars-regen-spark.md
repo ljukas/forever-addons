@@ -35,10 +35,12 @@ Core four, plus `savedvariables-guard` (settings key) and a UI reviewer (frames,
 | A mana spell starts the spark; a free or non-mana one doesn't | `REGEN start <spellID> <cost>`, by eye |
 | The spark reaches the right edge as regen resumes | by eye against the mana bar; `REGEN regen start/done <base> <casting>` (or `secret`) |
 | Forever has a five-second rule at all | the same `REGEN regen` lines: base regen at `done` above the one at `start` |
-| A second cast restarts the spark from the left | by eye; two `REGEN start` lines without a `REGEN done` between |
+| A second cast restarts the spark from the left | by eye; two `REGEN start` lines without a `REGEN stop done` between |
 | Cast-time spell: the spark starts at the end of the cast | by eye |
 | Channel: starts at the channel's start | `REGEN start` time against the channel, by eye |
-| Druid: shifting starts the spark; it shows on the Other Powers mana bar in a form and moves back | `REGEN host bar/offform/none` (LogChanged), by eye |
+| Druid: shifting starts the spark; it shows on the Other Powers mana bar in a form and moves back | `REGEN host bar/offform/none` (at each spark's start and on each change), by eye |
 | Look: size and layering on both bars, not cut off on the Other Powers row | by eye |
 | Checkbox off stops and hides it; survives `/rl` | `SAVE` line's last field, by eye |
 | Clearcasting cast starts no spark | `REGEN start` absent for the free cast |
+| A secret spell or cost starts nothing | `REGEN secret spell/cost` (LogOnce) |
+| The spark stops on death, a loading screen and the setting going off | `REGEN stop PLAYER_DEAD/PLAYER_ENTERING_WORLD/off` |

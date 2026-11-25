@@ -23,6 +23,7 @@ if not ns.OffFormPower.available then
 	function ns.OffFormPower.SetLayout() end
 	function ns.OffFormPower.Row() end
 	function ns.OffFormPower.OnRowChanged() end
+	function ns.OffFormPower.BarFor() end
 	return
 end
 
@@ -289,6 +290,20 @@ local function SetPower(bar, powerType)
 		UpdateBar(bar, Enum.StatusBarInterpolation.Immediate)
 		bar:SetToTargetValue()
 	end
+end
+
+-- The row's bar for a power while the row shows (sliding included); nil otherwise. For what is
+-- drawn on that bar (RegenSpark.lua).
+function ns.OffFormPower.BarFor(powerType)
+	if not row:IsShown() then
+		return nil
+	end
+	if leftBar.powerType == powerType then
+		return leftBar
+	elseif rightBar.powerType == powerType then
+		return rightBar
+	end
+	return nil
 end
 
 -- The settings (SetLayout).

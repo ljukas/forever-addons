@@ -17,9 +17,10 @@ player can see how long is left before regen resumes (user, 25 Nov 2026).
   druid in a form with Other Powers off) the timer runs unseen, and the spark shows where it has
   got to if a mana bar comes back within the five seconds. The spark moves between the two bars on
   a form change without restarting.
-- **Look:** the cast bar's spark (`ui-castingbar-pip`), in the cast bar's proportions: 1.8 times as
-  tall as the bar it is on and 0.4 times as wide as it is tall (8×20 on the player cast bar,
-  CastingBarFrame.xml), above the border, as the cast bar has it. On the Other Powers row, which is
+- **Look:** the cast bar's spark (`ui-castingbar-pip`), as tall for its bar as the cast bar's: 1.8
+  times the bar it is on (8×20 on the 11-high player cast bar, CastingBarFrame.xml). A quarter as
+  wide as it is tall, thinner than the cast bar's 0.4, which looked too heavy in game (user,
+  25 Nov 2026). Above the border, as the cast bar has it. On the Other Powers row, which is
   cut off just past its border, the spark reaches at most 2 past the bar's top and bottom instead,
   so it is cut nowhere and stays centred. It travels the bar as its border
   shows it, edge to edge, at a constant speed. At five seconds it disappears.

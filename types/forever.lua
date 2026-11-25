@@ -42,6 +42,10 @@ function C_SkillInfo.GetSkillLineInfoByID(ID) end
 ---@type string
 TRAINER_REQ_SKILL_RANK = ""
 
+-- "Have Materials"; Blizzard_ProfessionsTemplates labels the Filter menu's makeable checkbox with it.
+---@type string
+CRAFT_IS_MAKEABLE = ""
+
 -- "%d sec"; Blizzard_AuctionHouseUI formats it with whole seconds.
 ---@type string
 INT_SPELL_DURATION_SEC = ""
@@ -276,7 +280,9 @@ ActionBarButtonRangeCheckFrame = {}
 
 ---@class ProfessionsCraftingPage : Frame
 ---@field SchematicForm ProfessionsRecipeSchematicForm
----@field RecipeList Frame|{ ScrollBox: table }
+---@field RecipeList Frame|{ ScrollBox: table, FilterDropdown: table, NoResultsText: FontString }
+---@field professionInfo table?
+---@field Init fun(self: ProfessionsCraftingPage, professionInfo: table)
 
 ---@class ProfessionsFrame : Frame
 ---@field CraftingPage ProfessionsCraftingPage

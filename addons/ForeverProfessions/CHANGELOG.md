@@ -31,3 +31,6 @@
   craft was saved; characters are now told apart by first name and surname. Each one gets back
   the crafts it recorded before when it next logs in, unless several of your characters with its
   first name had crafts; those stay unclaimed but still count towards your skill-up chances.
+- The professions window's Filter menu has a "Have Some Materials" box, below "Have
+  Materials": it lists only the recipes you carry at least one reagent for. Like the game's own
+  filters, it switches off when the filters are reset.

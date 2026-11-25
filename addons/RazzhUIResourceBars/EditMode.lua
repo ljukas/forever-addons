@@ -3,7 +3,7 @@ local ADDON_NAME, ns = ...
 -- Makes the power bar's holder an Edit Mode box through LibEditMode (fetched into Libs/ by
 -- scripts/libs.sh, loaded namespaced as ns.LibEditMode): drag to place it (snapping like
 -- Blizzard's boxes, Snap.lua), Width and Height sliders, a smooth-fill checkbox and the numbers'
--- dropdown in its dialog, for druids the other-powers row's checkbox and height, and for rogues and
+-- dropdown in its dialog, for classes with mana the regen spark's checkbox, for druids the other-powers row's checkbox and height, and for rogues and
 -- druids the combo points row's. These, with
 -- the position, are kept per Edit Mode layout in RazzhUIResourceBarsDB.powerBar (Database.lua),
 -- like Blizzard's own systems.
@@ -166,6 +166,7 @@ local function Apply(layoutName)
 	ns.PowerText.SetMode(Get(layoutName, "text"))
 	ns.OffFormPower.SetLayout(Get(layoutName, "offForm"), Get(layoutName, "offFormHeight"))
 	ns.ComboPoints.SetLayout(Get(layoutName, "comboPoints"), Get(layoutName, "comboPointsHeight"))
+	ns.RegenSpark.SetEnabled(Get(layoutName, "regenSpark"))
 end
 
 local function Checkbox(key, label, desc)
@@ -287,6 +288,10 @@ ns.OnInitialize(function()
 		Checkbox("smooth", L.SMOOTH, L.SMOOTH_DESC),
 		NumbersDropdown(),
 	}
+	-- Only classes with mana wait for it to regenerate.
+	if ns.RegenSpark.available then
+		table.insert(settings, Checkbox("regenSpark", L.REGEN_SPARK, L.REGEN_SPARK_DESC))
+	end
 	-- Only druids have other powers to show.
 	if ns.OffFormPower.available then
 		table.insert(settings, Checkbox("offForm", L.OFF_FORM, L.OFF_FORM_DESC))

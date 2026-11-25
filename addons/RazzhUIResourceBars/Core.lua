@@ -7,6 +7,7 @@ local ADDON_NAME, ns = ...
 --   POWER           PowerBar.lua, PowerText.lua
 --   COST            CostPrediction.lua
 --   OFFFORM         OffFormPower.lua
+--   REGEN           RegenSpark.lua
 --   COMBO           ComboPoints.lua
 --   SAVE EDITMODE   EditMode.lua
 --   OPTIONS         Options.lua
@@ -41,6 +42,8 @@ ns.L = {
 	NUMBERS_VALUE = "Value",
 	NUMBERS_PERCENT = "Percent",
 	NUMBERS_BOTH = "Both",
+	REGEN_SPARK = "Regen Spark",
+	REGEN_SPARK_DESC = "After a spell spends mana, show a spark that crosses your mana bar in the five seconds before mana regenerates again.",
 	OFF_FORM = "Other Powers",
 	OFF_FORM_DESC = "Show your mana while in a form, and your energy outside Cat Form once you know it, in a row above the bar.",
 	OFF_FORM_HEIGHT = "Other Powers Height",

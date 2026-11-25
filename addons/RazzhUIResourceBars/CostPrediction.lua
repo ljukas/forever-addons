@@ -105,25 +105,12 @@ local function Snap()
 	kept:SetToTargetValue()
 end
 
--- What the spell costs in the given power; 0 when nothing.
-local function CostOf(spellID, powerType)
-	local costs = C_Spell.GetSpellPowerCost(spellID)
-	if costs then
-		for _, info in ipairs(costs) do
-			if info.type == powerType then
-				return info.cost
-			end
-		end
-	end
-	return 0
-end
-
 local function Show(castGUID, spellID)
 	if spent then
 		landing = true
 	end
 	local powerType, powerToken, altR, altG, altB = UnitPowerType("player")
-	local cost = powerType and CostOf(spellID, powerType) or 0
+	local cost = powerType and ns.PowerBar.SpellCost(spellID, powerType) or 0
 	-- A cost is not secret by the API docs; one that is can't be told from none.
 	if issecretvalue(cost) then
 		ns.dev:LogOnce("cost-secret-cost", "COST", "secret", "cost")

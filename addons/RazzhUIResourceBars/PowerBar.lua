@@ -151,6 +151,20 @@ function ns.PowerBar.Art(powerToken, altR, altG, altB)
 	return ATLAS_PREFIX .. "Mana", 1, 1, 1
 end
 
+-- What the spell costs in the given power; 0 when nothing. A cost is not secret by the API docs;
+-- callers check (CostPrediction.lua, RegenSpark.lua).
+function ns.PowerBar.SpellCost(spellID, powerType)
+	local costs = C_Spell.GetSpellPowerCost(spellID)
+	if costs then
+		for _, info in ipairs(costs) do
+			if info.type == powerType then
+				return info.cost
+			end
+		end
+	end
+	return 0
+end
+
 -- The power the bar shows: UnitPowerType's first two results, nil until the client has them.
 local powerType, powerToken
 -- The token the fill wears the art of; false before the first art, since nil is a token too.

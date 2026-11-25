@@ -21,4 +21,4 @@ Delete.lua
 Window.xml
 Loot.lua
 BagButton.lua
-Options.lua
+Options.xml

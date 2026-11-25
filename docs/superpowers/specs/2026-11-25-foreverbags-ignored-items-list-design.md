@@ -55,7 +55,7 @@ Page order: a section header "Ignored items", the list element, then the existin
   the list isn't on screen.
 - **Item data** may not be loaded for an item ID. A row shows the icon at once
   (`C_Item.GetItemIconByID`), and the name and colour through `Item:CreateFromItemID` and
-  `ContinueWithCancelOnItemLoad`, cancelled when the row is reused. An item the client doesn't
+  `ContinueOnItemLoad`, whose callback checks that the row still shows that item. An item the client doesn't
   know at all is shown as its ID and can still be removed.
 - **Order:** by item ID. Names load late, and sorting by them would move rows under the cursor.
 - **Secret values:** none are read. Item IDs come from our own saved data.

@@ -62,6 +62,8 @@ files["addons/ForeverProfessions/**"].globals = {
 
 files["addons/ForeverBags/**"].globals = {
 	"ForeverBagsDB",
+	"ForeverBagsIgnoredListMixin",
+	"ForeverBagsIgnoredRowMixin",
 	"ForeverBagsRowMixin",
 }
 

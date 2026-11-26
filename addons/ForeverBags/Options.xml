@@ -1,0 +1,97 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\..\..\WoW\Data\Interface\AddOns\Blizzard_SharedXML\UI.xsd">
+	<Script file="Options.lua"/>
+
+	<!-- One ignored item on the options page: its icon, its name and a Remove button. The scroll
+	     box stretches it to its width. -->
+	<Frame name="ForeverBagsIgnoredRowTemplate" mixin="ForeverBagsIgnoredRowMixin" enableMouse="true" virtual="true">
+		<Size x="300" y="26"/>
+		<Layers>
+			<Layer level="HIGHLIGHT">
+				<Texture setAllPoints="true">
+					<Color r="1" g="1" b="1" a="0.06"/>
+				</Texture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<Texture parentKey="Icon">
+					<Size x="20" y="20"/>
+					<Anchors>
+						<Anchor point="LEFT" x="4" y="0"/>
+					</Anchors>
+				</Texture>
+				<FontString parentKey="Name" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="false">
+					<Anchors>
+						<Anchor point="LEFT" relativeKey="$parent.Icon" relativePoint="RIGHT" x="8" y="0"/>
+						<!-- Up to the Remove button (80 wide, 4 from the edge). -->
+						<Anchor point="RIGHT" x="-92" y="0"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button parentKey="Remove" inherits="UIPanelButtonTemplate" text="REMOVE">
+				<Size x="80" y="20"/>
+				<Anchors>
+					<Anchor point="RIGHT" x="-4" y="0"/>
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						self:GetParent():OnRemoveClick()
+					</OnClick>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnEnter method="OnEnter"/>
+			<OnLeave function="GameTooltip_Hide"/>
+		</Scripts>
+	</Frame>
+
+	<!-- The element of the options page that lists the ignored items, on a flat dark panel like
+	     the page itself. It starts where the page's setting labels do (37 from the left). Its
+	     height is what the page's own list gives it. -->
+	<Frame name="ForeverBagsIgnoredListTemplate" mixin="ForeverBagsIgnoredListMixin" virtual="true">
+		<Size x="600" y="170"/>
+		<Frames>
+			<Frame parentKey="Inset" useParentLevel="true">
+				<Anchors>
+					<Anchor point="TOPLEFT" x="37" y="0"/>
+					<Anchor point="BOTTOMRIGHT" x="-40" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture setAllPoints="true">
+							<Color r="0" g="0" b="0" a="0.25"/>
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Frame parentKey="ScrollBox" inherits="WowScrollBoxList">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.Inset" x="4" y="-4"/>
+					<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Inset" x="-4" y="4"/>
+				</Anchors>
+			</Frame>
+			<EventFrame parentKey="ScrollBar" inherits="MinimalScrollBar">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.Inset" relativePoint="TOPRIGHT" x="6" y="-4"/>
+					<Anchor point="BOTTOMLEFT" relativeKey="$parent.Inset" relativePoint="BOTTOMRIGHT" x="6" y="4"/>
+				</Anchors>
+			</EventFrame>
+		</Frames>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Empty" inherits="GameFontDisable" hidden="true">
+					<Anchors>
+						<Anchor point="CENTER" relativeKey="$parent.Inset" x="0" y="0"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnLoad method="OnLoad"/>
+			<OnShow method="OnShow"/>
+			<OnHide method="OnHide"/>
+		</Scripts>
+	</Frame>
+</Ui>

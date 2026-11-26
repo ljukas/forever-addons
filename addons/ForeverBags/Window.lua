@@ -81,6 +81,7 @@ end
 
 function ForeverBagsRowMixin:OnItemClick()
 	ns.DB.Ignore(self.entry.itemID)
+	ns.Options.RefreshIgnored()
 	GameTooltip:Hide()
 	Window.Refresh()
 end

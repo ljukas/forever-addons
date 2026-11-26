@@ -33,6 +33,8 @@ ns.L = {
 	IGNORE_HINT = "Click to never list this item again.",
 	BUTTON_TOOLTIP = "Cheapest items",
 	BUTTON_TOOLTIP_TEXT = "Show the items in your bags that are worth the least to a vendor.",
+	IGNORED_ITEMS = "Ignored items",
+	NO_IGNORED_ITEMS = "No ignored items on this character.",
 	RESET_IGNORED = "Reset ignored items",
 	RESET_IGNORED_TOOLTIP = "List every item again, including the ones you clicked to ignore on this character.",
 }

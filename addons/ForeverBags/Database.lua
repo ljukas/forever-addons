@@ -77,6 +77,24 @@ function ns.DB.Ignore(itemID)
 	Ignored()[itemID] = true
 end
 
+function ns.DB.Unignore(itemID)
+	Ignored()[itemID] = nil
+	ns.log("DB", "unignore", itemID)
+end
+
+-- Returns the ignored item IDs as a new list, lowest first.
+function ns.DB.GetIgnored()
+	local itemIDs = {}
+	for itemID in pairs(Ignored()) do
+		-- Only numbers are sorted and shown, should a saved list ever hold another kind of key.
+		if type(itemID) == "number" then
+			table.insert(itemIDs, itemID)
+		end
+	end
+	table.sort(itemIDs)
+	return itemIDs
+end
+
 function ns.DB.ResetIgnored()
 	wipe(Ignored())
 end

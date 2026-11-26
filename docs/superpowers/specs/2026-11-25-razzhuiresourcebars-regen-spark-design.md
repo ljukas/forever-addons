@@ -20,7 +20,8 @@ player can see how long is left before regen resumes (user, 25 Nov 2026).
 - **Look:** the cast bar's spark (`ui-castingbar-pip`), as tall for its bar as the cast bar's: 1.8
   times the bar it is on (8×20 on the 11-high player cast bar, CastingBarFrame.xml). About a seventh as
   wide as it is tall, thinner than the cast bar's 0.4, which looked too heavy in game (user,
-  25 Nov 2026). Above the border, as the cast bar has it. On the Other Powers row, which is
+  25 Nov 2026), and never under 3 wide, so it doesn't thin to a sliver on a low bar (user,
+  26 Nov 2026). Above the border, as the cast bar has it. On the Other Powers row, which is
   cut off just past its border, the spark reaches at most 2 past the bar's top and bottom instead,
   so it is cut nowhere and stays centred. It travels the bar as its border
   shows it, edge to edge, at a constant speed. At five seconds it disappears.

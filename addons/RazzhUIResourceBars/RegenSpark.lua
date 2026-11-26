@@ -33,6 +33,10 @@ local WIDTH_SHARE = 0.15
 -- in the cast bar's proportions would lose its ends there, more below than above.
 local ROW_OVERHANG = 2
 
+-- The spark is never thinner than this: on a low bar its share of the height came to a sliver
+-- (2 wide on the Other Powers row at its default height; user, 2026-11-26).
+local MIN_WIDTH = 3
+
 -- Parented to the bar the spark is on (Host), so it scales, slides and fades with it.
 local spark = CreateFrame("Frame", nil, ns.PowerBar.fill)
 spark:Hide()
@@ -68,7 +72,7 @@ local function Size(barHeight, overhang)
 		height = math.min(height, barHeight + 2 * overhang)
 	end
 	height = math.floor(height + 0.5)
-	return math.max(1, math.floor(height * WIDTH_SHARE + 0.5)), height
+	return math.max(MIN_WIDTH, math.floor(height * WIDTH_SHARE + 0.5)), height
 end
 
 -- How far along a bar this wide the spark is after this long, from the bar's left edge: the fill

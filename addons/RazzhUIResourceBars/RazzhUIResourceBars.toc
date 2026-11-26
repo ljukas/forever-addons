@@ -22,6 +22,7 @@ PowerBar.lua
 PowerText.lua
 CostPrediction.lua
 OffFormPower.lua
+RegenSpark.lua
 ComboPoints.lua
 Snap.lua
 EditMode.lua

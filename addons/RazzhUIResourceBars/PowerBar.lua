@@ -26,6 +26,9 @@ ns.PowerBar.DEFAULTS = {
 	-- A rogue's or Cat Form druid's combo points, in a row on top (ComboPoints.lua).
 	comboPoints = true,
 	comboPointsHeight = 10,
+	-- A spark that crosses the mana bar in the five seconds before mana regenerates again
+	-- (RegenSpark.lua).
+	regenSpark = true,
 }
 
 local DEFAULTS = ns.PowerBar.DEFAULTS
@@ -149,6 +152,20 @@ function ns.PowerBar.Art(powerToken, altR, altG, altB)
 		return ATLAS_PREFIX .. "Mana-Status", altR, altG, altB
 	end
 	return ATLAS_PREFIX .. "Mana", 1, 1, 1
+end
+
+-- What the spell costs in the given power; 0 when nothing. A cost is not secret by the API docs;
+-- callers check (CostPrediction.lua, RegenSpark.lua).
+function ns.PowerBar.SpellCost(spellID, powerType)
+	local costs = C_Spell.GetSpellPowerCost(spellID)
+	if costs then
+		for _, info in ipairs(costs) do
+			if info.type == powerType then
+				return info.cost
+			end
+		end
+	end
+	return 0
 end
 
 -- The power the bar shows: UnitPowerType's first two results, nil until the client has them.

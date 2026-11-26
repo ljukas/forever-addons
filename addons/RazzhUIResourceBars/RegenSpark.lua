@@ -26,7 +26,7 @@ local DURATION = 5
 -- its bar. Thinner for its height than there (0.4), where it read as too heavy on this bar (user,
 -- 2026-11-25).
 local HEIGHT_SHARE = 1.8
-local WIDTH_SHARE = 0.25
+local WIDTH_SHARE = 0.15
 
 -- How far the spark may reach past the top and the bottom of the Other Powers row's bar: the row
 -- is cut off a border's line below it and little more above (OffFormPower.lua's clip), so a spark

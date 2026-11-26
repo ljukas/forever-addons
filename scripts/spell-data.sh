@@ -187,6 +187,8 @@ LC_ALL=C awk -F, -v build="$BUILD" -v weaponOut="$TMP/weapon.lua" '
 		for (i = 1; i <= count; i++) {
 			id = wids[i]
 			if (!(id in classSpell) || (id in normalized) || defense[id] != 2) continue
+			# Plain weapon damage with nothing on top: the line would only repeat the white damage.
+			if (weaponPercent[id] + 0 <= 0 && weaponFlat[id] + 0 <= 0) continue
 			printf "\t[%d] = { percent = %s, flat = %s },\n", id, num(weaponPercent[id] + 0), num(weaponFlat[id] + 0) > weaponOut
 			weapons++
 		}

@@ -221,10 +221,11 @@ function ns.SpellScaling.ExpectedWeaponFlat(flat, percent)
 end
 
 -- The damage range of a weapon damage spell: percent (nil: all) of the white damage range plus flat,
--- rounded down like the game's tooltips.
+-- rounded down like the game's tooltips. It starts from the range as the character sheet and the
+-- line show it (low end rounded down, high end up), so the line's own numbers add up.
 function ns.SpellScaling.WeaponDamage(minDamage, maxDamage, percent, flat)
 	local factor = percent and percent / 100 or 1
-	return math.floor(minDamage * factor + flat), math.floor(maxDamage * factor + flat)
+	return math.floor(math.floor(minDamage) * factor + flat), math.floor(math.ceil(maxDamage) * factor + flat)
 end
 
 -- "154% of 51-65 weapon damage + 41 = 119-141 damage". percent nil and flat 0 leave their part out.

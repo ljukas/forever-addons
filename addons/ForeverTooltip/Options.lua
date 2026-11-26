@@ -12,6 +12,7 @@ ns.Options.DEFAULTS = {
 	cursorAnchor = false,
 	-- Up and right, like Blizzard's own cursor-anchored world tooltips (ANCHOR_CURSOR).
 	cursorDirection = ns.Options.DIRECTION.UP_RIGHT,
+	spellScaling = true,
 }
 
 function ns.Options.Get(key)
@@ -63,4 +64,7 @@ ns.OnInitialize(function()
 	directionInitializer:SetParentInitializer(cursorAnchorInitializer, function()
 		return cursorAnchor:GetValue()
 	end)
+
+	local spellScaling = Register("spellScaling", Settings.VarType.Boolean, L.SPELL_SCALING)
+	Settings.CreateCheckbox(category, spellScaling, L.SPELL_SCALING_TOOLTIP)
 end)

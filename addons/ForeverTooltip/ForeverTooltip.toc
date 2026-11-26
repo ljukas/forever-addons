@@ -14,11 +14,19 @@
 #@end-do-not-package@
 
 Core.lua
+Data/SpellCoefficients.lua
+Data/APCoefficients.lua
+Data/WeaponSpells.lua
 Database.lua
 Logic/LevelLine.lua
 Logic/FactionLine.lua
 Logic/CursorAnchor.lua
+Logic/SpellScaling.lua
 Options.lua
 Colors.lua
 Anchor.lua
 HealthBar.lua
+SpellLine.lua
+#@do-not-package@
+Dev/SpellNumbers.lua
+#@end-do-not-package@

@@ -73,6 +73,12 @@ Confirmed in game (22 November 2026), druid in Cat Form, solo in the open world:
 - `GetComboPoints("player", "target")` is not secret, in or out of combat, despite its
   `SecretWhenUnitPowerRestricted` flag. Points sit on the target, as in Vanilla.
 
+Confirmed in game (27 November 2026), druid casting Regrowth in combat:
+
+- `UNIT_SPELLCAST_START` can fire a second time for a cast under way with a `nil` `castGUID`,
+  though the docs say `Nilable = false`. Never use a `castGUID` as "a cast is active" without
+  checking it for `nil`.
+
 ## Looking up the API (do this before using any API you haven't verified)
 
 `scripts/setup.sh` fetches reference material into `.cache/` (gitignored; lint runs it if missing):

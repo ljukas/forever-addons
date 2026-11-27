@@ -9,6 +9,7 @@
 - Druids see their other powers in the same frame, in a thin row above the power bar: mana while in a form, and energy outside Cat Form once you know it. The row slides up and fades in when it appears, and slides back out when it leaves. Turn the row off or set its height in the bar's Edit Mode dialog.
 - Rogues, and druids in Cat Form, see their combo points on top of the frame while they have a target: five slots that fill as you build points, in the red of the combo points around the target portrait. Turn them off or set their height in the bar's Edit Mode dialog.
 - After a spell spends mana, a spark crosses your mana bar from left to right in the five seconds before mana regenerates again, and reaches the right edge as it does. Druids in a form see it on the mana bar of the Other Powers row. Turn it off with Regen Spark in the bar's Edit Mode dialog.
+- The power bar no longer gets stuck showing a frozen blue bar after casting a spell in combat; it took a reload to clear.
 - Creating a new Edit Mode layout no longer changes where the power bar sits in one of your character-specific layouts.
 - The addon needs RazzhUI installed, and is switched on or off with its checkbox on the RazzhUI page (Options → AddOns → RazzhUI).
 - A Resource Bars page under Options → AddOns → RazzhUI has a button that opens Edit Mode, where the power bar is moved and set up.

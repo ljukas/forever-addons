@@ -210,6 +210,13 @@ events:SetScript("OnEvent", function(_, event, _, castGUID, spellID)
 		return
 	end
 	if event == "UNIT_SPELLCAST_START" then
+		-- The client announces a cast under way a second time without a castGUID, against the API
+		-- docs (in game, 2026-11-27: a Regrowth in combat). The cast shown already is the one it is
+		-- about, and with no castGUID nothing could tell this one's end: the cost would never leave.
+		if castGUID == nil then
+			ns.log("COST", "start without cast", spellID, "showing", activeCast ~= nil)
+			return
+		end
 		Show(castGUID, spellID)
 	elseif castGUID ~= activeCast or spent then
 		-- Another spell tried while this one is cast (its failure says nothing about ours), or the
